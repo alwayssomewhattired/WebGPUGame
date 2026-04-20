@@ -1,0 +1,52 @@
+
+import { initPipeline } from './pipeline.js'
+
+let device = null;
+let shaderModule = null;
+
+export async function initWebGPU() {
+    if (!navigator.gpu) {
+        console.error("WebGPU support is not available");
+        showWarning("WebGPU support is not available. WebGPU compatible browser is needed in order to run this program");
+        throw new Error("WebGPU support is unavailable");
+        return;
+    }
+
+    const adapter = await navigator.gpu.requestAdapter();
+    if(!adapter) {
+        console.error("Failed to find adaptor. Needed to find a device.");
+        return;
+    }
+
+    device = await adapter.requestDevice();
+    if(!device) {
+        console.error("Failed to request device");
+        return;
+    }
+
+    const response = await fetch("./shaders.wgsl");
+    const shaderSource = await response.text();
+
+    shaderModule = device.createShaderModule({
+        label: 'My External Shader',
+        code: shaderSource
+    });
+
+    initPipeline();
+}
+
+export function getDevice() {
+    if(!device) {
+        throw new Error("WebGPU device has not been initialized yet!");
+    }
+
+    return device;
+}
+
+export function getShaderModule() {
+    if (!shaderModule) {
+        throw new Error("Shader module is not initialized!")
+    }
+
+    return shaderModule;
+}
