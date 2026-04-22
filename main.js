@@ -3,6 +3,7 @@ import { initWebGPU } from './webgpu.js';
 import { getDevice } from './webgpu.js';
 import { getPipeline} from './pipeline.js'
 import { getPositionBuffer } from './pipeline.js'
+import { getColorBuffer } from './pipeline.js';
 
 export async function main() {
     console.log("hello");
@@ -10,6 +11,7 @@ export async function main() {
     const device = getDevice();
     const pipeline = getPipeline();
     const positionBuffer = getPositionBuffer();
+    const colorBuffer = getColorBuffer();
 
     const context = canvas.getContext("webgpu");
     const canvasConfig = {
@@ -32,7 +34,8 @@ export async function main() {
     const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
     passEncoder.setPipeline(pipeline);
-    passEncoder.setVertexBuffer(0, positionBuffer)
+    passEncoder.setVertexBuffer(0, positionBuffer);
+    passEncoder.setVertexBuffer(1, colorBuffer);
     passEncoder.draw(3, 1);
     passEncoder.end();  
     device.queue.submit([commandEncoder.finish()]);
