@@ -3,8 +3,7 @@ import { getDevice } from "./webgpu.js"
 import { getShaderModule} from './webgpu.js'
 
 let m_pipeline = null;
-let m_positionBuffer = null;
-let m_colorBuffer = null;
+let m_positionColorBuffer = null;
 
 function createGPUBuffer(device, buffer, usage) {
     const bufferDesc = {
@@ -55,59 +54,35 @@ export function initPipeline() {
         format: 'float32x3'
     };
 
-    const positionBufferLayoutDesc = {
-        attributes: [positionAttribDesc],
-        arrayStride: 4 * 3, // sizeof float * 3
-        stepMode: 'vertex'
-    };
-
-    const positions = new Float32Array([
-        1.0, -1.0, 0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0
-    ]);
-
-    const positionBufferDesc = {
-        size: positions.byteLength,
-        usage: GPUBufferUsage.VERTEX,
-        mappedAtCreation: true
-    };
-
-    m_positionBuffer = device.createBuffer(positionBufferDesc);
-    const writeArray = new Float32Array(m_positionBuffer.getMappedRange());
-    writeArray.set(positions);
-    m_positionBuffer.unmap();
-
     const colorAttribDesc = {
         shaderLocation: 1,
-        offset: 0,
+        offset: 4 * 3,
         format: 'float32x3'
     }
 
-    const colorBufferLayoutDesc = {
-        attributes: [colorAttribDesc],
-        arrayStride: 4 * 3,
+    const positionColorBufferLayoutDesc = {
+        attributes: [positionAttribDesc, colorAttribDesc],
+        arrayStride: 4 * 6, // sizeof(float) * 3
         stepMode: 'vertex'
-    }
+    };
 
-    const colors = new Float32Array([
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0
+    const positionColors = new Float32Array([
+        1.0, -1.0, 0.0, // position
+        1.0, 0.0, 0.0, // 🔴
+        -1.0, -1.0, 0.0, 
+        0.0, 1.0, 0.0, // 🟢
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0 // 🔵
     ]);
 
-    m_colorBuffer = createGPUBuffer(device, colors, GPUBufferUsage.VERTEX);
+    m_positionColorBuffer = createGPUBuffer(device, positionColors, GPUBufferUsage.VERTEX);
 
     const pipelineDesc = {
         layout,
         vertex: {
             module: shaderModule,
             entryPoint: 'vs_main',
-            buffers: [positionBufferLayoutDesc, colorBufferLayoutDesc]
+            buffers: [positionColorBufferLayoutDesc]
         },
         fragment: {
             module: shaderModule,
@@ -132,18 +107,10 @@ export function getPipeline() {
     return m_pipeline;
 }
 
-export function getPositionBuffer() {
-    if (!m_positionBuffer) {
-        throw new Error("Position buffer is unavailable!");
+export function getPositionColorBuffer() {
+    if (!m_positionColorBuffer) {
+        throw new Error("Position } Color buffer is unavailable!");
     }
 
-    return m_positionBuffer;
-}
-
-export function getColorBuffer() {
-    if (!m_colorBuffer) {
-        throw new Error("Color buffer is unavailable!");
-    }
-
-    return m_colorBuffer;
+    return m_positionColorBuffer;
 }
