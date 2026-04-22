@@ -1,5 +1,4 @@
 
-import { initPipeline } from './pipeline.js'
 
 let device = null;
 let shaderModule = null;
@@ -31,8 +30,7 @@ export async function initWebGPU() {
         label: 'My External Shader',
         code: shaderSource
     });
-
-    initPipeline();
+    
 }
 
 export function getDevice() {

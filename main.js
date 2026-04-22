@@ -3,14 +3,18 @@ import { initWebGPU } from './webgpu.js';
 import { getDevice } from './webgpu.js';
 import { getPipeline} from './pipeline.js'
 import { getPositionColorBuffer } from './pipeline.js';
+import { initUniformBuffer } from './uniform.js'
+import { getUniformBindGroup } from './uniform.js';
+import { initPipeline } from './pipeline.js'
 
 export async function main() {
-    console.log("hello");
     await initWebGPU();
+    initUniformBuffer();
+    initPipeline();
     const device = getDevice();
     const pipeline = getPipeline();
     const positionColorBuffer = getPositionColorBuffer();
-
+    const uniformBindGroup = getUniformBindGroup();
     const context = canvas.getContext("webgpu");
     const canvasConfig = {
         device: device,
@@ -33,6 +37,7 @@ export async function main() {
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
     passEncoder.setPipeline(pipeline);
     passEncoder.setVertexBuffer(0, positionColorBuffer);
+    passEncoder.setBindGroup(0, uniformBindGroup);
     passEncoder.draw(3, 1);
     passEncoder.end();  
     device.queue.submit([commandEncoder.finish()]);
