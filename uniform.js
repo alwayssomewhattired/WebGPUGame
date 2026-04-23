@@ -1,4 +1,7 @@
 
+// const glMatrix = require('gl-matrix')\
+import * as glMatrix from 'gl-matrix';
+
 import { createGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
 
@@ -9,12 +12,15 @@ let m_sampler = null
 
 export function initUniformBuffer() {
     const device = getDevice();
-    const uniformData = new Float32Array([ 0.1, 0.1, 0.1])
-
     const texture = getTexture();
     const sampler = getSampler();
+    
+    let translateMatrix = glMatrix.mat4.fromTranslation(
+        glMatrix.mat4.create(), 
+        glMatrix.vec3.fromValues(-0.5, -0.5, 0.0)
+    );
 
-    let uniformBuffer = createGPUBuffer(device, uniformData, GPUBufferUsage.UNIFORM);
+    let uniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
 
     m_uniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -83,12 +89,6 @@ export async function initTextures() {
         minFilter: 'linear',
         minmapFilter: 'linear',
     });
-
-    if (!m_texture || !m_sampler) {
-        throw new Error("texture and/or sampler are null");
-    } else {
-        console.log("Halleluyaj");
-    }
 
 }
 

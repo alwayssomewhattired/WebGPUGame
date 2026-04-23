@@ -2,6 +2,13 @@
     <body>
        <canvas id="canvas" width="1500" height="700"></canvas> 
     </body>
+    <script type="importmap">
+        {
+            "imports": {
+                "gl-matrix": "./node_modules/gl-matrix/esm/index.js"
+            }
+        }
+    </script>
     <script type="module">
         import { main } from "./main.js";
         main();
