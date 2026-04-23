@@ -15,12 +15,31 @@ export function initUniformBuffer() {
     const texture = getTexture();
     const sampler = getSampler();
     
-    let translateMatrix = glMatrix.mat4.fromTranslation(
-        glMatrix.mat4.create(), 
-        glMatrix.vec3.fromValues(-0.5, -0.5, 0.0)
+    // let translateMatrix = glMatrix.mat4.fromTranslation(
+    //     glMatrix.mat4.create(), 
+    //     glMatrix.vec3.fromValues(-0.5, -0.5, 0.0)
+    // );
+
+    // let uniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
+
+    let transformationMatrix = glMatrix.mat4.lookAt(
+        glMatrix.mat4.create(),
+        glMatrix.vec3.fromValues(5, 5, 5),
+        glMatrix.vec3.fromValues(0, 0, 0),
+        glMatrix.vec3.fromValues(0.0, 0.0, 1.0)
     );
 
-    let uniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
+    let projectionMatrix = glMatrix.mat4.perspective(
+        glMatrix.mat4.create(),
+        0.785,
+        1500.0 / 700.0,
+        0.1,
+        1000.0
+    );
+    
+
+    let transformationMatrixUniformBuffer = createGPUBuffer(device, transformationMatrix, GPUBufferUsage.UNIFORM);
+    let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
 
     m_uniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -31,11 +50,16 @@ export function initUniformBuffer() {
             },
             {
                 binding: 1,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 2,
                 visibility: GPUShaderStage.FRAGMENT,
                 texture: {}
             },
             {
-                binding: 2,
+                binding: 3,
                 visibility: GPUShaderStage.FRAGMENT,
                 sampler: {}
             }
@@ -48,15 +72,21 @@ export function initUniformBuffer() {
             {
                 binding: 0,
                 resource: {
-                    buffer: uniformBuffer
+                    buffer: transformationMatrixUniformBuffer
                 }
             },
             {
                 binding: 1,
-                resource: texture.createView()
+                resource: {
+                    buffer: projectionMatrixUniformBuffer
+                }
             },
             {
                 binding: 2,
+                resource: texture.createView()
+            },
+            {
+                binding: 3,
                 resource: sampler
             }
         ]
