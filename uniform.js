@@ -24,7 +24,7 @@ export function initUniformBuffer() {
 
     let transformationMatrix = glMatrix.mat4.lookAt(
         glMatrix.mat4.create(),
-        glMatrix.vec3.fromValues(100, 100, 100),
+        glMatrix.vec3.fromValues(350, 350, 350),
         glMatrix.vec3.fromValues(0, 0, 0),
         glMatrix.vec3.fromValues(0.0, 0.0, 1.0)
     );
