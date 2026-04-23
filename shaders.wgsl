@@ -4,17 +4,17 @@ var<uniform> offset: vec3<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
-    @location(0) color: vec3<f32>,
+    @location(0) tex_coords: vec2<f32>,
 };
 
 @vertex
 fn vs_main(
     @location(0) inPos: vec3<f32>,
-    @location(1) inColor: vec3<f32>,
+    @location(1) inTexCoords: vec2<f32>,
 ) -> VertexOutput {
     var out: VertexOutput;
     out.clip_position = vec4<f32>(inPos + offset, 1.0);
-    out.color = inColor;
+    out.tex_coords = inTexCoords;
     return out;
 }
 

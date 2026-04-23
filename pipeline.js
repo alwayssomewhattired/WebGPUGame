@@ -5,11 +5,12 @@ import { createGPUBuffer } from './buffer.js'
 import { getUniformBindGroupLayout } from '/uniform.js'
 
 let m_pipeline = null;
-let m_positionColorBuffer = null;
+let m_positionBuffer = null;
+let m_texCoordsBuffer = null
 
 export function initPipeline() {
     const device = getDevice();
-    const shaderModule = getShaderModule();
+    const shaderModule = shaderModuleFromCode(device, 'shader');
     const uniformBindGroupLayout = getUniformBindGroupLayout();
     
     const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
@@ -25,35 +26,51 @@ export function initPipeline() {
         format: 'float32x3'
     };
 
-    const colorAttribDesc = {
-        shaderLocation: 1,
-        offset: 4 * 3,
-        format: 'float32x3'
-    }
-
-    const positionColorBufferLayoutDesc = {
-        attributes: [positionAttribDesc, colorAttribDesc],
-        arrayStride: 4 * 6, // sizeof(float) * 3
+    const positionBufferLayoutDesc = {
+        attributes: [positionAttribDesc],
+        arrayStride: 4 * 3, // sizeof(float) * elements
         stepMode: 'vertex'
     };
 
-    const positionColors = new Float32Array([
-        1.0, -1.0, 0.0, // position
-        1.0, 0.0, 0.0, // 🔴
-        -1.0, -1.0, 0.0, 
-        0.0, 1.0, 0.0, // 🟢
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0 // 🔵
+    const positions = new Float32Array([
+        1.0, -1.0, 0.0,
+        -1.0, -1.0, 0.0,
+        0.0, 1.0, 0.0
     ]);
 
-    m_positionColorBuffer = createGPUBuffer(device, positionColors, GPUBufferUsage.VERTEX);
+    m_positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+    const texCoordsAttribDesc = {
+        shaderLocation: 1,
+        offset: 0,
+        format: 'float32x2'
+    };
+
+    const texCoordsBufferLayoutDesc = {
+        attributes: [texCoordsAttribDesc],
+        arrayStride: 4 * 2,
+        stepMode: 'vertex'
+    };
+
+    const texCoords = new Float32Array([
+        1.0,
+        1.0,
+
+        0.0,
+        1.0,
+        
+        0.5,
+        0.0,
+    ]);
+
+    m_texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX)
 
     const pipelineDesc = {
         layout,
         vertex: {
             module: shaderModule,
             entryPoint: 'vs_main',
-            buffers: [positionColorBufferLayoutDesc]
+            buffers: [positionBufferLayoutDesc]
         },
         fragment: {
             module: shaderModule,
@@ -78,10 +95,18 @@ export function getPipeline() {
     return m_pipeline;
 }
 
-export function getPositionColorBuffer() {
-    if (!m_positionColorBuffer) {
-        throw new Error("Position } Color buffer is unavailable!");
+export function getPositionBuffer() {
+    if (!m_positionBuffer) {
+        throw new Error("Position buffer is unavailable!");
     }
 
-    return m_positionColorBuffer;
+    return m_positionBuffer;
+}
+
+export function getTexCoordsBuffer() {
+    if (!m_texCoordsBuffer) {
+        throw new Error("Tex Coords buffer is unavailable!");
+    }
+
+    return m_texCoordsBuffer;
 }

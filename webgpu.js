@@ -27,7 +27,7 @@ export async function initWebGPU() {
     const shaderSource = await response.text();
 
     shaderModule = device.createShaderModule({
-        label: 'My External Shader',
+        label: 'shader',
         code: shaderSource
     });
     
