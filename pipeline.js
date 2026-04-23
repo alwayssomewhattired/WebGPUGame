@@ -33,9 +33,10 @@ export function initPipeline() {
     };
 
     const positions = new Float32Array([
-        1.0, -1.0, 0.0,
-        -1.0, -1.0, 0.0,
-        0.0, 1.0, 0.0
+        100.0, -100.0, 0.0,
+        100.0, 100.0, 0.0,
+        -100.0, -100.0, 0.0,
+        -100.0, 100.0, 0.0
     ]);
 
     m_positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
@@ -54,13 +55,16 @@ export function initPipeline() {
 
     const texCoords = new Float32Array([
         1.0,
+        0.0,
+
+        1.0,
         1.0,
 
         0.0,
-        1.0,
-        
-        0.5,
         0.0,
+        
+        0.0,
+        1.0,
     ]);
 
     m_texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX)
@@ -78,9 +82,9 @@ export function initPipeline() {
             targets: [colorState]
         },
         primitive: {
-            topology: 'triangle-list',
-            frontFace: 'cw',
-            cullMode: 'back'
+            topology: 'triangle-strip',
+            frontFace: 'ccw',
+            cullMode: 'none'
         }
     };
    

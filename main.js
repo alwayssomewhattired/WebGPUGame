@@ -43,7 +43,7 @@ export async function main() {
     passEncoder.setVertexBuffer(0, positionBuffer);
     passEncoder.setVertexBuffer(1, texCoordsBuffer);
     passEncoder.setBindGroup(0, uniformBindGroup);
-    passEncoder.draw(3, 1);
+    passEncoder.draw(4, 1);
     passEncoder.end();  
     device.queue.submit([commandEncoder.finish()]);
 

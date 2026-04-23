@@ -24,14 +24,14 @@ export function initUniformBuffer() {
 
     let transformationMatrix = glMatrix.mat4.lookAt(
         glMatrix.mat4.create(),
-        glMatrix.vec3.fromValues(5, 5, 5),
+        glMatrix.vec3.fromValues(100, 100, 100),
         glMatrix.vec3.fromValues(0, 0, 0),
         glMatrix.vec3.fromValues(0.0, 0.0, 1.0)
     );
 
     let projectionMatrix = glMatrix.mat4.perspective(
         glMatrix.mat4.create(),
-        0.785,
+        1.4,
         1500.0 / 700.0,
         0.1,
         1000.0
