@@ -11,7 +11,7 @@ import { initTextures } from './uniform.js';
 
 export async function main() {
     await initWebGPU();
-    initTextures();
+    await initTextures();
     initUniformBuffer();
     initPipeline();
     const device = getDevice();

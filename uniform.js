@@ -63,16 +63,18 @@ export async function initTextures() {
     const response = await fetch('./textures/Grass_Texture.png');
     const blob = await response.blob();
     const imgBitmap = await createImageBitmap(blob);
-
+    
     const textureDescriptor = {
         size: { width: imgBitmap.width, height: imgBitmap.height },
         format: 'rgba8unorm',
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
     };
-
+    
     m_texture = device.createTexture(textureDescriptor);
+    const texture = m_texture;
 
-    device.queue.copyExternalImageToTexture({ source: imgBitmap }, { m_texture }, textureDescriptor.size);
+    device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
+    imgBitmap.close();
 
     m_sampler = device.createSampler({
         addressModeU: 'repeat',

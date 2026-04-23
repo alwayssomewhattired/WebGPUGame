@@ -10,7 +10,7 @@ let m_texCoordsBuffer = null
 
 export function initPipeline() {
     const device = getDevice();
-    const shaderModule = shaderModuleFromCode(device, 'shader');
+    const shaderModule = getShaderModule();
     const uniformBindGroupLayout = getUniformBindGroupLayout();
     
     const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
@@ -70,7 +70,7 @@ export function initPipeline() {
         vertex: {
             module: shaderModule,
             entryPoint: 'vs_main',
-            buffers: [positionBufferLayoutDesc]
+            buffers: [positionBufferLayoutDesc, texCoordsBufferLayoutDesc]
         },
         fragment: {
             module: shaderModule,
