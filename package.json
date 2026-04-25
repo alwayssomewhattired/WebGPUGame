@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "gl-matrix": "^3.4.4"
+    "gl-matrix": "^3.4.4",
+    "obj-file-parser": "^0.6.2"
   }
 }

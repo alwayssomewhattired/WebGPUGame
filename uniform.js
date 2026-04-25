@@ -1,5 +1,4 @@
 
-// const glMatrix = require('gl-matrix')\
 import * as glMatrix from 'gl-matrix';
 
 import { createGPUBuffer } from './buffer.js'
@@ -24,7 +23,7 @@ export function initUniformBuffer() {
 
     let transformationMatrix = glMatrix.mat4.lookAt(
         glMatrix.mat4.create(),
-        glMatrix.vec3.fromValues(350, 350, 350),
+        glMatrix.vec3.fromValues(20, 20, 20),
         glMatrix.vec3.fromValues(0, 0, 0),
         glMatrix.vec3.fromValues(0.0, 0.0, 1.0)
     );
