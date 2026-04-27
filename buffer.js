@@ -1,9 +1,12 @@
 
-import * as objParser from './node_modules/obj-file-parser/dist/OBJFile.js'
+import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js';
+import * as glMatrix from 'gl-matrix';
+
 
 let m_positionBuffer = null;
 let m_indexBuffer = null;
 let m_indexBufferSize = null;
+let m_normalBuffer = null;
 
 export function createGPUBuffer(device, buffer, usage) {
     const bufferDesc = {
@@ -37,7 +40,7 @@ export function createGPUBuffer(device, buffer, usage) {
 
 }
 
-export function createPositionBuffer(obj, device) {
+export function createModelBuffer(obj, device) {
     let positions = [];
 
     for (let v of obj.result.models[0].vertices) {
@@ -50,6 +53,89 @@ export function createPositionBuffer(obj, device) {
 
     m_positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
 
+    let faces = obj.result.models[0].faces;
+    let faceCount = faces.length;
+    let vertexCount = 0;
+    for (let f of faces) {
+        for (let v of f.vertices) {
+            vertexCount++;
+        }
+    }
+
+    let indices = [];
+    let normals = Array(vertexCount * 3).fill(0);
+    let xOffset;
+    let yOffset;
+    let zOffset;
+    let minX;
+    let maxX;
+    let minY;
+    let maxY;
+    let minZ;
+    let maxZ;
+
+    for (let f of faces) {
+        let points = [];
+        let facet_indices = [];
+        for (let v of f.vertices) {
+            const index = v.vertexIndex - 1;
+            indices.push(index);
+
+            xOffset = positions[index * 3];
+            yOffset = positions[index * 3 + 1];
+            zOffset = positions[index * 3 + 2];
+
+            const vertex = glMatrix.vec3.fromValues(
+                xOffset,
+                yOffset,
+                zOffset
+            );
+
+            minX = Math.min(xOffset, minX);
+            maxX = Math.max(xOffset, maxX);
+
+            minY = Math.min(yOffset, minY);
+            maxY = Math.max(yOffset, maxY);
+
+            minZ = Math.min(zOffset, minZ);
+            maxZ = Math.max(zOffset, maxZ);
+
+            points.push(vertex);
+            facet_indices.push(index);
+        }
+
+        const v1 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[1], points[0]);
+        const v2 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[2], points[0]);
+        const cross = glMatrix.vec3.cross(glMatrix.vec3.create(), v1, v2);
+        const normal = glMatrix.vec3.normalize(glMatrix.vec3.create(), cross);
+
+        for (let i of facet_indices) {
+            normals[i * 3] += normal[0];
+            normals[i * 3 + 1] += normal[1];
+            normals[i * 3 + 2] += normal[2];
+            
+        }
+        // console.log(facet_indices);
+    }
+    
+    normals = new Float32Array(normals);
+    console.log(normals); //2555
+    m_normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);
+
+    indices = new Uint16Array(indices);
+    m_indexBufferSize = indices.length;
+
+    m_indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
+
+        for (let f of obj.result.models[0].faces) {
+        let points = [];
+        let facet_indices = [];
+        for (let v of f.vertices) {
+            const index = v.vertexIndex - 1;
+
+            const vertex = glMatrix.vec3.fromValues(positions)
+        }
+    }
 }
 
 export function getPositionBuffer() {
@@ -60,21 +146,6 @@ export function getPositionBuffer() {
     return m_positionBuffer;
 }
 
-export function createIndexBuffer(obj, device) {
-    let indices = [];
-
-    for (let f of obj.result.models[0].faces) {
-        for (let v of f.vertices) {
-            indices.push(v.vertexIndex - 1);
-        }
-    }
-
-    indices = new Uint16Array(indices);
-    m_indexBufferSize = indices.length;
-
-    m_indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
-
-}
 
 export function getIndexBuffer() {
     if (!m_indexBuffer) {
@@ -90,4 +161,12 @@ export function getIndexBufferSize() {
     }
 
     return m_indexBufferSize;
+}
+
+export function getNormalBuffer() {
+    if (!m_normalBuffer) {
+        throw new Error("normalBuffer is not initialized!");
+    }
+
+    return m_normalBuffer;
 }

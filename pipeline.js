@@ -3,9 +3,10 @@ import { getDevice } from "./webgpu.js"
 import { getShaderModule} from './webgpu.js'
 import { createGPUBuffer } from './buffer.js'
 import { getUniformBindGroupLayout } from '/uniform.js'
+import { getPositionBuffer } from './buffer.js'
+import { getIndexBuffer } from "./buffer.js"
 
 let m_pipeline = null;
-let m_positionBuffer = null;
 let m_texCoordsBuffer = null
 
 export function initPipeline() {
@@ -32,21 +33,7 @@ export function initPipeline() {
         stepMode: 'vertex'
     };
 
-    const positions = new Float32Array([
-        -100.0, 100.0, 0.0,
-        -100.0, 100.0, 200.0,
-        
-        100.0, 100.0, 0.0,
-        100.0, 100.0, 200.0,
-        
-        100.0, -100.0, 0.0,
-        100.0, -100.0, 200.0,
-        
-        -100.0, -100.0, 0.0,
-        -100.0, -100.0, 200.0,
-    ]);
-
-    m_positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+    const positionBuffer = getPositionBuffer();
 
     const texCoordsAttribDesc = {
         shaderLocation: 1,
@@ -76,13 +63,25 @@ export function initPipeline() {
 
     m_texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX)
 
+    const normalAttribDesc = {
+        shaderLocation: 2,
+        offset: 0,
+        format: 'float32x3'
+    };
+
+    const normalBufferLayoutDesc = {
+        attributes: [normalAttribDesc],
+        arrayStride: 4 * 3,
+        stepMode: 'vertex'
+    };
+
 
     const pipelineDesc = {
         layout,
         vertex: {
             module: shaderModule,
             entryPoint: 'vs_main',
-            buffers: [positionBufferLayoutDesc, texCoordsBufferLayoutDesc]
+            buffers: [positionBufferLayoutDesc, texCoordsBufferLayoutDesc, normalBufferLayoutDesc]
         },
         fragment: {
             module: shaderModule,
@@ -111,14 +110,6 @@ export function getPipeline() {
     }
 
     return m_pipeline;
-}
-
-export function getPositionBuffer() {
-    if (!m_positionBuffer) {
-        throw new Error("Position buffer is unavailable!");
-    }
-
-    return m_positionBuffer;
 }
 
 export function getTexCoordsBuffer() {

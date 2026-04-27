@@ -3,6 +3,7 @@ import * as glMatrix from 'gl-matrix';
 
 import { createGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
+import { getNormalBuffer } from './buffer.js'
 
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
@@ -21,7 +22,7 @@ export function initUniformBuffer() {
 
     // let uniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
 
-    let transformationMatrix = glMatrix.mat4.lookAt(
+    let modelViewMatrix = glMatrix.mat4.lookAt(
         glMatrix.mat4.create(),
         glMatrix.vec3.fromValues(20, 20, 20),
         glMatrix.vec3.fromValues(0, 0, 0),
@@ -35,10 +36,15 @@ export function initUniformBuffer() {
         0.1,
         1000.0
     );
-    
 
-    let transformationMatrixUniformBuffer = createGPUBuffer(device, transformationMatrix, GPUBufferUsage.UNIFORM);
+    let normalMatrix = glMatrix.mat4.create();
+    glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
+    glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+
+
+    let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM);
     let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
+    let normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, GPUBufferUsage.UNIFORM);
 
     m_uniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -54,11 +60,16 @@ export function initUniformBuffer() {
             },
             {
                 binding: 2,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: { type: 'uniform'}
+            },
+            {
+                binding: 3,
                 visibility: GPUShaderStage.FRAGMENT,
                 texture: {}
             },
             {
-                binding: 3,
+                binding: 4,
                 visibility: GPUShaderStage.FRAGMENT,
                 sampler: {}
             }
@@ -71,7 +82,7 @@ export function initUniformBuffer() {
             {
                 binding: 0,
                 resource: {
-                    buffer: transformationMatrixUniformBuffer
+                    buffer: modelViewMatrixUniformBuffer
                 }
             },
             {
@@ -82,10 +93,16 @@ export function initUniformBuffer() {
             },
             {
                 binding: 2,
-                resource: texture.createView()
+                resource: {
+                    buffer: normalMatrixUniformBuffer
+                }
             },
             {
                 binding: 3,
+                resource: texture.createView()
+            },
+            {
+                binding: 4,
                 resource: sampler
             }
         ]
