@@ -115,11 +115,9 @@ export function createModelBuffer(obj, device) {
             normals[i * 3 + 2] += normal[2];
             
         }
-        // console.log(facet_indices);
     }
     
     normals = new Float32Array(normals);
-    console.log(normals); //2555
     m_normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);
 
     indices = new Uint16Array(indices);

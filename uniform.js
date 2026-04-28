@@ -4,30 +4,34 @@ import * as glMatrix from 'gl-matrix';
 import { createGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
 import { getNormalBuffer } from './buffer.js'
+import { render } from './renderer.js';
 
+let m_modelMatrixUBO = null;
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
+let m_angle = 0;
+let m_lastTime = 0;
 
 export function initUniformBuffer() {
     const device = getDevice();
     const texture = getTexture();
     const sampler = getSampler();
-    
-    // let translateMatrix = glMatrix.mat4.fromTranslation(
-    //     glMatrix.mat4.create(), 
-    //     glMatrix.vec3.fromValues(-0.5, -0.5, 0.0)
-    // );
 
-    // let uniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
+    let modelMatrix = glMatrix.mat4.create();
+    // glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, 0.5);
+    // glMatrix.mat4.rotateX(modelMatrix, modelMatrix, 50.5);
 
-    let modelViewMatrix = glMatrix.mat4.lookAt(
+    let viewMatrix = glMatrix.mat4.lookAt(
         glMatrix.mat4.create(),
         glMatrix.vec3.fromValues(20, 20, 20),
         glMatrix.vec3.fromValues(0, 0, 0),
         glMatrix.vec3.fromValues(0.0, 0.0, 1.0)
     );
+
+    let modelViewMatrix = glMatrix.mat4.create();
+    glMatrix.mat4.multiply(modelViewMatrix, modelMatrix, viewMatrix);
 
     let projectionMatrix = glMatrix.mat4.perspective(
         glMatrix.mat4.create(),
@@ -41,8 +45,14 @@ export function initUniformBuffer() {
     glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
     glMatrix.mat4.transpose(normalMatrix, normalMatrix);
 
+    let lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
+    const lightDirectionUBO = createGPUBuffer(device, lightDirectionBuffer, GPUBufferUsage.UNIFORM);
+    let viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
+    const viewDirectionUBO = createGPUBuffer(device, viewDirectionBuffer, GPUBufferUsage.UNIFORM);
 
-    let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM);
+    m_modelMatrixUBO = createGPUBuffer(device, modelMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    let viewMatrixUBO = createGPUBuffer(device, viewMatrix, GPUBufferUsage.UNIFORM);
+    // let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM);
     let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
     let normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, GPUBufferUsage.UNIFORM);
 
@@ -61,18 +71,33 @@ export function initUniformBuffer() {
             {
                 binding: 2,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: { type: 'uniform'}
+                buffer: {}
             },
             {
                 binding: 3,
-                visibility: GPUShaderStage.FRAGMENT,
-                texture: {}
+                visibility: GPUShaderStage.VERTEX,
+                buffer: { type: 'uniform'}
             },
             {
                 binding: 4,
                 visibility: GPUShaderStage.FRAGMENT,
+                texture: {}
+            },
+            {
+                binding: 5,
+                visibility: GPUShaderStage.FRAGMENT,
                 sampler: {}
-            }
+            },
+            {
+                binding: 6,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 7,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
         ]
     });
 
@@ -82,32 +107,74 @@ export function initUniformBuffer() {
             {
                 binding: 0,
                 resource: {
-                    buffer: modelViewMatrixUniformBuffer
+                    buffer: m_modelMatrixUBO
                 }
             },
             {
                 binding: 1,
                 resource: {
-                    buffer: projectionMatrixUniformBuffer
+                    buffer: viewMatrixUBO
                 }
             },
             {
                 binding: 2,
                 resource: {
-                    buffer: normalMatrixUniformBuffer
+                    buffer: projectionMatrixUniformBuffer
                 }
             },
             {
                 binding: 3,
-                resource: texture.createView()
+                resource: {
+                    buffer: normalMatrixUniformBuffer
+                }
             },
             {
                 binding: 4,
+                resource: texture.createView()
+            },
+            {
+                binding: 5,
                 resource: sampler
-            }
+            },
+            {
+                binding: 6,
+                resource: {
+                    buffer: lightDirectionUBO
+                }
+            },
+            {
+                binding: 7,
+                resource: {
+                    buffer: viewDirectionUBO
+                }
+            },
         ]
     });
 
+}
+
+export function frame(time) {
+    // console.log(time);
+    const device = getDevice();
+    const deltaTime = (time - m_lastTime) / 1000;
+    m_lastTime = time;
+    updateAngle(deltaTime);
+
+    const modelMatrix = glMatrix.mat4.create();    
+    glMatrix.mat4.rotateX(modelMatrix, modelMatrix, 1.5);
+    glMatrix.mat4.rotateY(modelMatrix, modelMatrix, m_angle);
+    const scalingVector = glMatrix.vec3.fromValues(0.5, 0.5, 0.5);
+    glMatrix.mat4.scale(modelMatrix, modelMatrix, scalingVector);
+
+    device.queue.writeBuffer(m_modelMatrixUBO, 0, modelMatrix);
+
+    render();
+
+    requestAnimationFrame(frame);
+}
+
+function updateAngle(deltaTime) {
+    m_angle += deltaTime;
 }
 
 export async function initTextures() {
