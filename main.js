@@ -8,7 +8,7 @@ import { initPipeline } from './pipeline.js'
 import { initDepthStencil } from './depth_stencil.js';
 import { initFileParser } from './fileParser.js';
 import { getModel } from './fileParser.js';
-import { frame } from './uniform.js';
+import { frame } from './frame.js';
 import { render } from './renderer.js';
 
 import { 

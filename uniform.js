@@ -5,56 +5,59 @@ import { createGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
 import { getNormalBuffer } from './buffer.js'
 import { render } from './renderer.js';
+import { updateMouse, updatePosition, updateViewTransform } from './camera.js';
+import { keyboardInput } from "./keyboardListeners.js";
+
 
 let m_modelMatrixUBO = null;
+let m_viewMatrixUBO = null;
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
 let m_angle = 0;
-let m_lastTime = 0;
 
 export function initUniformBuffer() {
     const device = getDevice();
     const texture = getTexture();
     const sampler = getSampler();
 
-    let modelMatrix = glMatrix.mat4.create();
+    const modelMatrix = glMatrix.mat4.create();
     // glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, 0.5);
     // glMatrix.mat4.rotateX(modelMatrix, modelMatrix, 50.5);
 
-    let viewMatrix = glMatrix.mat4.lookAt(
+    const viewMatrix = glMatrix.mat4.lookAt(
         glMatrix.mat4.create(),
         glMatrix.vec3.fromValues(20, 20, 20),
         glMatrix.vec3.fromValues(0, 0, 0),
         glMatrix.vec3.fromValues(0.0, 0.0, 1.0)
     );
 
-    let modelViewMatrix = glMatrix.mat4.create();
+    const modelViewMatrix = glMatrix.mat4.create();
     glMatrix.mat4.multiply(modelViewMatrix, modelMatrix, viewMatrix);
 
-    let projectionMatrix = glMatrix.mat4.perspective(
+    const projectionMatrix = glMatrix.mat4.perspective(
         glMatrix.mat4.create(),
-        1.4,
+        1.0,
         1500.0 / 700.0,
         0.1,
         1000.0
     );
 
-    let normalMatrix = glMatrix.mat4.create();
+    const normalMatrix = glMatrix.mat4.create();
     glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
     glMatrix.mat4.transpose(normalMatrix, normalMatrix);
 
-    let lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
+    const lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
     const lightDirectionUBO = createGPUBuffer(device, lightDirectionBuffer, GPUBufferUsage.UNIFORM);
-    let viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
+    const viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
     const viewDirectionUBO = createGPUBuffer(device, viewDirectionBuffer, GPUBufferUsage.UNIFORM);
 
     m_modelMatrixUBO = createGPUBuffer(device, modelMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-    let viewMatrixUBO = createGPUBuffer(device, viewMatrix, GPUBufferUsage.UNIFORM);
+    m_viewMatrixUBO = createGPUBuffer(device, viewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     // let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM);
-    let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
-    let normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, GPUBufferUsage.UNIFORM);
+    const projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
+    const normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, GPUBufferUsage.UNIFORM);
 
     m_uniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -113,7 +116,7 @@ export function initUniformBuffer() {
             {
                 binding: 1,
                 resource: {
-                    buffer: viewMatrixUBO
+                    buffer: m_viewMatrixUBO
                 }
             },
             {
@@ -153,29 +156,7 @@ export function initUniformBuffer() {
 
 }
 
-export function frame(time) {
-    // console.log(time);
-    const device = getDevice();
-    const deltaTime = (time - m_lastTime) / 1000;
-    m_lastTime = time;
-    updateAngle(deltaTime);
 
-    const modelMatrix = glMatrix.mat4.create();    
-    glMatrix.mat4.rotateX(modelMatrix, modelMatrix, 1.5);
-    glMatrix.mat4.rotateY(modelMatrix, modelMatrix, m_angle);
-    const scalingVector = glMatrix.vec3.fromValues(0.5, 0.5, 0.5);
-    glMatrix.mat4.scale(modelMatrix, modelMatrix, scalingVector);
-
-    device.queue.writeBuffer(m_modelMatrixUBO, 0, modelMatrix);
-
-    render();
-
-    requestAnimationFrame(frame);
-}
-
-function updateAngle(deltaTime) {
-    m_angle += deltaTime;
-}
 
 export async function initTextures() {
     const device = getDevice();
@@ -235,4 +216,20 @@ export function getSampler() {
     }
 
     return m_sampler;
+}
+
+export function getModelMatrixUBO() {
+    if (!m_modelMatrixUBO) {
+        throw new Error("Model Matrix UBO not initialized!");
+    }
+
+    return m_modelMatrixUBO;
+}
+
+export function getViewMatrixUBO() {
+    if (!m_viewMatrixUBO) {
+        throw new Error("View Matrix UBO not initialized!");
+    }
+
+    return m_viewMatrixUBO;
 }
