@@ -2,11 +2,11 @@
 import * as glMatrix from 'gl-matrix'
 
 const camera = {
-    position: [0, 0, 5],
+    position: [0, 1.6, 5],
     yaw: -Math.PI / 2,
     pitch: 0,
     speed: 10.0,
-    sensitivity: 0.00002
+    sensitivity: 0.002
 };
 
 function getForward() {
@@ -32,8 +32,8 @@ export function updateViewTransform(view) {
     const forward = getForward();
     let target = glMatrix.vec3.create()
     glMatrix.vec3.add(target, camera.position, forward);
-    view = glMatrix.mat4.lookAt(view, camera.position, target, [0, 1, 0]);
-    // console.log(view);
+    const up = glMatrix.vec3.fromValues(0, 1, 0);
+    view = glMatrix.mat4.lookAt(view, camera.position, target, up);
     return view;
 }
 
@@ -65,17 +65,23 @@ export function updatePosition(input, dt) {
     }
 }
 
-export function updateMouse() {
-
+export function initMouse() {
     canvas.addEventListener("click", () => {
-        canvas.requestPointerLock();
-    })
-
-    canvas.addEventListener("mousemove", (e) => {
-        camera.yaw += e.movementX * camera.sensitivity;
-        camera.pitch -= e.movementY * camera.sensitivity;
-
-        const maxPitch = Math.PI / 2 - 0.01;
-        camera.pitch = Math.max(-maxPitch, Math.min(maxPitch, camera.pitch));
+        if (document.pointerLockElement !== canvas) {
+            canvas.requestPointerLock();
+        }
     });
+
+    document.addEventListener("mousemove", (e) => {
+        if (document.pointerLockElement === canvas) {
+            camera.yaw += e.movementX * camera.sensitivity;
+            camera.pitch -= e.movementY * camera.sensitivity;
+
+            const maxPitch = Math.PI / 2 - 0.01;
+            if (camera.pitch > maxPitch) camera.pitch = maxPitch;
+            if (camera.pitch < -maxPitch) camera.pitch = -maxPitch;
+
+            camera.yaw = camera.yaw % (Math.PI * 2);
+        }
+    })
 }

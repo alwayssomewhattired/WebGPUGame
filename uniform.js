@@ -4,9 +4,6 @@ import * as glMatrix from 'gl-matrix';
 import { createGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
 import { getNormalBuffer } from './buffer.js'
-import { render } from './renderer.js';
-import { updateMouse, updatePosition, updateViewTransform } from './camera.js';
-import { keyboardInput } from "./keyboardListeners.js";
 
 
 let m_modelMatrixUBO = null;
@@ -15,7 +12,6 @@ let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
-let m_angle = 0;
 
 export function initUniformBuffer() {
     const device = getDevice();
@@ -28,7 +24,7 @@ export function initUniformBuffer() {
 
     const viewMatrix = glMatrix.mat4.lookAt(
         glMatrix.mat4.create(),
-        glMatrix.vec3.fromValues(20, 20, 20),
+        glMatrix.vec3.fromValues(0,0, 0),
         glMatrix.vec3.fromValues(0, 0, 0),
         glMatrix.vec3.fromValues(0.0, 0.0, 1.0)
     );

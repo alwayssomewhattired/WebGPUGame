@@ -10,6 +10,7 @@ import { initFileParser } from './fileParser.js';
 import { getModel } from './fileParser.js';
 import { frame } from './frame.js';
 import { render } from './renderer.js';
+import { initMouse } from './camera.js';
 
 import { 
     getPositionBuffer, getIndexBuffer, getIndexBufferSize, getNormalBuffer, createModelBuffer 
@@ -18,6 +19,7 @@ import {
 
 export async function main() {
     await initWebGPU();
+    await initMouse();
     await initTextures();
     initDepthStencil();
     await initFileParser();
