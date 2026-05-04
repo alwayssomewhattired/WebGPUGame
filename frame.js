@@ -2,7 +2,7 @@
 
 import * as glMatrix from 'gl-matrix'
 import { getDevice } from "./webgpu.js";
-import { getModelMatrixUBO, getViewMatrixUBO } from './uniform.js';
+import { getGlobalModelMatrixUBO, getViewMatrixUBO } from './uniform.js';
 import { updatePosition, updateViewTransform } from './camera.js';
 import { keyboardInput } from "./keyboardListeners.js";
 import { render } from './renderer.js';
@@ -29,7 +29,7 @@ export function frame(time) {
     const scalingVector = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
 
     glMatrix.mat4.scale(modelMatrix, modelMatrix, scalingVector);
-    device.queue.writeBuffer(getModelMatrixUBO(), 0, modelMatrix);
+    device.queue.writeBuffer(getGlobalModelMatrixUBO(), 0, modelMatrix);
 
     // const viewMatrix = glMatrix.mat4.create();
     // const viewMatrix = glMatrix.mat4.create();

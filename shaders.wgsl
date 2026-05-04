@@ -1,6 +1,10 @@
 
+struct ModelMatrices {
+    matrices: array<mat4x4<f32>>
+};
 @group(0) @binding(0)
-var<uniform> model: mat4x4<f32>;
+var<storage, read> modelData: ModelMatrices;
+
 @group(0) @binding(1)
 var<uniform> view: mat4x4<f32>;
 @group(0) @binding(2)
@@ -38,10 +42,13 @@ fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>, diffuseColor:vec3<f32>) -> vec3
 // *** VERTEX ***
 @vertex
 fn vs_main(
+    @builtin(instance_index) instanceIndex: u32,
     @location(0) inPos: vec3<f32>,
     @location(1) inTexCoords: vec2<f32>,
     @location(2) inNormal: vec3<f32>
 ) -> VertexOutput {
+
+    let model = modelData.matrices[instanceIndex];
 
     var surfaceNormal:vec3<f32> = normalize((normalTransform * vec4<f32>(inNormal,0.0)).xyz);
     var viewDir:vec3<f32> = normalize((normalTransform * vec4<f32>(-viewDirection, 0.0)).xyz);

@@ -3,8 +3,6 @@ import { getDevice } from "./webgpu.js"
 import { getShaderModule} from './webgpu.js'
 import { createGPUBuffer } from './buffer.js'
 import { getUniformBindGroupLayout } from '/uniform.js'
-import { getPositionBuffer } from './buffer.js'
-import { getIndexBuffer } from "./buffer.js"
 
 let m_pipeline = null;
 let m_texCoordsBuffer = null
@@ -33,8 +31,6 @@ export function initPipeline() {
         stepMode: 'vertex'
     };
 
-    const positionBuffer = getPositionBuffer();
-
     const texCoordsAttribDesc = {
         shaderLocation: 1,
         offset: 0,
@@ -61,7 +57,7 @@ export function initPipeline() {
         1.0,
     ]);
 
-    m_texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX)
+    m_texCoordsBuffer = createGPUBuffer(device, texCoords, texCoords.byteLength, GPUBufferUsage.VERTEX)
 
     const normalAttribDesc = {
         shaderLocation: 2,

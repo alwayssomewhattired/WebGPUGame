@@ -3,64 +3,52 @@ import * as glMatrix from 'gl-matrix';
 
 import { createGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
-import { getNormalBuffer } from './buffer.js'
+import { scene } from './entity.js';
+import { getModelMatrix, getViewMatrix, getModelViewMatrix, getProjectionMatrix, getNormalMatrix
+ } from './matrix.js';
 
-
-let m_modelMatrixUBO = null;
+let m_globalModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
 
-export function initUniformBuffer() {
+export function createUBO() {
     const device = getDevice();
     const texture = getTexture();
     const sampler = getSampler();
 
-    const modelMatrix = glMatrix.mat4.create();
-    // glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, 0.5);
-    // glMatrix.mat4.rotateX(modelMatrix, modelMatrix, 50.5);
-
-    const viewMatrix = glMatrix.mat4.lookAt(
-        glMatrix.mat4.create(),
-        glMatrix.vec3.fromValues(0,0, 0),
-        glMatrix.vec3.fromValues(0, 0, 0),
-        glMatrix.vec3.fromValues(0.0, 0.0, 1.0)
-    );
-
-    const modelViewMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.multiply(modelViewMatrix, modelMatrix, viewMatrix);
-
-    const projectionMatrix = glMatrix.mat4.perspective(
-        glMatrix.mat4.create(),
-        1.0,
-        1500.0 / 700.0,
-        0.1,
-        1000.0
-    );
-
-    const normalMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
-    glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+    const modelMatrix = getModelMatrix();
+    const modelMatrixByteLength = 64 * scene.length;
+    const viewMatrix = getViewMatrix();
+    const modelViewMatrix = getModelViewMatrix();
+    const projectionMatrix = getProjectionMatrix();
+    const normalMatrix = getNormalMatrix();
 
     const lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
-    const lightDirectionUBO = createGPUBuffer(device, lightDirectionBuffer, GPUBufferUsage.UNIFORM);
+    const lightDirectionUBO = createGPUBuffer(device, lightDirectionBuffer, lightDirectionBuffer.byteLength, 
+        GPUBufferUsage.UNIFORM);
     const viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
-    const viewDirectionUBO = createGPUBuffer(device, viewDirectionBuffer, GPUBufferUsage.UNIFORM);
-
-    m_modelMatrixUBO = createGPUBuffer(device, modelMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-    m_viewMatrixUBO = createGPUBuffer(device, viewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    const viewDirectionUBO = createGPUBuffer(device, viewDirectionBuffer, viewDirectionBuffer.byteLength, 
+        GPUBufferUsage.UNIFORM);
+    m_globalModelMatrixUBO = createGPUBuffer(device, modelMatrix, modelMatrix.byteLength, 
+        GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST);
+    m_viewMatrixUBO = createGPUBuffer(device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     // let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM);
-    const projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
-    const normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, GPUBufferUsage.UNIFORM);
+    const projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, projectionMatrix.byteLength, 
+        GPUBufferUsage.UNIFORM);
+    const normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, normalMatrix.byteLength, 
+        GPUBufferUsage.UNIFORM);
 
     m_uniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
             {
                 binding: 0,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: {}
+                buffer: {
+                    type: "read-only-storage"
+                }
             },
             {
                 binding: 1,
@@ -106,7 +94,7 @@ export function initUniformBuffer() {
             {
                 binding: 0,
                 resource: {
-                    buffer: m_modelMatrixUBO
+                    buffer: m_globalModelMatrixUBO
                 }
             },
             {
@@ -214,12 +202,12 @@ export function getSampler() {
     return m_sampler;
 }
 
-export function getModelMatrixUBO() {
-    if (!m_modelMatrixUBO) {
-        throw new Error("Model Matrix UBO not initialized!");
+export function getGlobalModelMatrixUBO() {
+    if (!m_globalModelMatrixUBO) {
+        throw new Error("Global Model Matrix UBO not initialized!");
     }
 
-    return m_modelMatrixUBO;
+    return m_globalModelMatrixUBO;
 }
 
 export function getViewMatrixUBO() {

@@ -1,12 +1,18 @@
 
 import * as glMatrix from 'gl-matrix'
+import { getViewProjectionMatrix } from './matrix.js';
 
 let m_activeAxis = null;
 
+let ray = {
+    origin: null,
+    direction: null
+};
+
 export function initTransformGizmo() {
-    canvas.addEventListener("mousedown", (e) => {
-        const ray = getRayFromMouse(e);
-        m_activeAxis = checkGizmoIntersection(ray, currentGizmoPos);
+    canvas.addEventListener("mousedown", ({x, y}) => {
+        ray = getRayFromMouse(x, y);
+        m_activeAxis = intersectAABB(ray, currentGizmoPos);
     });
 
     canvas.addEventListener("mousemove", (e) => {
@@ -22,12 +28,11 @@ export function initTransformGizmo() {
     })
 }
 
-function getRayFromMouse(mouseX, mouseY, canvasWidth, canvasHeight, viewMatrix, projectionMatrix) {
-    const x = (2.0 * mouseX) / canvasWidth - 1.0;
-    const y = 1.0 - (2.0 * mouseY) / canvasHeight;
+function getRayFromMouse(mouseX, mouseY) {
+    const x = (2.0 * mouseX) / canvas.width - 1.0;
+    const y = 1.0 - (2.0 * mouseY) / canvas.height;
 
-    const viewProj = glMatrix.mat4.create();
-    glMatrix.mat4.multiply(viewProj, viewMatrix, projectionMatrix);
+    const viewProj = getViewProjectionMatrix();
 
     const invViewProj = glMatrix.mat4.create();
     glMatrix.mat4.invert(invViewProj, viewProj);
@@ -47,7 +52,7 @@ function getRayFromMouse(mouseX, mouseY, canvasWidth, canvasHeight, viewMatrix, 
     const rayDir = glMatrix.vec3.create();
     glMatrix.vec3.subtract(rayDir, farPoint, nearPoint);
     glMatrix.vec3.normalize(rayDir, rayDir);
-
+    
     return { origin: rayOrigin, direction: rayDir };
 
 }
@@ -64,6 +69,14 @@ function intersectAABB(ray, box) {
         // | Makes sure t1 is entry and t2 is exit
         if (t1 > t2) [t1, t2] = [t2, t1];
 
-        tMin = 
+        tMin = Math.max(tMin, t1);
+        tMax = Math.min(tMax, t2);
     }
+
+    // | if tMax < 0, the ray hit the box
+    // | if tMin > tMax, the ray missed the box
+    if (tMax < 0 || tMin > tMax) return null;
+
+    // | returns distance to hit
+    return tMin;
 }

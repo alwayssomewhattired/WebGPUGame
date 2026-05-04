@@ -1,25 +1,32 @@
 
-import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js'
+import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js';
+import * as glMatrix from 'gl-matrix'
 
-let m_obj = null;
+import { createMesh } from './mesh.js';
+import { Entity, scene } from './entity.js';
+import { getDevice } from './webgpu.js';
 
-export async function initFileParser() {
-    const objResponse = await fetch('./models/psx-rat/rat.obj');
-    const objBody = await objResponse.text();
-    let obj = await (async() => {
-        return new Promise((resolve, reject) => {
-            m_obj = new OBJFile(objBody);
-            m_obj.parse();
-            resolve(m_obj);
-        })
-    })();
-}
+const filePaths = [
+    './models/psx-rat/rat.obj'
+];
 
-export function getModel() {
-    if (!m_obj) {
-        throw new Error("Model is not initialized!")
+export async function createEntities() {
+    for (const path of filePaths) {
+        const objResponse = await fetch(path);
+        const objBody = await objResponse.text();
+        const obj = await (async() => {
+            return new Promise((resolve, reject) => {
+                const obj = new OBJFile(objBody);
+                obj.parse();
+                resolve(obj);
+            })
+        })();
+        const device = getDevice();
+        const mesh = createMesh(obj, device);
+        const positions = glMatrix.vec3.create();
+        const color = glMatrix.vec3.create();
+        const entity = new Entity(mesh, positions, color, path);
+        scene.push(entity);
     }
-
-    return m_obj;
 }
 
