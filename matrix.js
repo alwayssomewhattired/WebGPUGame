@@ -3,6 +3,7 @@ import * as glMatrix from 'gl-matrix'
 
 let m_modelMatrix = null
 let m_viewMatrix = null;
+let m_inverseModelMatrix = null;
 let m_modelViewMatrix = null;
 let m_projectionMatrix = null;
 let m_viewProjectionMatrix = null;
@@ -14,6 +15,15 @@ export function getModelMatrix() {
     }
 
     return m_modelMatrix;
+}
+
+export function getInverseModelMatrix() {
+    if (!m_inverseModelMatrix) {
+        m_inverseModelMatrix = glMatrix.mat4.create();
+        glMatrix.mat4.invert(m_inverseModelMatrix, m_modelMatrix);
+    }
+
+    return m_inverseModelMatrix;
 }
 
 export function getViewMatrix() {

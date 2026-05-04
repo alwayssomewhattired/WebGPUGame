@@ -1,6 +1,8 @@
 
 import * as glMatrix from 'gl-matrix'
 
+
+
 export class Entity {
     constructor(mesh, position, color, id) {
         this.mesh = mesh;
@@ -9,10 +11,15 @@ export class Entity {
         this.scale = glMatrix.vec3.fromValues(1, 1, 1);
         this.color = color;
         this.modelMatrix = glMatrix.mat4.create();
+        this.boundingBox = {
+            min: [-1.0, -1.0, -1.0],
+            max: [1.0, 1.0, 1.0]
+        };
         this.id = id;
+        scene.push(this);
     }
 
-    updateMatrix() {
+    updateModelMatrix() {
         glMatrix.mat4.identity(this.modelMatrix);
         glMatrix.mat4.translate(this.modelMatrix, this.modelMatrix, this.position);
         glMatrix.mat4.rotateX(this.modelMatrix, this.modelMatrix, this.rotation[0]);

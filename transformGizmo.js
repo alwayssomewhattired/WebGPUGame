@@ -1,34 +1,47 @@
 
 import * as glMatrix from 'gl-matrix'
 import { getViewProjectionMatrix } from './matrix.js';
+import { scene } from "./entity.js"
+import { getInverseModelMatrix } from './matrix.js';
 
 let m_activeAxis = null;
 
-let ray = {
-    origin: null,
-    direction: null
+const xAxisBox = {
+    min: [0.0, -0.1, -0.1],
+    max: [1.0, 0.1, 0.1]
+};
+
+const yAxisBox = {
+    min: [-0.1, 0.0, -0.1],
+    max: [0.1, 1.0, 0.1]
+};
+
+const zAxisBox = {
+    min: [-0.1, -0.1, 0.1],
+    max: [0.1, 0.1, 1.0]
 };
 
 export function initTransformGizmo() {
     canvas.addEventListener("mousedown", ({x, y}) => {
-        ray = getRayFromMouse(x, y);
-        m_activeAxis = intersectAABB(ray, currentGizmoPos);
+        const worldSpaceRay = getWorldSpaceRayFromMouse(x, y);
+        const currentEntity = getSelectedObject(worldSpaceRay, scene);
+        m_activeAxis = intersectAABB(worldSpaceRay, currentEntity.boundingBox);
     });
 
     canvas.addEventListener("mousemove", (e) => {
-        if (activeAxis) {
+        if (m_activeAxis) {
             const moveDist = calculateWorldDelta(e, m_activeAxis);
 
-            if (m_activeAxis === 'x') selectedObject.pos[0] += moveDist;
-            if (m_activeAxis === 'y') selectedObject.pos[1] += moveDist;
-            if (m_activeAxis === 'z') selectedObject.pos[2] += moveDist;
+            if (m_activeAxis === 'x') currentEntity.position[0] += moveDist;
+            if (m_activeAxis === 'y') currentEntity.position[1] += moveDist;
+            if (m_activeAxis === 'z') currentEntity.position[2] += moveDist;
 
-            updateModelMatrix(selectedObject);
+            currentEntity.updateModelMatrix();
         }
     })
 }
 
-function getRayFromMouse(mouseX, mouseY) {
+function getWorldSpaceRayFromMouse(mouseX, mouseY) {
     const x = (2.0 * mouseX) / canvas.width - 1.0;
     const y = 1.0 - (2.0 * mouseY) / canvas.height;
 
@@ -57,6 +70,27 @@ function getRayFromMouse(mouseX, mouseY) {
 
 }
 
+function getSelectedObject(worldSpaceRay, scene) {
+    let closestDist = Infinity;
+    let selected = null;
+
+    for (const entity of scene) {
+        const localSpaceRay = {
+            origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.origin, getInverseModelMatrix()),
+            direction: glMatrix.vec3.normalize(glMatrix.vec3.create(), 
+            glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.direction, getInverseModelMatrix()))
+        };
+        const distance = intersectAABB(localSpaceRay, entity.boundingBox);
+
+        if (distance !== null && distance < closestDist) {
+            closestDist = distance;
+            selected = entity;
+        }
+    }
+
+    return selected;
+}
+
 function intersectAABB(ray, box) {
     let tMin = -Infinity;
     let tMax = Infinity;
@@ -79,4 +113,22 @@ function intersectAABB(ray, box) {
 
     // | returns distance to hit
     return tMin;
+}
+
+function calculateWorldDelta(event, axis) {
+    const planeNormal = getBestPlaneNormal(axis);
+    const planePoint = selectedObject.pos;
+
+    const currentHit = intersectRayPlane(ray, planeNormal, planePoint);
+
+    if (!m_lastHitPoint) {
+        m_lastHitPoint = currentHit;
+        return 0;
+    }
+
+    const delta = currentHit[axisIndex(axis)] - m_lastHitPoint[axisIndex(axis)];
+
+    m_lastHitPoint = currentHit;
+
+    return delta;
 }
