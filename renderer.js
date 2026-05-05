@@ -1,9 +1,10 @@
-import { getPipeline } from "./pipeline.js";
-import { getTexCoordsBuffer } from "./pipeline.js";
-import { getUniformBindGroup } from "./uniform.js";
+import { getPipeline, getTexCoordsBuffer } from "./pipelines/pipeline.js";
+import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { scene } from "./entity.js";
+import { getAxisArrowsBuffer } from "./buffer.js";
 
 
 export function render() {
@@ -53,6 +54,14 @@ export function render() {
         passEncoder.drawIndexed(indexBufferSize);
         passEncoder.draw(4, 1);
     }
+    
+    // | instanced render
+    passEncoder.setPipeline(axisArrowsPipeline);
+    passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup());
+    passEncoder.setVertexBuffer(0, getAxisArrowsBuffer());
+    // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
+    passEncoder.draw(13, 2);
+
         passEncoder.end();  
         device.queue.submit([commandEncoder.finish()]);
 }

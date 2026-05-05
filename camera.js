@@ -1,5 +1,6 @@
 
 import * as glMatrix from 'gl-matrix'
+import { toggleFPSMode } from './keyboardListeners.js';
 
 const camera = {
     position: [0, 1.6, 5],
@@ -43,9 +44,7 @@ export function updatePosition(input, dt) {
 
     const velocity = camera.speed * dt;
     let momentum = glMatrix.vec3.create();
-    // console.log(velocity);
-    // console.log(forward);
-    // console.log(camera.position);
+
     if (input.w)  {
         glMatrix.vec3.scale(momentum, forward, velocity)
         camera.position = glMatrix.vec3.add(camera.position, camera.position, momentum);
@@ -66,11 +65,6 @@ export function updatePosition(input, dt) {
 }
 
 export function initMouse() {
-    canvas.addEventListener("click", () => {
-        if (document.pointerLockElement !== canvas) {
-            canvas.requestPointerLock();
-        }
-    });
 
     document.addEventListener("mousemove", (e) => {
         if (document.pointerLockElement === canvas) {

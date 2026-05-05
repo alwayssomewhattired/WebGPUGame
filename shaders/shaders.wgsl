@@ -39,14 +39,26 @@ fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>, diffuseColor:vec3<f32>) -> vec3
     return max(dot(lightDir, normal), 0.0) * diffuseColor;
 }
 
+// | Instanced data
+// @location(5) var<location(5)> instanceMatrix: mat4x4<f32>;
+// @location(6) var<location(6)> instanceColor: vec4<f32>;
+// @location(7) aabb_center: vec3<f32>;
+// @location(8) aabb_extents: vec3<f32>;
+// @location(9) arrow_color: vec4<f32>;
+
+
 // *** VERTEX ***
 @vertex
 fn vs_main(
     @builtin(instance_index) instanceIndex: u32,
     @location(0) inPos: vec3<f32>,
     @location(1) inTexCoords: vec2<f32>,
-    @location(2) inNormal: vec3<f32>
+    @location(2) inNormal: vec3<f32>,
 ) -> VertexOutput {
+
+    // | instanced data work-in-progress
+    // out.clip_position = view * instanceMatrix * vec4<f32>(inPos, 1.0);
+    // out.color = instanceColor;
 
     let model = modelData.matrices[instanceIndex];
 

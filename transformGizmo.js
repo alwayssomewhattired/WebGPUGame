@@ -6,26 +6,26 @@ import { getInverseModelMatrix } from './matrix.js';
 
 let m_activeAxis = null;
 
-const xAxisBox = {
-    min: [0.0, -0.1, -0.1],
-    max: [1.0, 0.1, 0.1]
-};
-
-const yAxisBox = {
-    min: [-0.1, 0.0, -0.1],
-    max: [0.1, 1.0, 0.1]
-};
-
-const zAxisBox = {
-    min: [-0.1, -0.1, 0.1],
-    max: [0.1, 0.1, 1.0]
+const axesBoxes = {
+    x: {
+        min: [0.0, -0.1, -0.1],
+        max: [1.0, 0.1, 0.1]
+    },
+    y: {
+        min: [-0.1, 0.0, -0.1],
+        max: [0.1, 1.0, 0.1]
+    },
+    z: {
+        min: [-0.1, -0.1, 0.1],
+        max: [0.1, 0.1, 1.0]
+    }
 };
 
 export function initTransformGizmo() {
     canvas.addEventListener("mousedown", ({x, y}) => {
         const worldSpaceRay = getWorldSpaceRayFromMouse(x, y);
         const currentEntity = getSelectedObject(worldSpaceRay, scene);
-        m_activeAxis = intersectAABB(worldSpaceRay, currentEntity.boundingBox);
+        m_activeAxis = findAxis(worldSpaceRay, currentEntity);
     });
 
     canvas.addEventListener("mousemove", (e) => {
@@ -38,6 +38,10 @@ export function initTransformGizmo() {
 
             currentEntity.updateModelMatrix();
         }
+    })
+
+    canvas.addEventListener("mouseup", (e) => {
+        if (m_activeAxis) m_activeAxis = null;
     })
 }
 
@@ -132,3 +136,34 @@ function calculateWorldDelta(event, axis) {
 
     return delta;
 }
+
+function findAxis(mouseRay, entity) {
+    const gizmoWorldMatrix = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), entity.position);
+    const invGizmoWorldMatrix = glMatrix.mat4.invert(glMatrix.mat4.create(), gizmoWorldMatrix);
+
+    const inverseModel3x3 = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), invGizmoWorldMatrix);
+    const localSpaceDirection = glMatrix.vec3.transformMat3(glMatrix.vec3.create(), mouseRay.direction, inverseModel3x3);
+    glMatrix.vec3.normalize(localSpaceDirection, localSpaceDirection);
+
+    const localSpaceRay = {
+        origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), mouseRay.origin, invGizmoWorldMatrix),
+        direction: glMatrix.vec3.normalize(glMatrix.vec3.create(), 
+        localSpaceDirection
+        )
+    };
+
+    let closestAxis = null;
+    let minT = Infinity;
+
+    for (const axis in axesBoxes) {
+        const box = axesBoxes[axis];
+        const t = intersectAABB(localSpaceRay, box);
+        if (t !== null && t < minT) {
+            minT = t;
+            closestAxis = axis;
+        }
+    }
+
+    return closestAxis;
+}
+

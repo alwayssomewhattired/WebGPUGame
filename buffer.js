@@ -3,11 +3,9 @@ import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js';
 import * as glMatrix from 'gl-matrix';
 
 import { Mesh } from "./mesh.js";
+import { getDevice } from './webgpu.js';
 
-// let m_positionBuffer = null;
-// let m_indexBuffer = null;
-// let m_indexBufferSize = null;
-// let m_normalBuffer = null;
+let m_axisArrowsBuffer = null;
 
 export function createGPUBuffer(device, buffer, bufferBytes, usage) {
     const bufferDesc = {
@@ -41,35 +39,34 @@ export function createGPUBuffer(device, buffer, bufferBytes, usage) {
 
 }
 
-// export function getPositionBuffer() {
-//     if (!m_positionBuffer) {
-//         throw new Error("positionBuffer is not initialized!");
-//     }
+// arrow pointing to +X
+export function getAxisArrowsBuffer() {
+    if (!m_axisArrowsBuffer) {
+        const vPositions = new Float32Array([
+            // shaft (rectangular prism)
+            0.0, -0.05, -0.05,
+            0.7, -0.05, -0.05,
+            0.7, 0.05, -0.05,
 
-//     return m_positionBuffer;
-// }
+            0.0, -0.05, -0.05,
+            0.7, 0.05, -0.05,
+            0.0, 0.05, -0.05,
 
+            // head (pyramid)
+            0.7, -0.1, -0.1,
+            0.7, 0.1, -0.1,
+            0.7, 0.1, 0.1,
+ 
+            0.7, -0.1, -0.1,
+            0.7, 0.1, 0.1,
+            0.7, -0.1, 0.1,
 
-// export function getIndexBuffer() {
-//     if (!m_indexBuffer) {
-//         throw new Error("indexBuffer is not initialized!");
-//     }
+            // tip
+            1.0, 0.0, 0.0
+        ]);
 
-//     return m_indexBuffer;
-// }
+        m_axisArrowsBuffer = createGPUBuffer(getDevice(), vPositions, vPositions.byteLength, GPUBufferUsage.VERTEX);
+    }
 
-// export function getIndexBufferSize() {
-//     if (!m_indexBufferSize) {
-//         throw new Error("indexBufferSize is not initialized!");
-//     }
-
-//     return m_indexBufferSize;
-// }
-
-// export function getNormalBuffer() {
-//     if (!m_normalBuffer) {
-//         throw new Error("normalBuffer is not initialized!");
-//     }
-
-//     return m_normalBuffer;
-// }
+    return m_axisArrowsBuffer;
+}

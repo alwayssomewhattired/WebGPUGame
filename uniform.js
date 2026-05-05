@@ -1,7 +1,7 @@
 
 import * as glMatrix from 'gl-matrix';
 
-import { createGPUBuffer } from './buffer.js'
+import { createGPUBuffer, getAxisArrowsBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
 import { scene } from './entity.js';
 import { getModelMatrix, getViewMatrix, getModelViewMatrix, getProjectionMatrix, getNormalMatrix
@@ -11,6 +11,8 @@ let m_globalModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
+let m_axisArrowsUniformBindGroup = null;
+let m_axisArrowsUniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
 
@@ -140,6 +142,30 @@ export function createUBO() {
 
 }
 
+export function createAxisArrowsUBO() {
+    const device = getDevice();
+    m_axisArrowsUniformBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            }
+        ]
+    });
+
+    m_axisArrowsUniformBindGroup = device.createBindGroup({
+        layout: m_axisArrowsUniformBindGroupLayout,
+        entries: [
+            {
+                binding: 0,
+                resource: {
+                    buffer: getAxisArrowsBuffer()
+                }
+            }
+        ]
+    });
+}
 
 
 export async function initTextures() {
@@ -176,6 +202,14 @@ export function getUniformBindGroup() {
     }
 
     return m_uniformBindGroup;
+}
+
+export function getAxisArrowsUniformBindGroup() {
+    if (!m_axisArrowsUniformBindGroup) {
+        throw new Error("AxisArrowsUniformBindGroup not initialized!");
+    }
+
+    return m_axisArrowsUniformBindGroup;
 }
 
 export function getUniformBindGroupLayout() {

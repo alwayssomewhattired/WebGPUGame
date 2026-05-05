@@ -1,7 +1,7 @@
 
-import { getDevice } from "./webgpu.js"
-import { getShaderModule} from './webgpu.js'
-import { createGPUBuffer } from './buffer.js'
+import { getDevice } from "../webgpu.js"
+import { getShaderModule} from '../webgpu.js'
+import { createGPUBuffer } from '../buffer.js'
 import { getUniformBindGroupLayout } from '/uniform.js'
 
 let m_pipeline = null;
@@ -85,8 +85,7 @@ export function initPipeline() {
             targets: [colorState]
         },
         primitive: {
-            topology: 'triangle-strip',
-            stripIndexFormat: 'uint16',
+            topology: 'triangle-list',
             frontFace: 'ccw',
             cullMode: 'none'
         },

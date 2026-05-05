@@ -2,6 +2,7 @@
 
 let device = null;
 let m_shaderModule = null;
+let m_instancedShaderModule = null;
 
 export async function initWebGPU() {
     if (!navigator.gpu) {
@@ -23,11 +24,19 @@ export async function initWebGPU() {
         return;
     }
 
-    const response = await fetch("./shaders.wgsl");
-    const shaderSource = await response.text();
+    let response = await fetch("./shaders/shaders.wgsl");
+    let shaderSource = await response.text();
 
     m_shaderModule = device.createShaderModule({
         label: 'shader',
+        code: shaderSource
+    });
+
+    response = await fetch("./shaders/instancedShader.wgsl");
+    shaderSource = await response.text();
+
+    m_instancedShaderModule = device.createShaderModule({
+        label: 'instancedShader',
         code: shaderSource
     });
     
@@ -47,4 +56,12 @@ export function getShaderModule() {
     }
 
     return m_shaderModule;
+}
+
+export function getInstancedShaderModule() {
+    if (!m_instancedShaderModule) {
+        throw new Error("Instanced Shader module is not initialized!")
+    }
+
+    return m_instancedShaderModule;
 }
