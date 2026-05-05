@@ -14,7 +14,6 @@ let m_viewMatrix = glMatrix.mat4.create();
 
 
 export function frame(time) {
-    // console.log(time);
     const device = getDevice();
     const deltaTime = (time - m_lastTime) / 1000;
     m_lastTime = time;

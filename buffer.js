@@ -40,31 +40,19 @@ export function createGPUBuffer(device, buffer, bufferBytes, usage) {
 }
 
 // arrow pointing to +X
-export function getAxisArrowsBuffer() {
+export function getAxisArrowsVPositionsBuffer() {
     if (!m_axisArrowsBuffer) {
         const vPositions = new Float32Array([
-            // shaft (rectangular prism)
-            0.0, -0.05, -0.05,
-            0.7, -0.05, -0.05,
-            0.7, 0.05, -0.05,
-
-            0.0, -0.05, -0.05,
-            0.7, 0.05, -0.05,
-            0.0, 0.05, -0.05,
-
-            // head (pyramid)
-            0.7, -0.1, -0.1,
-            0.7, 0.1, -0.1,
-            0.7, 0.1, 0.1,
- 
-            0.7, -0.1, -0.1,
-            0.7, 0.1, 0.1,
-            0.7, -0.1, 0.1,
-
-            // tip
-            1.0, 0.0, 0.0
+            // x
+            0,0,0,  1,0,0,
+            1,0,0,  1,0,0,
+            // y
+            0,0,0,  0,1,0,
+            0,1,0,  0,1,0,
+            // z
+            0,0,0,  0,0,1,
+            0,0,1,  0,0,1
         ]);
-
         m_axisArrowsBuffer = createGPUBuffer(getDevice(), vPositions, vPositions.byteLength, GPUBufferUsage.VERTEX);
     }
 

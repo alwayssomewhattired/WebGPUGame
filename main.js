@@ -20,7 +20,7 @@ export async function main() {
     initDepthStencil();
     await createEntities();
     createUBO();
-    createAxisArrowsUBO;
+    createAxisArrowsUBO();
     initPipeline();
     initAxisArrowsPipeline();
     initTransformGizmo();

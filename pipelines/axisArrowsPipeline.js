@@ -1,14 +1,13 @@
 
 import { getDevice, getInstancedShaderModule } from "../webgpu.js";
-import { getUniformBindGroupLayout } from "../uniform.js"
+import { getAxisArrowsUniformBindGroupLayout } from "../uniform.js"
 
 export let axisArrowsPipeline = null;
-
 
 export function initAxisArrowsPipeline() {
     const device = getDevice();
     const shaderModule = getInstancedShaderModule();
-    const uniformBindGroupLayout = getUniformBindGroupLayout();
+    const uniformBindGroupLayout = getAxisArrowsUniformBindGroupLayout();
     
     const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
     const layout = device.createPipelineLayout(pipelineLayoutDesc);
@@ -25,8 +24,8 @@ export function initAxisArrowsPipeline() {
 
     const positionBufferLayoutDesc = {
         attributes: [positionAttribDesc],
-        arrayStride: 4 * 3, // sizeof(float) * xyz
-        stepMode: 'vertex'
+        arrayStride: 4 * 3, // sizeof(float) * vertices
+        stepMode: 'instance'
     };
 
     const pipelineDesc = {
@@ -42,12 +41,12 @@ export function initAxisArrowsPipeline() {
             targets: [colorState]
         },
         primitive: {
-            topology: 'triangle-list',
+            topology: 'line-list',
             frontFace: 'ccw',
             cullMode: 'none'
         },
         depthStencil: {
-            depthWriteEnabled: true,
+            depthWriteEnabled: false, // | axis arrows should always be visible
             depthCompare: 'less',
             format: 'depth24plus-stencil8'
         }

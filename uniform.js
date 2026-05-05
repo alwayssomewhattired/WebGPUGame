@@ -1,7 +1,7 @@
 
 import * as glMatrix from 'gl-matrix';
 
-import { createGPUBuffer, getAxisArrowsBuffer } from './buffer.js'
+import { createGPUBuffer, getAxisArrowsVPositionsBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
 import { scene } from './entity.js';
 import { getModelMatrix, getViewMatrix, getModelViewMatrix, getProjectionMatrix, getNormalMatrix
@@ -9,6 +9,7 @@ import { getModelMatrix, getViewMatrix, getModelViewMatrix, getProjectionMatrix,
 
 let m_globalModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
+let m_projectionMatrixUBO = null;
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_axisArrowsUniformBindGroup = null;
@@ -38,7 +39,7 @@ export function createUBO() {
         GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST);
     m_viewMatrixUBO = createGPUBuffer(device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     // let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM);
-    const projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, projectionMatrix.byteLength, 
+    m_projectionMatrixUBO = createGPUBuffer(device, projectionMatrix, projectionMatrix.byteLength, 
         GPUBufferUsage.UNIFORM);
     const normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, normalMatrix.byteLength, 
         GPUBufferUsage.UNIFORM);
@@ -108,7 +109,7 @@ export function createUBO() {
             {
                 binding: 2,
                 resource: {
-                    buffer: projectionMatrixUniformBuffer
+                    buffer: m_projectionMatrixUBO
                 }
             },
             {
@@ -144,13 +145,27 @@ export function createUBO() {
 
 export function createAxisArrowsUBO() {
     const device = getDevice();
+    const model = getModelMatrix();
+    // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(1,1,1));
+    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(0.2,0.2,0.2));
+    const axisArrowsUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
             {
                 binding: 0,
                 visibility: GPUShaderStage.VERTEX,
                 buffer: {}
-            }
+            },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 2,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
         ]
     });
 
@@ -160,13 +175,24 @@ export function createAxisArrowsUBO() {
             {
                 binding: 0,
                 resource: {
-                    buffer: getAxisArrowsBuffer()
+                    buffer: axisArrowsUBO
                 }
-            }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: m_viewMatrixUBO
+                }
+            },
+            {
+                binding: 2,
+                resource: {
+                    buffer: m_projectionMatrixUBO
+                }
+            },
         ]
     });
 }
-
 
 export async function initTextures() {
     const device = getDevice();
@@ -210,6 +236,14 @@ export function getAxisArrowsUniformBindGroup() {
     }
 
     return m_axisArrowsUniformBindGroup;
+}
+
+export function getAxisArrowsUniformBindGroupLayout() {
+    if (!m_axisArrowsUniformBindGroupLayout) {
+        throw new Error("AxisArrowsUniformBindGroupLayout not initialized!");
+    }
+
+    return m_axisArrowsUniformBindGroupLayout;
 }
 
 export function getUniformBindGroupLayout() {
