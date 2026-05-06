@@ -6,6 +6,9 @@ import { Mesh } from "./mesh.js";
 import { getDevice } from './webgpu.js';
 
 let m_axisArrowsBuffer = null;
+const m_aabbColor = new Float32Array([1.0, 1.0, 0.0]);
+let m_aabbPositionBuffer = null;
+let m_aabbVerticesLength = null;
 
 export function createGPUBuffer(device, buffer, bufferBytes, usage) {
     const bufferDesc = {
@@ -40,21 +43,58 @@ export function createGPUBuffer(device, buffer, bufferBytes, usage) {
 }
 
 // arrow pointing to +X
-export function getAxisArrowsVPositionsBuffer() {
+export function getAxisArrowsPositionsGPUBuffer() {
     if (!m_axisArrowsBuffer) {
         const vPositions = new Float32Array([
-            // x
+            // x    r
             0,0,0,  1,0,0,
             1,0,0,  1,0,0,
-            // y
+            // y    g
             0,0,0,  0,1,0,
             0,1,0,  0,1,0,
-            // z
+            // z    b
             0,0,0,  0,0,1,
             0,0,1,  0,0,1
         ]);
-        m_axisArrowsBuffer = createGPUBuffer(getDevice(), vPositions, vPositions.byteLength, GPUBufferUsage.VERTEX);
+        m_axisArrowsBuffer = createGPUBuffer(getDevice(), vPositions, vPositions.byteLength, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
     }
 
     return m_axisArrowsBuffer;
+}
+
+export function getAABBColorGPUBuffer() {
+    return createGPUBuffer(getDevice(), m_aabbColor, m_aabbColor.byteLength, GPUBufferUsage.UNIFORM);
+}
+
+export function getAABBPositionGPUBuffer() {
+    if (!m_aabbPositionBuffer) {
+        const vertices = new Float32Array([
+            // bottom square
+            -1,-1,-1,  1,-1,-1,
+             1,-1,-1,  1,-1, 1,
+             1,-1, 1, -1,-1, 1,
+            -1,-1, 1, -1,-1,-1,
+
+            // top square
+            -1, 1,-1,  1, 1,-1,
+             1, 1,-1,  1, 1, 1,
+             1, 1, 1, -1, 1, 1,
+            -1, 1, 1, -1, 1,-1,
+
+            // vertical lines
+            -1,-1,-1, -1, 1,-1,
+             1,-1,-1,  1, 1,-1,
+             1,-1, 1,  1, 1, 1,
+            -1,-1, 1, -1, 1, 1,
+        ]);
+        m_aabbVerticesLength = vertices.length / 3;
+        m_aabbPositionBuffer = createGPUBuffer(getDevice(), vertices, vertices.byteLength, GPUBufferUsage.VERTEX);
+    }
+
+    return m_aabbPositionBuffer;
+}
+
+export function getAABBVerticesLength() {
+    if (!m_aabbVerticesLength) getAABBPositionGPUBuffer();
+    return m_aabbVerticesLength;
 }

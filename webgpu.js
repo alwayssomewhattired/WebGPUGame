@@ -3,6 +3,7 @@
 let device = null;
 let m_shaderModule = null;
 let m_instancedShaderModule = null;
+let m_aabbShaderModule = null;
 
 export async function initWebGPU() {
     if (!navigator.gpu) {
@@ -39,6 +40,14 @@ export async function initWebGPU() {
         label: 'instancedShader',
         code: shaderSource
     });
+
+    response = await fetch("./shaders/aabbShader.wgsl");
+    shaderSource = await response.text();
+
+    m_aabbShaderModule = device.createShaderModule({
+        label: 'aabbShader',
+        code: shaderSource
+    });
     
 }
 
@@ -64,4 +73,12 @@ export function getInstancedShaderModule() {
     }
 
     return m_instancedShaderModule;
+}
+
+export function getAABBShaderModule() {
+    if (!m_aabbShaderModule) {
+        throw new Error("AABB Shader module is not initialized!")
+    }
+
+    return m_aabbShaderModule;
 }

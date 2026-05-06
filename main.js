@@ -9,7 +9,7 @@ import { createEntities } from './fileParser.js';
 import { frame } from './frame.js';
 import { render } from './renderer.js';
 import { initMouse } from './camera.js';
-import { createUBO, createAxisArrowsUBO } from './uniform.js';
+import { createUBO, createAxisArrowsUBO, createAABBUBO } from './uniform.js';
 import { initTransformGizmo } from './transformGizmo.js';
 
 
@@ -21,6 +21,7 @@ export async function main() {
     await createEntities();
     createUBO();
     createAxisArrowsUBO();
+    createAABBUBO();
     initPipeline();
     initAxisArrowsPipeline();
     initTransformGizmo();

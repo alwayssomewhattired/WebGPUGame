@@ -1,10 +1,11 @@
 import { getPipeline, getTexCoordsBuffer } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup } from "./uniform.js";
+import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
-import { scene } from "./entity.js";
-import { getAxisArrowsVPositionsBuffer } from "./buffer.js";
+import { getScene } from "./entity.js";
+import { getAxisArrowsPositionsGPUBuffer, getAABBPositionGPUBuffer, getAABBVerticesLength } from "./buffer.js";
 
 
 export function render() {
@@ -27,7 +28,7 @@ export function render() {
     let colorTextureView = colorTexture.createView();
     let colorAttachment = {
         view: colorTextureView,
-        clearValue: {r:1, g:0, b:0, a:1},
+        clearValue: {r:1, g:0, b:1, a:1},
         loadOp: 'clear',
         storeOp: 'store'
     };
@@ -41,29 +42,38 @@ export function render() {
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
 
     // | main render
-    // passEncoder.setPipeline(pipeline);
-    // for (const entity of scene) {
-    //     const positionBuffer = entity.mesh.vPositionsBuffer;
-    //     const indexBuffer = entity.mesh.vIndicesBuffer;
-    //     const indexBufferSize = entity.mesh.vIndexBufferSize;
-    //     const normalBuffer = entity.mesh.vNormalsBuffer;
-    //     const commandEncoder = device.createCommandEncoder();
-    //     passEncoder.setBindGroup(0, uniformBindGroup);
-    //     passEncoder.setVertexBuffer(0, positionBuffer);
-    //     passEncoder.setVertexBuffer(1, texCoordsBuffer);
-    //     passEncoder.setVertexBuffer(2, normalBuffer);
-    //     passEncoder.setIndexBuffer(indexBuffer, 'uint16');
-    //     passEncoder.drawIndexed(indexBufferSize);
-    //     passEncoder.draw(4, 1);
-    // }
+    passEncoder.setPipeline(pipeline);
+    for (const entity of getScene()) {
+        const positionBuffer = entity.mesh.vPositionsBuffer;
+        const indexBuffer = entity.mesh.vIndicesBuffer;
+        const indexBufferSize = entity.mesh.vIndexBufferSize;
+        const normalBuffer = entity.mesh.vNormalsBuffer;
+        const commandEncoder = device.createCommandEncoder();
+        passEncoder.setBindGroup(0, uniformBindGroup);
+        passEncoder.setVertexBuffer(0, positionBuffer);
+        passEncoder.setVertexBuffer(1, texCoordsBuffer);
+        passEncoder.setVertexBuffer(2, normalBuffer);
+        passEncoder.setIndexBuffer(indexBuffer, 'uint16');
+        passEncoder.drawIndexed(indexBufferSize);
+        passEncoder.draw(4, 1);
+
+    }
+
+    // | AABB render
+    passEncoder.setPipeline(getAABBPipeline());
+    for (const entity of getScene()) {
+        passEncoder.setBindGroup(0, getAABBUniformBindGroup());
+        passEncoder.setVertexBuffer(0, getAABBPositionGPUBuffer());
+        passEncoder.draw(getAABBVerticesLength(), 1);
+    }
     
     // | instanced render
     passEncoder.setPipeline(axisArrowsPipeline);
     passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup());
-    passEncoder.setVertexBuffer(0, getAxisArrowsVPositionsBuffer());
-    passEncoder.draw(12, 1);
+    passEncoder.setVertexBuffer(0, getAxisArrowsPositionsGPUBuffer());
     // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
+    passEncoder.draw(6, 3);
 
+    passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
-    passEncoder.end();  
 }

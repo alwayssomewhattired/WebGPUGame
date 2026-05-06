@@ -1,9 +1,9 @@
 
 import * as glMatrix from 'gl-matrix';
 
-import { createGPUBuffer, getAxisArrowsVPositionsBuffer } from './buffer.js'
+import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer, getAABBColorGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
-import { scene } from './entity.js';
+import { getScene } from './entity.js';
 import { getModelMatrix, getViewMatrix, getModelViewMatrix, getProjectionMatrix, getNormalMatrix
  } from './matrix.js';
 
@@ -14,6 +14,8 @@ let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_axisArrowsUniformBindGroup = null;
 let m_axisArrowsUniformBindGroupLayout = null;
+let m_aabbUniformBindGroup = null;
+let m_aabbUniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
 
@@ -23,7 +25,7 @@ export function createUBO() {
     const sampler = getSampler();
 
     const modelMatrix = getModelMatrix();
-    const modelMatrixByteLength = 64 * scene.length;
+    const modelMatrixByteLength = 64 * getScene().length;
     const viewMatrix = getViewMatrix();
     const modelViewMatrix = getModelViewMatrix();
     const projectionMatrix = getProjectionMatrix();
@@ -146,8 +148,8 @@ export function createUBO() {
 export function createAxisArrowsUBO() {
     const device = getDevice();
     const model = getModelMatrix();
-    // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(1,1,1));
-    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(0.2,0.2,0.2));
+    glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
+    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
     const axisArrowsUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -186,6 +188,68 @@ export function createAxisArrowsUBO() {
             },
             {
                 binding: 2,
+                resource: {
+                    buffer: m_projectionMatrixUBO
+                }
+            },
+        ]
+    });
+}
+
+export function createAABBUBO() {
+    const device = getDevice();
+    const model = getModelMatrix();
+    glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
+    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
+    const modelUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
+    m_aabbUniformBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: {}
+            },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 2,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 3,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+        ]
+    });
+
+    m_aabbUniformBindGroup = device.createBindGroup({
+        layout: m_aabbUniformBindGroupLayout,
+        entries: [
+            {
+                binding: 0,
+                resource: {
+                    buffer: getAABBColorGPUBuffer()
+                }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: modelUBO
+                }
+            },
+            {
+                binding: 2,
+                resource: {
+                    buffer: m_viewMatrixUBO
+                }
+            },
+            {
+                binding: 3,
                 resource: {
                     buffer: m_projectionMatrixUBO
                 }
@@ -244,6 +308,22 @@ export function getAxisArrowsUniformBindGroupLayout() {
     }
 
     return m_axisArrowsUniformBindGroupLayout;
+}
+
+export function getAABBUniformBindGroup() {
+    if (!m_aabbUniformBindGroup) {
+        throw new Error("aabbUniformBindGroup not initialized!");
+    }
+
+    return m_aabbUniformBindGroup;
+}
+
+export function getAABBUniformBindGroupLayout() {
+    if (!m_aabbUniformBindGroupLayout) {
+        throw new Error("aabbUniformBindGroupLayout not initialized!");
+    }
+
+    return m_aabbUniformBindGroupLayout;
 }
 
 export function getUniformBindGroupLayout() {

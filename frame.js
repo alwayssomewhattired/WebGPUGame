@@ -20,8 +20,7 @@ export function frame(time) {
     updateAngle(deltaTime);
 
     const modelMatrix = glMatrix.mat4.create();    
-    glMatrix.mat4.translate(modelMatrix, modelMatrix, glMatrix.vec3.fromValues(0.0, 0.0, -20.0));
-    glMatrix.mat4.rotateX(modelMatrix, modelMatrix, 0.5);
+    glMatrix.mat4.translate(modelMatrix, modelMatrix, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
     glMatrix.mat4.rotateY(modelMatrix, modelMatrix, m_angle);
     // glMatrix.mat4.rotateY(modelMatrix, modelMatrix, 0.);
     // const scalingVector = glMatrix.vec3.fromValues(0.5, 0.5, 0.5);

@@ -1,4 +1,5 @@
 
+
 import { getDevice, getInstancedShaderModule } from "../webgpu.js";
 import { getAxisArrowsUniformBindGroupLayout } from "../uniform.js"
 
@@ -17,15 +18,21 @@ export function initAxisArrowsPipeline() {
     };
 
     const positionAttribDesc = {
-        shaderLocation: 0, // location(0)
+        shaderLocation: 0, 
         offset: 0,
         format: 'float32x3'
     };
 
-    const positionBufferLayoutDesc = {
-        attributes: [positionAttribDesc],
-        arrayStride: 4 * 3, // sizeof(float) * vertices
-        stepMode: 'instance'
+    const colorAttribDesc = {
+        shaderLocation: 1,      
+        offset: 4 * 3,
+        format: 'float32x3'
+    };
+
+    const positionColorBufferLayoutDesc = {
+        attributes: [positionAttribDesc, colorAttribDesc],
+        arrayStride: 4 * 6, // sizeof(float) * vertex elements
+        stepMode: 'vertex'
     };
 
     const pipelineDesc = {
@@ -33,7 +40,7 @@ export function initAxisArrowsPipeline() {
         vertex: {
             module: shaderModule,
             entryPoint: 'instancedVertexShader',
-            buffers: [positionBufferLayoutDesc]
+            buffers: [positionColorBufferLayoutDesc]
         },
         fragment: {
             module: shaderModule,
