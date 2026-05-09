@@ -217,7 +217,9 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: {}
+                buffer: {
+                    type: "read-only-storage"
+                }
             },
             {
                 binding: 2,
@@ -244,7 +246,7 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 resource: {
-                    buffer: modelUBO
+                    buffer: m_globalModelMatrixUBO
                 }
             },
             {

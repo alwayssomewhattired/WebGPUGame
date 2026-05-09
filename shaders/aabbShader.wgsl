@@ -1,7 +1,16 @@
 
 @group(0) @binding(0) var<uniform> color: vec3<f32>;
+
+// @group(0) @binding(1)
+// var<uniform> modelMatrix: mat4x4<f32>;
+
+struct ModelMatrices {
+    matrices: array<mat4x4<f32>>
+};
+
 @group(0) @binding(1)
-var<uniform> modelMatrix: mat4x4<f32>;
+var<storage, read> modelData: ModelMatrices;
+
 @group(0) @binding(2)
 var<uniform> viewMatrix: mat4x4<f32>;
 @group(0) @binding(3)
@@ -12,7 +21,11 @@ struct VertexOutput {
 };
 
 @vertex
-fn aabbVertexShader(@location(0) inPos: vec3<f32>) -> VertexOutput {
+fn aabbVertexShader(
+    @builtin(instance_index) instanceIndex: u32,
+    @location(0) inPos: vec3<f32>
+    ) -> VertexOutput {
+    let modelMatrix = modelData.matrices[instanceIndex];
     var out: VertexOutput;
     out.clip_position = projectionMatrix * viewMatrix * modelMatrix * vec4<f32>(inPos, 1.0);
     return out;

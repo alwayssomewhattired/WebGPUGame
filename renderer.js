@@ -6,7 +6,7 @@ import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
 import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer } from "./buffer.js";
-import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer } from "./transformGizmo.js";
+import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer, getRayVerticesBuffer } from "./transformGizmo.js";
 
 
 export function render() {
@@ -72,8 +72,13 @@ export function render() {
 
         // | model meshes
         passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
-        passEncoder.draw(entity.mesh.aabbPositionsLength / 3, 1);
+        passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
 
+    }
+
+    for (const rayBuffer of getRayVerticesBuffer()) {
+        passEncoder.setVertexBuffer(0, rayBuffer);
+        passEncoder.draw(2, 1);
     }
     
     // | instanced render

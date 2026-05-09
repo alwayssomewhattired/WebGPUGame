@@ -27,6 +27,35 @@ export const gizmoPositionsCPUBuffer = new Float32Array([
     -1,-1, 1, -1, 1, 1,
 ]);
 
+function createRayVerticesGPUBuffer(origin, direction) {
+
+    const device = getDevice();
+
+    // | calculate ray's 'end' vertices
+    const rayLength = 1000.0;
+    const end = [
+        origin[0] + direction[0] * rayLength,
+        origin[1] + direction[1] * rayLength,
+        origin[2] + direction[2] * rayLength,
+    ];
+
+    const rayVertices = new Float32Array([
+        // start
+        origin[0],
+        origin[1],
+        origin[2],
+
+        // end
+        end[0],
+        end[1],
+        end[2]
+    ]);
+
+    return createGPUBuffer(device, rayVertices, rayVertices.byteLength, GPUBufferUsage.VERTEX);
+}
+
+const m_rayVerticesBuffer = [];
+
 export function getAABBGizmoPositionsGPUBuffer() {
     if (!m_aabbGizmoPositionsGPUBuffer) {
         m_aabbGizmoPositionsGPUBuffer = createGPUBuffer(getDevice(), gizmoPositionsCPUBuffer,
@@ -52,8 +81,10 @@ const axesBoxes = {
 };
 
 export function initTransformGizmo() {
+
     canvas.addEventListener("mousedown", ({x, y}) => {
         const ray_ws = getWorldSpaceRayFromMouse(x, y);
+        m_rayVerticesBuffer.push(createRayVerticesGPUBuffer(ray_ws.origin, ray_ws.direction));
         const currentEntity = getSelectedObject(ray_ws, getScene());
         if (currentEntity == null) throw new Error ("Entity is null!!!");
         m_activeAxis = findAxis(ray_ws, currentEntity);
@@ -127,7 +158,6 @@ function getSelectedObject(worldSpaceRay, scene) {
         const ray_ls = {
 
             origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.origin, invModelMatrix),
-
             direction: localDir
 
         };
@@ -159,7 +189,7 @@ function intersectAABB(ray, box) {
         tMin = Math.max(tMin, t1);
         tMax = Math.min(tMax, t2);
     }
-    
+
     // | returns distance to hit
     if (tMax >= tMin && tMax >= 0) {
         return tMin >= 0 ? tMin : tMax;
@@ -214,3 +244,6 @@ function findAxis(mouseRay, entity) {
     return closestAxis;
 }
 
+export function getRayVerticesBuffer() {
+    return m_rayVerticesBuffer;
+}

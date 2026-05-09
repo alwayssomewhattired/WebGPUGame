@@ -147,17 +147,47 @@ function createAABBPositions(mesh) {
     const max = mesh.aabbMax;
 
     const positions = new Float32Array([
-        // front
+
+        // FRONT FACE
         min[0], min[1], min[2],
         max[0], min[1], min[2],
+
+        max[0], min[1], min[2],
+        max[0], max[1], min[2],
+
         max[0], max[1], min[2],
         min[0], max[1], min[2],
 
-        // back
+        min[0], max[1], min[2],
+        min[0], min[1], min[2],
+
+
+        // BACK FACE
         min[0], min[1], max[2],
         max[0], min[1], max[2],
+
+        max[0], min[1], max[2],
         max[0], max[1], max[2],
-        min[0], max[1], max[2]
+
+        max[0], max[1], max[2],
+        min[0], max[1], max[2],
+
+        min[0], max[1], max[2],
+        min[0], min[1], max[2],
+
+
+        // CONNECTING EDGES
+        min[0], min[1], min[2],
+        min[0], min[1], max[2],
+
+        max[0], min[1], min[2],
+        max[0], min[1], max[2],
+
+        max[0], max[1], min[2],
+        max[0], max[1], max[2],
+
+        min[0], max[1], min[2],
+        min[0], max[1], max[2],
     ]);
 
     return createGPUBuffer(getDevice(), positions, positions.byteLength, GPUBufferUsage.VERTEX);
