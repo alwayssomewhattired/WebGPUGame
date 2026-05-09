@@ -17,14 +17,14 @@ export function getModelMatrix() {
     return m_modelMatrix;
 }
 
-export function getInverseModelMatrix() {
-    if (!m_inverseModelMatrix) {
-        m_inverseModelMatrix = glMatrix.mat4.create();
-        glMatrix.mat4.invert(m_inverseModelMatrix, m_modelMatrix);
-    }
+// export function getInverseModelMatrix() {
+//     if (!m_inverseModelMatrix) {
+//         m_inverseModelMatrix = glMatrix.mat4.create();
+//         glMatrix.mat4.invert(m_inverseModelMatrix, m_modelMatrix);
+//     }
 
-    return m_inverseModelMatrix;
-}
+//     return m_inverseModelMatrix;
+// }
 
 export function getViewMatrix() {
     if (!m_viewMatrix) {
@@ -40,14 +40,14 @@ export function getViewMatrix() {
     return m_viewMatrix;
 }
 
-export function getModelViewMatrix() {
-    if (!m_modelViewMatrix) {
-        m_modelViewMatrix = glMatrix.mat4.create();
-        glMatrix.mat4.multiply(m_modelViewMatrix, m_modelMatrix, m_viewMatrix);
-    }
+// export function getModelViewMatrix() {
+//     if (!m_modelViewMatrix) {
+//         m_modelViewMatrix = glMatrix.mat4.create();
+//         glMatrix.mat4.multiply(m_modelViewMatrix, m_modelMatrix, m_viewMatrix);
+//     }
 
-    return m_modelViewMatrix;
-}
+//     return m_modelViewMatrix;
+// }
 
 export function getProjectionMatrix() {
     if (!m_projectionMatrix) {
@@ -73,12 +73,12 @@ export function getViewProjectionMatrix() {
     return m_viewProjectionMatrix;
 }
 
-export function getNormalMatrix() {
-    if (!m_normalMatrix) {
-        m_normalMatrix = glMatrix.mat4.create();
-        glMatrix.mat4.invert(m_normalMatrix, m_modelViewMatrix);
-        glMatrix.mat4.transpose(m_normalMatrix, m_normalMatrix);
-    }
+// export function getNormalMatrix() {
+//     if (!m_normalMatrix) {
+//         m_normalMatrix = glMatrix.mat4.create();
+//         glMatrix.mat4.invert(m_normalMatrix, m_modelViewMatrix);
+//         glMatrix.mat4.transpose(m_normalMatrix, m_normalMatrix);
+//     }
 
-    return m_normalMatrix;
-}
+//     return m_normalMatrix;
+// }

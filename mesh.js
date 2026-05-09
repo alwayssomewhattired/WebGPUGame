@@ -3,10 +3,11 @@ import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js';
 import * as glMatrix from 'gl-matrix'
 
 import { createGPUBuffer } from "./buffer.js";
+import { getDevice } from './webgpu.js';
 
 export class Mesh {
     constructor(vPositions, vPositionsBuffer, vIndices, vIndicesBuffer, vIndexBufferSize,
-        vNormals, vNormalsBuffer) {
+        vNormals, vNormalsBuffer, aabbMin, aabbMax) {
         // | 3 (x,y,z)
         this.vPositions = vPositions;
 
@@ -16,23 +17,41 @@ export class Mesh {
         this.vIndexBufferSize = vIndexBufferSize;
         this.vNormals = vNormals;
         this.vNormalsBuffer = vNormalsBuffer;
-
+        this.aabbMin = aabbMin;
+        this.aabbMax = aabbMax;
+        this.aabbPositionsBuffer = createAABBPositions(this);
+        this.aabbPositionsLength = 24;
     }
 }
+
+let m_aabbPositionsOffset = 0;
 
 // * obj * raw file
 // * entity * instance of entity class
 export function createMesh(obj, device) {
     let positions = [];
-
+    let aabbMin = glMatrix.vec3.create();
+    let aabbMax = glMatrix.vec3.create();
     for (let v of obj.result.models[0].vertices) {
+        // | AABB
+        aabbMin[0] = Math.min(v.x, aabbMin[0]);
+        aabbMin[1] = Math.min(v.y, aabbMin[1]);
+        aabbMin[2] = Math.min(v.z, aabbMin[2]);
+
+        aabbMax[0] = Math.max(v.x, aabbMax[0]);
+        aabbMax[1] = Math.max(v.y, aabbMax[1]);
+        aabbMax[2] = Math.max(v.z, aabbMax[2]);
+
+        // | positions
         positions.push(v.x);
         positions.push(v.y);
         positions.push(v.z);
+
     }
 
     positions = new Float32Array(positions);
     const positionBuffer = createGPUBuffer(device, positions, positions.byteLength, GPUBufferUsage.VERTEX);
+
 
     let faces = obj.result.models[0].faces;
     let faceCount = faces.length;
@@ -115,7 +134,31 @@ export function createMesh(obj, device) {
             const vertex = glMatrix.vec3.fromValues(positions);
         }
     }
+    
+    const mesh = new Mesh(positions, positionBuffer, indices, indexBuffer, indexBufferSize, normals, normalBuffer,
+        aabbMin, aabbMax, m_aabbPositionsOffset
+    );
 
-    const mesh = new Mesh(positions, positionBuffer, indices, indexBuffer, indexBufferSize, normals, normalBuffer);
     return mesh;
+}
+
+function createAABBPositions(mesh) {
+    const min = mesh.aabbMin;
+    const max = mesh.aabbMax;
+
+    const positions = new Float32Array([
+        // front
+        min[0], min[1], min[2],
+        max[0], min[1], min[2],
+        max[0], max[1], min[2],
+        min[0], max[1], min[2],
+
+        // back
+        min[0], min[1], max[2],
+        max[0], min[1], max[2],
+        max[0], max[1], max[2],
+        min[0], max[1], max[2]
+    ]);
+
+    return createGPUBuffer(getDevice(), positions, positions.byteLength, GPUBufferUsage.VERTEX);
 }

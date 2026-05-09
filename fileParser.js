@@ -23,9 +23,25 @@ export async function createEntities() {
         })();
         const device = getDevice();
         const mesh = createMesh(obj, device);
-        const positions = glMatrix.vec3.create();
+        const translation = glMatrix.vec3.create();
         const color = glMatrix.vec3.create();
-        const entity = new Entity(mesh, positions, color, path);
+        const entity = new Entity(mesh, translation, color, path);
+        
     }
+}
+
+// | Holds all entities
+const scene = [];
+
+export function getScene() {
+    if (scene.length > 0) {
+        return scene ;
+    } else {
+        throw new Error ("Scene is empty!!!");
+    }
+}
+
+export function setScene(entity) {
+    scene.push(entity);
 }
 

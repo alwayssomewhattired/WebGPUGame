@@ -3,9 +3,8 @@ import * as glMatrix from 'gl-matrix';
 
 import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer, getAABBColorGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
-import { getScene } from './entity.js';
-import { getModelMatrix, getViewMatrix, getModelViewMatrix, getProjectionMatrix, getNormalMatrix
- } from './matrix.js';
+import { getScene } from './fileParser.js';
+import { getModelMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
 
 let m_globalModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
@@ -19,17 +18,21 @@ let m_aabbUniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
 
-export function createUBO() {
+export function createUBO(entity) {
     const device = getDevice();
     const texture = getTexture();
     const sampler = getSampler();
 
-    const modelMatrix = getModelMatrix();
+    const modelMatrix = entity.modelMatrix;
     const modelMatrixByteLength = 64 * getScene().length;
     const viewMatrix = getViewMatrix();
-    const modelViewMatrix = getModelViewMatrix();
+    const modelViewMatrix = glMatrix.mat4.create();
+    glMatrix.mat4.multiply(modelViewMatrix, modelMatrix, viewMatrix);
     const projectionMatrix = getProjectionMatrix();
-    const normalMatrix = getNormalMatrix();
+
+    const normalMatrix = glMatrix.mat4.create();
+    glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
+    glMatrix.mat4.transpose(normalMatrix, normalMatrix);
 
     const lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
     const lightDirectionUBO = createGPUBuffer(device, lightDirectionBuffer, lightDirectionBuffer.byteLength, 
@@ -145,11 +148,12 @@ export function createUBO() {
 
 }
 
-export function createAxisArrowsUBO() {
+export function createAxisArrowsUBO(entity) {
     const device = getDevice();
-    const model = getModelMatrix();
-    glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
-    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
+    const model = entity.modelMatrix;
+    // const model = getModelMatrix();
+    // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
+    // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
     const axisArrowsUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -196,11 +200,12 @@ export function createAxisArrowsUBO() {
     });
 }
 
-export function createAABBUBO() {
+export function createAABBUBO(entity) {
     const device = getDevice();
-    const model = getModelMatrix();
-    glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
-    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
+    const model = entity.modelMatrix;
+    // const model = getModelMatrix();
+    // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
+    // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
     const modelUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_aabbUniformBindGroupLayout = device.createBindGroupLayout({
         entries: [

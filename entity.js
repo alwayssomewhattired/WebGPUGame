@@ -1,24 +1,21 @@
 
 import * as glMatrix from 'gl-matrix'
 
-import { getDevice } from './webgpu.js';
 import { createGPUBuffer } from './buffer.js';
+import { getScene, setScene } from './fileParser.js';
 
 export class Entity {
-    constructor(mesh, translation, color, id) {
+    constructor(mesh, color, id) {
         this.mesh = mesh;
-        this.translation = glMatrix.vec3.clone(translation);
+        this.translation = glMatrix.vec3.fromValues(0.0, 0.0, -10.0);
         this.rotation = glMatrix.vec3.fromValues(0, 0, 0);
-        this.scale = glMatrix.vec3.fromValues(1, 1, 1);
+        this.scale = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
+                
         this.color = color;
         this.modelMatrix = glMatrix.mat4.create();
-        this.boundingBox_ls = {
-            min: [-1.0, -1.0, -1.0],
-            max: [1.0, 1.0, 1.0]
-        };
-        // this.aabbGPUBuffer = createGPUBuffer(getDevice(), this.boundingBox_ls, this.boundingBox_ls.byteLength, GPUBufferUsage.VERTEX);
         this.id = id;
-        scene.push(this);
+        setScene(this);
+        this.updateModelMatrix();
     }
 
     updateModelMatrix() {
@@ -30,15 +27,3 @@ export class Entity {
         glMatrix.mat4.scale(this.modelMatrix, this.modelMatrix, this.scale);
     }
 }
-
-// | Holds all entities
-const scene = [];
-
-export function getScene() {
-    if (scene.length > 0) {
-        return scene ;
-    } else {
-        throw new Error ("Scene is empty!!!");
-    }
-}
-

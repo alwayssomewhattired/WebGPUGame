@@ -1,23 +1,53 @@
 
 import * as glMatrix from 'gl-matrix'
 import { getViewProjectionMatrix } from './matrix.js';
-import { getScene } from "./entity.js"
-import { getInverseModelMatrix } from './matrix.js';
+import { getScene } from "./fileParser.js"
+import { createGPUBuffer } from './buffer.js';
+import { getDevice } from './webgpu.js';
 
 let m_activeAxis = null;
+let m_aabbPositionsOffset;
+let m_aabbGizmoPositionsGPUBuffer = null;
+
+export const gizmoPositionsCPUBuffer = new Float32Array([
+    // bottom square
+    -1,-1,-1,  1,-1,-1,
+     1,-1,-1,  1,-1, 1,
+     1,-1, 1, -1,-1, 1,
+    -1,-1, 1, -1,-1,-1,
+    // top square
+    -1, 1,-1,  1, 1,-1,
+     1, 1,-1,  1, 1, 1,
+     1, 1, 1, -1, 1, 1,
+    -1, 1, 1, -1, 1,-1,
+    // vertical lines
+    -1,-1,-1, -1, 1,-1,
+     1,-1,-1,  1, 1,-1,
+     1,-1, 1,  1, 1, 1,
+    -1,-1, 1, -1, 1, 1,
+]);
+
+export function getAABBGizmoPositionsGPUBuffer() {
+    if (!m_aabbGizmoPositionsGPUBuffer) {
+        m_aabbGizmoPositionsGPUBuffer = createGPUBuffer(getDevice(), gizmoPositionsCPUBuffer,
+        gizmoPositionsCPUBuffer.byteLength, GPUBufferUsage.VERTEX)
+    }
+
+    return m_aabbGizmoPositionsGPUBuffer;
+}
 
 const axesBoxes = {
     x: {
-        min: [0.0, -0.1, -0.1],
-        max: [1.0, 0.1, 0.1]
+        aabbMin: [0.0, -0.1, -0.1],
+        aabbMax: [1.0, 0.1, 0.1]
     },
     y: {
-        min: [-0.1, 0.0, -0.1],
-        max: [0.1, 1.0, 0.1]
+        aabbMin: [-0.1, 0.0, -0.1],
+        aabbMax: [0.1, 1.0, 0.1]
     },
     z: {
-        min: [-0.1, -0.1, 0.0],
-        max: [0.1, 0.1, 1.0]
+        aabbMin: [-0.1, -0.1, 0.0],
+        aabbMax: [0.1, 0.1, 1.0]
     }
 };
 
@@ -63,8 +93,8 @@ function getWorldSpaceRayFromMouse(mouseX, mouseY) {
     glMatrix.vec4.transformMat4(farPoint, farPoint, invViewProj);
 
     // | Perspective divide
-    glMatrix.vec3.scale(nearPoint, nearPoint, 1.0 / nearPoint[3]);
-    glMatrix.vec3.scale(farPoint, farPoint, 1.0 / farPoint[3]);
+    glMatrix.vec4.scale(nearPoint, nearPoint, 1.0 / nearPoint[3]);
+    glMatrix.vec4.scale(farPoint, farPoint, 1.0 / farPoint[3]);
 
     const rayOrigin = glMatrix.vec3.fromValues(nearPoint[0], nearPoint[1], nearPoint[2]);
     const rayDir = glMatrix.vec3.create();
@@ -78,17 +108,34 @@ function getWorldSpaceRayFromMouse(mouseX, mouseY) {
 function getSelectedObject(worldSpaceRay, scene) {
     let closestDist = Infinity;
     let selected = null;
-    const invModelMatrix = getInverseModelMatrix();
+    const invModelMatrix = glMatrix.mat4.create();
 
     for (const entity of scene) {
+        glMatrix.mat4.invert(invModelMatrix, entity.modelMatrix);
+
+        // | translation bypass (w = 0)
+        const dir4 = glMatrix.vec4.fromValues(
+            worldSpaceRay.direction[0],
+            worldSpaceRay.direction[1],
+            worldSpaceRay.direction[2],
+            0.0
+        )
+        glMatrix.vec4.transformMat4(dir4, dir4, invModelMatrix);
+        const localDir = glMatrix.vec3.fromValues(dir4[0], dir4[1], dir4[2]);
+        glMatrix.vec3.normalize(localDir, localDir);
+
         const ray_ls = {
+
             origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.origin, invModelMatrix),
-            direction: glMatrix.vec3.normalize(glMatrix.vec3.create(), 
-            glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.direction, invModelMatrix))
+
+            direction: localDir
+
         };
-        console.log("getSelectedObject");
-        console.log(ray_ls);
-        const distance = intersectAABB(ray_ls, entity.boundingBox);
+
+        const aabbMin = entity.mesh.aabbMin;
+        const aabbMax = entity.mesh.aabbMax;
+ 
+        const distance = intersectAABB(ray_ls, { aabbMin, aabbMax});
         if (distance !== null && distance < closestDist) {
             closestDist = distance;
             selected = entity;
@@ -103,9 +150,8 @@ function intersectAABB(ray, box) {
 
     for (let i = 0; i < 3; i++) {
         const invDir = 1.0 / ray.direction[i];
-        console.log(invDir);
-        let t1 = (box.min[i] - ray.origin[i]) * invDir;
-        let t2 = (box.max[i] - ray.origin[i]) * invDir;
+        let t1 = (box.aabbMin[i] - ray.origin[i]) * invDir;
+        let t2 = (box.aabbMax[i] - ray.origin[i]) * invDir;
 
         // | Makes sure t1 is entry and t2 is exit
         if (t1 > t2) [t1, t2] = [t2, t1];
@@ -156,11 +202,8 @@ function findAxis(mouseRay, entity) {
     let closestAxis = null;
     let minT = Infinity;
 
-    console.log("findAxis");
-    console.log(ray_ls);
     for (const axis in axesBoxes) {
         const box = axesBoxes[axis];
-        console.log(box)
         const t = intersectAABB(ray_ls, box);
         if (t !== null && t < minT) {
             minT = t;

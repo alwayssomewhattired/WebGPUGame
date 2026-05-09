@@ -66,35 +66,19 @@ export function getAABBColorGPUBuffer() {
     return createGPUBuffer(getDevice(), m_aabbColor, m_aabbColor.byteLength, GPUBufferUsage.UNIFORM);
 }
 
-export function getAABBPositionGPUBuffer() {
+// | this is hardcoded transformGizmo aabb
+// | make this generic
+export function getAABBPositionGPUBuffer(positions) {
     if (!m_aabbPositionBuffer) {
-        const vertices = new Float32Array([
-            // bottom square
-            -1,-1,-1,  1,-1,-1,
-             1,-1,-1,  1,-1, 1,
-             1,-1, 1, -1,-1, 1,
-            -1,-1, 1, -1,-1,-1,
 
-            // top square
-            -1, 1,-1,  1, 1,-1,
-             1, 1,-1,  1, 1, 1,
-             1, 1, 1, -1, 1, 1,
-            -1, 1, 1, -1, 1,-1,
-
-            // vertical lines
-            -1,-1,-1, -1, 1,-1,
-             1,-1,-1,  1, 1,-1,
-             1,-1, 1,  1, 1, 1,
-            -1,-1, 1, -1, 1, 1,
-        ]);
-        m_aabbVerticesLength = vertices.length / 3;
-        m_aabbPositionBuffer = createGPUBuffer(getDevice(), vertices, vertices.byteLength, GPUBufferUsage.VERTEX);
+        m_aabbVerticesLength = positions.length / 3;
+        m_aabbPositionBuffer = createGPUBuffer(getDevice(), positions, vertices.byteLength, GPUBufferUsage.VERTEX);
     }
 
     return m_aabbPositionBuffer;
 }
 
 export function getAABBVerticesLength() {
-    if (!m_aabbVerticesLength) getAABBPositionGPUBuffer();
+    if (!m_aabbVerticesLength) getAABBGizmoPositionGPUBuffer();
     return m_aabbVerticesLength;
 }

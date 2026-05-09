@@ -4,12 +4,13 @@ import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
 import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
-import { getScene } from "./entity.js";
-import { getAxisArrowsPositionsGPUBuffer, getAABBPositionGPUBuffer, getAABBVerticesLength } from "./buffer.js";
+import { getScene } from "./fileParser.js";
+import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer } from "./buffer.js";
+import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer } from "./transformGizmo.js";
 
 
 export function render() {
-
+    
     const device = getDevice();
     const pipeline = getPipeline();
     const texCoordsBuffer = getTexCoordsBuffer();
@@ -61,10 +62,18 @@ export function render() {
 
     // | AABB render
     passEncoder.setPipeline(getAABBPipeline());
+    passEncoder.setBindGroup(0, getAABBUniformBindGroup());
+    
+    // | transform gizmo
+    passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
+    passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
+
     for (const entity of getScene()) {
-        passEncoder.setBindGroup(0, getAABBUniformBindGroup());
-        passEncoder.setVertexBuffer(0, getAABBPositionGPUBuffer());
-        passEncoder.draw(getAABBVerticesLength(), 1);
+
+        // | model meshes
+        passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
+        passEncoder.draw(entity.mesh.aabbPositionsLength / 3, 1);
+
     }
     
     // | instanced render
