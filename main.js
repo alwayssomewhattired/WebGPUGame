@@ -1,6 +1,6 @@
 
 import { initWebGPU } from './webgpu.js';
-import { initTextures } from './uniform.js';
+import { createRayUBO, initTextures, createUBO, createAxisArrowsUBO, createAABBUBO } from './uniform.js';
 import { getDevice } from './webgpu.js';
 import { initPipeline} from './pipelines/pipeline.js'
 import { initAxisArrowsPipeline } from './pipelines/axisArrowsPipeline.js';
@@ -9,7 +9,6 @@ import { createEntities, getScene } from './fileParser.js';
 import { frame } from './frame.js';
 import { render } from './renderer.js';
 import { initMouse } from './camera.js';
-import { createUBO, createAxisArrowsUBO, createAABBUBO } from './uniform.js';
 import { initTransformGizmo } from './transformGizmo.js';
 
 
@@ -25,6 +24,7 @@ export async function main() {
         createAxisArrowsUBO(entity);
         createAABBUBO(entity);
     }
+    createRayUBO();
 
     initPipeline();
     initAxisArrowsPipeline();

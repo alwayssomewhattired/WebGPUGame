@@ -6,7 +6,6 @@ let m_viewMatrix = null;
 let m_inverseModelMatrix = null;
 let m_modelViewMatrix = null;
 let m_projectionMatrix = null;
-let m_viewProjectionMatrix = null;
 let m_normalMatrix = null;
 
 export function getModelMatrix() {
@@ -40,6 +39,10 @@ export function getViewMatrix() {
     return m_viewMatrix;
 }
 
+export function setViewMatrix(viewMatrix) {
+    m_viewMatrix = viewMatrix
+}
+
 // export function getModelViewMatrix() {
 //     if (!m_modelViewMatrix) {
 //         m_modelViewMatrix = glMatrix.mat4.create();
@@ -65,12 +68,10 @@ export function getProjectionMatrix() {
 }
 
 export function getViewProjectionMatrix() {
-    if (!m_viewProjectionMatrix) {
-        m_viewProjectionMatrix = glMatrix.mat4.create();
-        glMatrix.mat4.multiply(m_viewProjectionMatrix, m_viewMatrix, m_projectionMatrix);
-    }
+    const viewProjectionMatrix = glMatrix.mat4.create();
+    glMatrix.mat4.multiply(viewProjectionMatrix, m_projectionMatrix, m_viewMatrix);
 
-    return m_viewProjectionMatrix;
+    return viewProjectionMatrix;
 }
 
 // export function getNormalMatrix() {

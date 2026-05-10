@@ -1,12 +1,14 @@
 import { getPipeline, getTexCoordsBuffer } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup } from "./uniform.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
 import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer } from "./buffer.js";
-import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer, getRayVerticesBuffer } from "./transformGizmo.js";
+import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer } from "./transformGizmo.js";
+import { getRayVerticesBuffer } from "./ray.js";
+import { keyboardInput } from "./keyboardListeners.js";
 
 
 export function render() {
@@ -63,22 +65,22 @@ export function render() {
     // | AABB render
     passEncoder.setPipeline(getAABBPipeline());
     passEncoder.setBindGroup(0, getAABBUniformBindGroup());
-    
-    // | transform gizmo
-    passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
-    passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
+    if (keyboardInput.b) {
+        // | transform gizmo
+        passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
+        passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
 
-    for (const entity of getScene()) {
+        for (const entity of getScene()) {
+            // | model meshes
+            passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
+            passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
+        }
 
-        // | model meshes
-        passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
-        passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
-
-    }
-
-    for (const rayBuffer of getRayVerticesBuffer()) {
-        passEncoder.setVertexBuffer(0, rayBuffer);
-        passEncoder.draw(2, 1);
+        passEncoder.setBindGroup(0, getRayUniformBindGroup());
+        for (const rayBuffer of getRayVerticesBuffer()) {
+            passEncoder.setVertexBuffer(0, rayBuffer);
+            passEncoder.draw(2, 1);
+        }
     }
     
     // | instanced render

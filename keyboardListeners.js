@@ -1,4 +1,6 @@
 
+import { getRayVerticesBuffer } from "./ray.js";
+
 export let toggleFPSMode = false;
 
 export const keyboardInput = {
@@ -6,7 +8,9 @@ export const keyboardInput = {
     a: false,
     s: false,
     d: false,
-    e: false
+    e: false,
+    r: false,
+    b: false,
 };
 
 window.addEventListener("keydown", (event) => {
@@ -15,7 +19,7 @@ window.addEventListener("keydown", (event) => {
         case "KeyA": keyboardInput.a = true; break;
         case "KeyS": keyboardInput.s = true; break;
         case "KeyD": keyboardInput.d = true; break;
-
+        
         case "KeyE": {
             keyboardInput.e = true;
             toggleFPSMode = !toggleFPSMode;
@@ -26,6 +30,19 @@ window.addEventListener("keydown", (event) => {
             }
             break;
         };
+        
+        // | toggles
+        case "KeyR": keyboardInput.r = !keyboardInput.r; break;
+        case "KeyB": {
+            keyboardInput.b = !keyboardInput.b;
+
+            if (!keyboardInput.b) {
+                for (let buffer of getRayVerticesBuffer()) buffer.destroy();
+                getRayVerticesBuffer().length = 0;
+            }
+            
+            break;
+        }
     }
 });
 
@@ -36,5 +53,6 @@ window.addEventListener("keyup", (event) => {
         case "KeyS": keyboardInput.s = false; break;
         case "KeyD": keyboardInput.d = false; break;
         case "KeyE": keyboardInput.e = false; break;
+
     }
 });

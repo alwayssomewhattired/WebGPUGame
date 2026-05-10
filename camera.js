@@ -1,6 +1,7 @@
 
 import * as glMatrix from 'gl-matrix'
 import { toggleFPSMode } from './keyboardListeners.js';
+import { setViewMatrix } from './matrix.js';
 
 const camera = {
     position: [0, 1.6, 5],
@@ -30,11 +31,12 @@ function getUp(right, forward) {
 }
 
 export function updateViewTransform(view) {
-    const forward = getForward();
+    const forward = getForward(camera.position);
     let target = glMatrix.vec3.create()
     glMatrix.vec3.add(target, camera.position, forward);
     const up = glMatrix.vec3.fromValues(0, 1, 0);
     view = glMatrix.mat4.lookAt(view, camera.position, target, up);
+    setViewMatrix(view);
     return view;
 }
 

@@ -7,6 +7,7 @@ import { getDevice } from './webgpu.js';
 
 let m_axisArrowsBuffer = null;
 const m_aabbColor = new Float32Array([1.0, 1.0, 0.0]);
+const m_rayColor = new Float32Array([ 0.0, 1.0, 1.0]);
 let m_aabbPositionBuffer = null;
 let m_aabbVerticesLength = null;
 
@@ -64,6 +65,10 @@ export function getAxisArrowsPositionsGPUBuffer() {
 
 export function getAABBColorGPUBuffer() {
     return createGPUBuffer(getDevice(), m_aabbColor, m_aabbColor.byteLength, GPUBufferUsage.UNIFORM);
+}
+
+export function getRayColorGPUBuffer() {
+    return createGPUBuffer(getDevice(), m_rayColor, m_rayColor.byteLength, GPUBufferUsage.UNIFORM);
 }
 
 // | this is hardcoded transformGizmo aabb

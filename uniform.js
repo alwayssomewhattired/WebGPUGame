@@ -1,20 +1,25 @@
 
 import * as glMatrix from 'gl-matrix';
 
-import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer, getAABBColorGPUBuffer } from './buffer.js'
+import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer, getAABBColorGPUBuffer, 
+    getRayColorGPUBuffer } from './buffer.js'
 import { getDevice } from './webgpu.js'
 import { getScene } from './fileParser.js';
 import { getModelMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
 
-let m_globalModelMatrixUBO = null;
+let m_modelMatrixUBO = null;
+let m_rayModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
 let m_projectionMatrixUBO = null;
+
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_axisArrowsUniformBindGroup = null;
 let m_axisArrowsUniformBindGroupLayout = null;
 let m_aabbUniformBindGroup = null;
 let m_aabbUniformBindGroupLayout = null;
+let m_rayUniformBindGroup = null;
+let m_rayUniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
 
@@ -40,8 +45,8 @@ export function createUBO(entity) {
     const viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
     const viewDirectionUBO = createGPUBuffer(device, viewDirectionBuffer, viewDirectionBuffer.byteLength, 
         GPUBufferUsage.UNIFORM);
-    m_globalModelMatrixUBO = createGPUBuffer(device, modelMatrix, modelMatrix.byteLength, 
-        GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST);
+    m_modelMatrixUBO = createGPUBuffer(device, modelMatrix, modelMatrix.byteLength, 
+        GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     m_viewMatrixUBO = createGPUBuffer(device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     // let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM);
     m_projectionMatrixUBO = createGPUBuffer(device, projectionMatrix, projectionMatrix.byteLength, 
@@ -54,9 +59,7 @@ export function createUBO(entity) {
             {
                 binding: 0,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: {
-                    type: "read-only-storage"
-                }
+                buffer: {}
             },
             {
                 binding: 1,
@@ -102,7 +105,7 @@ export function createUBO(entity) {
             {
                 binding: 0,
                 resource: {
-                    buffer: m_globalModelMatrixUBO
+                    buffer: m_modelMatrixUBO
                 }
             },
             {
@@ -217,9 +220,7 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: {
-                    type: "read-only-storage"
-                }
+                buffer: {}
             },
             {
                 binding: 2,
@@ -246,7 +247,68 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 resource: {
-                    buffer: m_globalModelMatrixUBO
+                    buffer: m_modelMatrixUBO
+                }
+            },
+            {
+                binding: 2,
+                resource: {
+                    buffer: m_viewMatrixUBO
+                }
+            },
+            {
+                binding: 3,
+                resource: {
+                    buffer: m_projectionMatrixUBO
+                }
+            },
+        ]
+    });
+}
+
+export function createRayUBO() {
+    const device = getDevice();
+    const model = glMatrix.mat4.create();
+ 
+    const m_rayModelMatrixUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
+    m_rayUniformBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: {}
+            },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 2,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 3,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+        ]
+    });
+
+    m_rayUniformBindGroup = device.createBindGroup({
+        layout: m_aabbUniformBindGroupLayout,
+        entries: [
+            {
+                binding: 0,
+                resource: {
+                    buffer: getRayColorGPUBuffer()
+                }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: m_rayModelMatrixUBO
                 }
             },
             {
@@ -333,6 +395,22 @@ export function getAABBUniformBindGroupLayout() {
     return m_aabbUniformBindGroupLayout;
 }
 
+export function getRayUniformBindGroup() {
+    if (!m_rayUniformBindGroup) {
+        throw new Error("rayUniformBindGroup not initialized!");
+    }
+
+    return m_rayUniformBindGroup;
+}
+
+export function getRayUniformBindGroupLayout() {
+    if (!m_rayUniformBindGroupLayout) {
+        throw new Error("rayUniformBindGroupLayout not initialized!");
+    }
+
+    return m_rayUniformBindGroupLayout;
+}
+
 export function getUniformBindGroupLayout() {
     if (!m_uniformBindGroupLayout) {
         throw new Error("UniformBufferBindGroupLayout not initialized!");
@@ -357,12 +435,12 @@ export function getSampler() {
     return m_sampler;
 }
 
-export function getGlobalModelMatrixUBO() {
-    if (!m_globalModelMatrixUBO) {
-        throw new Error("Global Model Matrix UBO not initialized!");
+export function getModelMatrixUBO() {
+    if (!m_modelMatrixUBO) {
+        throw new Error("Model Matrix UBO not initialized!");
     }
 
-    return m_globalModelMatrixUBO;
+    return m_modelMatrixUBO;
 }
 
 export function getViewMatrixUBO() {
