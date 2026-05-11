@@ -154,9 +154,7 @@ export function createUBO(entity) {
 export function createAxisArrowsUBO(entity) {
     const device = getDevice();
     const model = entity.modelMatrix;
-    // const model = getModelMatrix();
-    // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
-    // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
+    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(4.0,4.0,4.0));
     const axisArrowsUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = device.createBindGroupLayout({
         entries: [

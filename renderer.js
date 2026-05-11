@@ -84,11 +84,15 @@ export function render() {
     }
     
     // | instanced render
-    passEncoder.setPipeline(axisArrowsPipeline);
-    passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup());
-    passEncoder.setVertexBuffer(0, getAxisArrowsPositionsGPUBuffer());
-    // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
-    passEncoder.draw(6, 3);
+    for (const entity of getScene()) {
+        if (entity.isSelected) {
+            passEncoder.setPipeline(axisArrowsPipeline);
+            passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup());
+            passEncoder.setVertexBuffer(0, getAxisArrowsPositionsGPUBuffer());
+            // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
+            passEncoder.draw(6, 3);
+        }
+    }
 
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);

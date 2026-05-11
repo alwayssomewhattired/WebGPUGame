@@ -1,6 +1,8 @@
 
 import * as glMatrix from 'gl-matrix'
 
+const m_globalModelMatrices = [];
+
 let m_modelMatrix = null
 let m_viewMatrix = null;
 let m_inverseModelMatrix = null;
@@ -8,22 +10,30 @@ let m_modelViewMatrix = null;
 let m_projectionMatrix = null;
 let m_normalMatrix = null;
 
-export function getModelMatrix() {
-    if (!m_modelMatrix) {
-        m_modelMatrix = glMatrix.mat4.create();
+export function getModelMatrix(index) {
+    const modelMatrix = m_globalModelMatrices[index];
+    if (!modelMatrix) {
+        modelMatrix = glMatrix.mat4.create();
+        m_globalModelMatrix.push(modelMatrix);
     }
 
-    return m_modelMatrix;
+    return modelMatrix;
 }
 
-// export function getInverseModelMatrix() {
-//     if (!m_inverseModelMatrix) {
-//         m_inverseModelMatrix = glMatrix.mat4.create();
-//         glMatrix.mat4.invert(m_inverseModelMatrix, m_modelMatrix);
-//     }
+export function updateModelMatrix(entity) {
+    const modelMatrix = m_globalModelMatrices[entity.modelMatrixID];
+    if (!modelMatrix) {
+        modelMatrix = glMatrix.mat4.create();
+        m_globalModelMatrix.push(modelMatrix);
+    }
 
-//     return m_inverseModelMatrix;
-// }
+    glMatrix.mat4.identity(modelMatrix);
+    glMatrix.mat4.translate(modelMatrix, modelMatrix, entity.translation);
+    glMatrix.mat4.rotateX(modelMatrix, modelMatrix, entity.rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix, modelMatrix, entity.rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, entity.rotation[2]);
+    glMatrix.mat4.scale(modelMatrix, modelMatrix, entity.scale);
+    }
 
 export function getViewMatrix() {
     if (!m_viewMatrix) {
@@ -42,15 +52,6 @@ export function getViewMatrix() {
 export function setViewMatrix(viewMatrix) {
     m_viewMatrix = viewMatrix
 }
-
-// export function getModelViewMatrix() {
-//     if (!m_modelViewMatrix) {
-//         m_modelViewMatrix = glMatrix.mat4.create();
-//         glMatrix.mat4.multiply(m_modelViewMatrix, m_modelMatrix, m_viewMatrix);
-//     }
-
-//     return m_modelViewMatrix;
-// }
 
 export function getProjectionMatrix() {
     if (!m_projectionMatrix) {
@@ -73,13 +74,3 @@ export function getViewProjectionMatrix() {
 
     return viewProjectionMatrix;
 }
-
-// export function getNormalMatrix() {
-//     if (!m_normalMatrix) {
-//         m_normalMatrix = glMatrix.mat4.create();
-//         glMatrix.mat4.invert(m_normalMatrix, m_modelViewMatrix);
-//         glMatrix.mat4.transpose(m_normalMatrix, m_normalMatrix);
-//     }
-
-//     return m_normalMatrix;
-// }

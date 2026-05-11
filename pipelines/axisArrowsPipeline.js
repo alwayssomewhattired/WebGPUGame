@@ -53,8 +53,8 @@ export function initAxisArrowsPipeline() {
             cullMode: 'none'
         },
         depthStencil: {
-            depthWriteEnabled: false, // | axis arrows should always be visible
-            depthCompare: 'less',
+            depthWriteEnabled: false,
+            depthCompare: 'always',
             format: 'depth24plus-stencil8'
         }
     };

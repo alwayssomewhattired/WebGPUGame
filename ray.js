@@ -4,6 +4,7 @@ import * as glMatrix from "gl-matrix"
 import { getViewProjectionMatrix } from "./matrix.js";
 import { getDevice } from "./webgpu.js";
 import { createGPUBuffer } from "./buffer.js";
+import { intersectAABB } from "./transformGizmo.js";
 
 const m_rayVerticesBuffer = [];
 
@@ -61,11 +62,53 @@ export function getWorldSpaceRayFromMouse(mouseX, mouseY) {
     glMatrix.vec4.scale(nearPoint, nearPoint, 1.0 / nearPoint[3]);
     glMatrix.vec4.scale(farPoint, farPoint, 1.0 / farPoint[3]);
     const rayOrigin = glMatrix.vec3.fromValues(nearPoint[0], nearPoint[1], nearPoint[2]);
-    console.log(rayOrigin)
     const rayDir = glMatrix.vec3.create();
     glMatrix.vec3.subtract(rayDir, farPoint, nearPoint);
     glMatrix.vec3.normalize(rayDir, rayDir);
     
     return { origin: rayOrigin, direction: rayDir };
 
+}
+
+export function getSelectedObject(worldSpaceRay, scene) {
+    let closestDist = Infinity;
+    let selected = null;
+    const invModelMatrix = glMatrix.mat4.create();
+
+    for (const entity of scene) {
+        if (entity.isSelected) entity.isSelected = false;
+        glMatrix.mat4.invert(invModelMatrix, entity.modelMatrix);
+
+        // | translation bypass (w = 0)
+        const dir4 = glMatrix.vec4.fromValues(
+            worldSpaceRay.direction[0],
+            worldSpaceRay.direction[1],
+            worldSpaceRay.direction[2],
+            0.0
+        )
+        glMatrix.vec4.transformMat4(dir4, dir4, invModelMatrix);
+        const localDir = glMatrix.vec3.fromValues(dir4[0], dir4[1], dir4[2]);
+        glMatrix.vec3.normalize(localDir, localDir);
+
+        const ray_ls = {
+
+            origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.origin, invModelMatrix),
+            direction: localDir
+
+        };
+
+        const aabbMin = entity.mesh.aabbMin;
+        const aabbMax = entity.mesh.aabbMax;
+ 
+        const distance = intersectAABB(ray_ls, { aabbMin, aabbMax});
+
+        if (distance !== null && distance < closestDist) {
+            closestDist = distance;
+            selected = entity;
+        }
+    }
+
+    selected.isSelected = true;
+    console.log(selected);
+    return selected;
 }

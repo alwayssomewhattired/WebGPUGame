@@ -13,6 +13,9 @@ export class Entity {
                 
         this.color = color;
         this.modelMatrix = glMatrix.mat4.create();
+
+        this.isSelected = false;
+        this.pipeline = "main";
         this.id = id;
         setScene(this);
         this.updateModelMatrix();

@@ -4,7 +4,7 @@ import { getViewProjectionMatrix } from './matrix.js';
 import { getScene } from "./fileParser.js"
 import { createGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
-import { getWorldSpaceRayFromMouse, createRayVerticesGPUBuffer, getRayVerticesBuffer } from './ray.js';
+import { getWorldSpaceRayFromMouse, createRayVerticesGPUBuffer, getRayVerticesBuffer, getSelectedObject } from './ray.js';
 import { keyboardInput } from './keyboardListeners.js';
 
 let m_activeAxis = null;
@@ -85,45 +85,8 @@ export function initTransformGizmo() {
     })
 }
 
-function getSelectedObject(worldSpaceRay, scene) {
-    let closestDist = Infinity;
-    let selected = null;
-    const invModelMatrix = glMatrix.mat4.create();
 
-    for (const entity of scene) {
-        glMatrix.mat4.invert(invModelMatrix, entity.modelMatrix);
-
-        // | translation bypass (w = 0)
-        const dir4 = glMatrix.vec4.fromValues(
-            worldSpaceRay.direction[0],
-            worldSpaceRay.direction[1],
-            worldSpaceRay.direction[2],
-            0.0
-        )
-        glMatrix.vec4.transformMat4(dir4, dir4, invModelMatrix);
-        const localDir = glMatrix.vec3.fromValues(dir4[0], dir4[1], dir4[2]);
-        glMatrix.vec3.normalize(localDir, localDir);
-
-        const ray_ls = {
-
-            origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.origin, invModelMatrix),
-            direction: localDir
-
-        };
-
-        const aabbMin = entity.mesh.aabbMin;
-        const aabbMax = entity.mesh.aabbMax;
- 
-        const distance = intersectAABB(ray_ls, { aabbMin, aabbMax});
-        if (distance !== null && distance < closestDist) {
-            closestDist = distance;
-            selected = entity;
-        }
-    }
-    return selected;
-}
-
-function intersectAABB(ray, box) {
+export function intersectAABB(ray, box) {
     let tMin = -Infinity;
     let tMax = Infinity;
 
@@ -138,7 +101,8 @@ function intersectAABB(ray, box) {
         tMin = Math.max(tMin, t1);
         tMax = Math.min(tMax, t2);
     }
-
+    console.log(tMin);
+    console.log(tMax);
     // | returns distance to hit
     if (tMax >= tMin && tMax >= 0) {
         return tMin >= 0 ? tMin : tMax;
