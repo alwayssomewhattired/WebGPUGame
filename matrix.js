@@ -3,7 +3,6 @@ import * as glMatrix from 'gl-matrix'
 
 const m_globalModelMatrices = [];
 
-let m_modelMatrix = null
 let m_viewMatrix = null;
 let m_inverseModelMatrix = null;
 let m_modelViewMatrix = null;
@@ -12,20 +11,24 @@ let m_normalMatrix = null;
 
 export function getModelMatrix(index) {
     const modelMatrix = m_globalModelMatrices[index];
-    if (!modelMatrix) {
-        modelMatrix = glMatrix.mat4.create();
-        m_globalModelMatrix.push(modelMatrix);
-    }
+    if (!modelMatrix) throw new Error("model matrix is null!");
 
+    return modelMatrix;
+}
+
+export function getGlobalModelMatricesLength() { 
+    return m_globalModelMatrices.length;
+}
+
+export function createModelMatrix() {
+    const modelMatrix = glMatrix.mat4.create();
+    m_globalModelMatrices.push(modelMatrix);
     return modelMatrix;
 }
 
 export function updateModelMatrix(entity) {
     const modelMatrix = m_globalModelMatrices[entity.modelMatrixID];
-    if (!modelMatrix) {
-        modelMatrix = glMatrix.mat4.create();
-        m_globalModelMatrix.push(modelMatrix);
-    }
+    if (!modelMatrix) throw new Error("model matrix is null!");
 
     glMatrix.mat4.identity(modelMatrix);
     glMatrix.mat4.translate(modelMatrix, modelMatrix, entity.translation);
@@ -33,7 +36,7 @@ export function updateModelMatrix(entity) {
     glMatrix.mat4.rotateY(modelMatrix, modelMatrix, entity.rotation[1]);
     glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, entity.rotation[2]);
     glMatrix.mat4.scale(modelMatrix, modelMatrix, entity.scale);
-    }
+}
 
 export function getViewMatrix() {
     if (!m_viewMatrix) {

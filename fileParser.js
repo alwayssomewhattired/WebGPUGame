@@ -5,6 +5,7 @@ import * as glMatrix from 'gl-matrix'
 import { createMesh } from './mesh.js';
 import { Entity } from './entity.js';
 import { getDevice } from './webgpu.js';
+import { getGlobalModelMatricesLength, createModelMatrix } from './matrix.js';
 
 const filePaths = [
     './models/psx-rat/rat.obj'
@@ -25,7 +26,9 @@ export async function createEntities() {
         const mesh = createMesh(obj, device);
         const translation = glMatrix.vec3.create();
         const color = glMatrix.vec3.create();
-        const entity = new Entity(mesh, translation, color, path);
+
+        const modelMatrixID = getGlobalModelMatricesLength();
+        const entity = new Entity(mesh, color, path, modelMatrixID);
         
     }
 }

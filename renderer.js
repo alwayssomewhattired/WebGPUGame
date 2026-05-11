@@ -68,9 +68,10 @@ export function render() {
     if (keyboardInput.b) {
         // | transform gizmo
         passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
+        device.
         passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
-
         for (const entity of getScene()) {
+            // - make sure to update gpu buffer so we can bind correct model matrices for aabb!!!!!
             // | model meshes
             passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
             passEncoder.draw(entity.mesh.aabbPositionsLength, 1);

@@ -11,6 +11,7 @@ let m_modelMatrixUBO = null;
 let m_rayModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
 let m_projectionMatrixUBO = null;
+let m_aabbMatrixUBO = null;
 
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
@@ -28,7 +29,7 @@ export function createUBO(entity) {
     const texture = getTexture();
     const sampler = getSampler();
 
-    const modelMatrix = entity.modelMatrix;
+    const modelMatrix = getModelMatrix(entity.modelMatrixIdx);
     const modelMatrixByteLength = 64 * getScene().length;
     const viewMatrix = getViewMatrix();
     const modelViewMatrix = glMatrix.mat4.create();
@@ -153,8 +154,8 @@ export function createUBO(entity) {
 
 export function createAxisArrowsUBO(entity) {
     const device = getDevice();
-    const model = entity.modelMatrix;
-    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(4.0,4.0,4.0));
+    const model = getModelMatrix(entity.axisArrows.modelIdx);
+    // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(4.0,4.0,4.0));
     const axisArrowsUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
@@ -203,11 +204,11 @@ export function createAxisArrowsUBO(entity) {
 
 export function createAABBUBO(entity) {
     const device = getDevice();
-    const model = entity.modelMatrix;
+    const model = getModelMatrix(entity.aabbModelIdx);
     // const model = getModelMatrix();
     // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
     // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
-    const modelUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
+    m_aabbMatrixUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_aabbUniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
             {
@@ -245,7 +246,7 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 resource: {
-                    buffer: m_modelMatrixUBO
+                    buffer: m_aabbMatrixUBO
                 }
             },
             {
