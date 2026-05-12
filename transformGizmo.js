@@ -76,7 +76,7 @@ export function initTransformGizmo() {
             if (m_activeAxis === 'y') currentEntity.position[1] += moveDist;
             if (m_activeAxis === 'z') currentEntity.position[2] += moveDist;
 
-            currentEntity.updateModelMatrix();
+            currentEntity.initModelMatrix();
         }
     })
 
@@ -101,8 +101,7 @@ export function intersectAABB(ray, box) {
         tMin = Math.max(tMin, t1);
         tMax = Math.min(tMax, t2);
     }
-    console.log(tMin);
-    console.log(tMax);
+
     // | returns distance to hit
     if (tMax >= tMin && tMax >= 0) {
         return tMin >= 0 ? tMin : tMax;

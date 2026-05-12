@@ -17,9 +17,9 @@ export class Entity {
         this.modelMatrixIdx = modelMatrixIdx;
         this.aabbModelIdx = modelMatrixIdx + 1;
         this.axisArrows = {
-            modelIdx: modelMatrixIdx + 2,
-            aabbModelIdx: modelMatrixIdx + 3
+            modelIdx: modelMatrixIdx + 2
         };
+        this.axisArrowsAABBModelIdx = modelMatrixIdx + 3;
 
         this.isSelected = false;
         this.pipeline = "main";
@@ -32,7 +32,6 @@ export class Entity {
     initModelMatrix() {
 
         const modelMatrix = createModelMatrix();
-
         glMatrix.mat4.identity(modelMatrix);
         glMatrix.mat4.translate(modelMatrix, modelMatrix, this.translation);
         glMatrix.mat4.rotateX(modelMatrix, modelMatrix, this.rotation[0]);
@@ -41,7 +40,6 @@ export class Entity {
         glMatrix.mat4.scale(modelMatrix, modelMatrix, this.scale);
 
         const aabbModelMatrix = createModelMatrix();
-
         glMatrix.mat4.identity(aabbModelMatrix);
         glMatrix.mat4.translate(aabbModelMatrix, aabbModelMatrix, this.translation);
         glMatrix.mat4.rotateX(aabbModelMatrix, aabbModelMatrix, this.rotation[0]);
@@ -60,12 +58,13 @@ export class Entity {
 
         
         const axisArrowsAABBModelMatrix = createModelMatrix();
+        const axisArrowsAABBScale = glMatrix.vec3.fromValues(40.0, 4.0, 4.0);
 
-        glMatrix.mat4.identity(aabbModelMatrix);
-        glMatrix.mat4.translate(aabbModelMatrix, aabbModelMatrix, this.translation);
-        glMatrix.mat4.rotateX(aabbModelMatrix, aabbModelMatrix, this.rotation[0]);
-        glMatrix.mat4.rotateY(aabbModelMatrix, aabbModelMatrix, this.rotation[1]);
-        glMatrix.mat4.rotateZ(aabbModelMatrix, aabbModelMatrix, this.rotation[2]);
-        glMatrix.mat4.scale(aabbModelMatrix, aabbModelMatrix, axisArrowsScale);
+        glMatrix.mat4.identity(axisArrowsAABBModelMatrix);
+        glMatrix.mat4.translate(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.translation);
+        glMatrix.mat4.rotateX(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.rotation[0]);
+        glMatrix.mat4.rotateY(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.rotation[1]);
+        glMatrix.mat4.rotateZ(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.rotation[2]);
+        glMatrix.mat4.scale(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, axisArrowsAABBScale);
     }
 }

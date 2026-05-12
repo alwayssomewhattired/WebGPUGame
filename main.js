@@ -19,6 +19,7 @@ export async function main() {
     initDepthStencil();
     await createEntities();
 
+    // 1. mouse
     for (const entity of getScene()) {
         createUBO(entity);
         createAxisArrowsUBO(entity);

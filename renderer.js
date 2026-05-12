@@ -1,7 +1,7 @@
 import { getPipeline, getTexCoordsBuffer } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup } from "./uniform.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getAABBMatrixUBO } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
@@ -9,6 +9,7 @@ import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer } from "./buffer.js";
 import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer } from "./transformGizmo.js";
 import { getRayVerticesBuffer } from "./ray.js";
 import { keyboardInput } from "./keyboardListeners.js";
+import { getModelMatrix, getModelMatrixGPUBuffer } from "./matrix.js";
 
 
 export function render() {
@@ -54,47 +55,79 @@ export function render() {
         const commandEncoder = device.createCommandEncoder();
         passEncoder.setBindGroup(0, uniformBindGroup);
         passEncoder.setVertexBuffer(0, positionBuffer);
+        
         passEncoder.setVertexBuffer(1, texCoordsBuffer);
         passEncoder.setVertexBuffer(2, normalBuffer);
         passEncoder.setIndexBuffer(indexBuffer, 'uint16');
         passEncoder.drawIndexed(indexBufferSize);
         passEncoder.draw(4, 1);
-
+        
     }
 
-    // | AABB render
-    passEncoder.setPipeline(getAABBPipeline());
-    passEncoder.setBindGroup(0, getAABBUniformBindGroup());
-    if (keyboardInput.b) {
-        // | transform gizmo
-        passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
-        device.
-        passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
-        for (const entity of getScene()) {
-            // - make sure to update gpu buffer so we can bind correct model matrices for aabb!!!!!
-            // | model meshes
-            passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
-            passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
-        }
-
-        passEncoder.setBindGroup(0, getRayUniformBindGroup());
-        for (const rayBuffer of getRayVerticesBuffer()) {
-            passEncoder.setVertexBuffer(0, rayBuffer);
-            passEncoder.draw(2, 1);
-        }
-    }
-    
-    // | instanced render
     for (const entity of getScene()) {
         if (entity.isSelected) {
+            // | renders axisArrows vertices
             passEncoder.setPipeline(axisArrowsPipeline);
             passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup());
             passEncoder.setVertexBuffer(0, getAxisArrowsPositionsGPUBuffer());
             // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
             passEncoder.draw(6, 3);
+
+            // fix this!!!
+            // make dynamic ubos and store offsets
+            // the problem was we were overwriting the same fucking memory
+            // DRAW does NOT immediately draw.
+            // draw records command buffers.
+            // We are overwriting the same ubo
+            if (keyboardInput.b) {
+                // | aabb boxes
+                passEncoder.setPipeline(getAABBPipeline());
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup());
+                passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
+                const aabbMatrixUBO = getAABBMatrixUBO();
+
+                device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.axisArrowsAABBModelIdx));
+
+                passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
+
+                passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
+                device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.modelMatrixIdx));            
+
+                passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
+
+                passEncoder.setBindGroup(0, getRayUniformBindGroup());
+                for (const rayBuffer of getRayVerticesBuffer()) {
+                    passEncoder.setVertexBuffer(0, rayBuffer);
+                    passEncoder.draw(2, 1);
+                }
+            }
+        }
+    }
+
+    // passEncoder.setPipeline(getAABBPipeline());
+    // passEncoder.setBindGroup(0, getAABBUniformBindGroup());
+
+    for (const entity of getScene()) {
+            // | model meshes aabb
+            if (keyboardInput.b) {
+            // passEncoder.setBindGroup(0, getAABBUniformBindGroup());
+            // passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
+            // const aabbMatrixUBO = getAABBMatrixUBO();
+            // device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.aabbModelIdx));
+            // // device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.axisArrowsAABBModelIdx));
+            
+
+            // passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
+            
+            // passEncoder.setBindGroup(0, getRayUniformBindGroup());
+            // for (const rayBuffer of getRayVerticesBuffer()) {
+            //     passEncoder.setVertexBuffer(0, rayBuffer);
+            //     passEncoder.draw(2, 1);
+            // }
         }
     }
 
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
+
 }

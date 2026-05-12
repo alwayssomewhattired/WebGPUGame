@@ -207,8 +207,8 @@ export function createAABBUBO(entity) {
     const model = getModelMatrix(entity.aabbModelIdx);
     // const model = getModelMatrix();
     // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
-    // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
-    m_aabbMatrixUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
+    glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
+    m_aabbMatrixUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     m_aabbUniformBindGroupLayout = device.createBindGroupLayout({
         entries: [
             {
@@ -448,4 +448,12 @@ export function getViewMatrixUBO() {
     }
 
     return m_viewMatrixUBO;
+}
+
+export function getAABBMatrixUBO() {
+    if (!m_aabbMatrixUBO) {
+        throw new Error("AABB Matrix UBO not initialized!");
+    }
+
+    return m_aabbMatrixUBO;
 }
