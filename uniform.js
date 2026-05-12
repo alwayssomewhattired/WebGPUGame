@@ -2,7 +2,7 @@
 import * as glMatrix from 'gl-matrix';
 
 import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer, getAABBColorGPUBuffer, 
-    getRayColorGPUBuffer } from './buffer.js'
+    getRayColorGPUBuffer, getAlignedSize} from './buffer.js'
 import { getDevice } from './webgpu.js'
 import { getScene } from './fileParser.js';
 import { getModelMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
@@ -24,8 +24,13 @@ let m_rayUniformBindGroupLayout = null;
 let m_texture = null;
 let m_sampler = null
 
+let m_device = null;
+
+export function initUniformConstructor() {
+    m_device = getDevice();
+}
+
 export function createUBO(entity) {
-    const device = getDevice();
     const texture = getTexture();
     const sampler = getSampler();
 
@@ -41,21 +46,21 @@ export function createUBO(entity) {
     glMatrix.mat4.transpose(normalMatrix, normalMatrix);
 
     const lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
-    const lightDirectionUBO = createGPUBuffer(device, lightDirectionBuffer, lightDirectionBuffer.byteLength, 
+    const lightDirectionUBO = createGPUBuffer(m_device, lightDirectionBuffer, lightDirectionBuffer.byteLength, 
         GPUBufferUsage.UNIFORM);
     const viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
-    const viewDirectionUBO = createGPUBuffer(device, viewDirectionBuffer, viewDirectionBuffer.byteLength, 
+    const viewDirectionUBO = createGPUBuffer(m_device, viewDirectionBuffer, viewDirectionBuffer.byteLength, 
         GPUBufferUsage.UNIFORM);
-    m_modelMatrixUBO = createGPUBuffer(device, modelMatrix, modelMatrix.byteLength, 
+    m_modelMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrix.byteLength, 
         GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-    m_viewMatrixUBO = createGPUBuffer(device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-    // let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM);
-    m_projectionMatrixUBO = createGPUBuffer(device, projectionMatrix, projectionMatrix.byteLength, 
+    m_viewMatrixUBO = createGPUBuffer(m_device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    // let modelViewMatrixUniformBuffer = createGPUBuffer(m_device, modelViewMatrix, GPUBufferUsage.UNIFORM);
+    m_projectionMatrixUBO = createGPUBuffer(m_device, projectionMatrix, projectionMatrix.byteLength, 
         GPUBufferUsage.UNIFORM);
-    const normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, normalMatrix.byteLength, 
+    const normalMatrixUniformBuffer = createGPUBuffer(m_device, normalMatrix, normalMatrix.byteLength, 
         GPUBufferUsage.UNIFORM);
 
-    m_uniformBindGroupLayout = device.createBindGroupLayout({
+    m_uniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
             {
                 binding: 0,
@@ -100,7 +105,7 @@ export function createUBO(entity) {
         ]
     });
 
-    m_uniformBindGroup = device.createBindGroup({
+    m_uniformBindGroup = m_device.createBindGroup({
         layout: m_uniformBindGroupLayout,
         entries: [
             {
@@ -153,11 +158,10 @@ export function createUBO(entity) {
 }
 
 export function createAxisArrowsUBO(entity) {
-    const device = getDevice();
     const model = getModelMatrix(entity.axisArrows.modelIdx);
     // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(4.0,4.0,4.0));
-    const axisArrowsUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
-    m_axisArrowsUniformBindGroupLayout = device.createBindGroupLayout({
+    const axisArrowsUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
+    m_axisArrowsUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
             {
                 binding: 0,
@@ -177,7 +181,7 @@ export function createAxisArrowsUBO(entity) {
         ]
     });
 
-    m_axisArrowsUniformBindGroup = device.createBindGroup({
+    m_axisArrowsUniformBindGroup = m_device.createBindGroup({
         layout: m_axisArrowsUniformBindGroupLayout,
         entries: [
             {
@@ -203,13 +207,15 @@ export function createAxisArrowsUBO(entity) {
 }
 
 export function createAABBUBO(entity) {
-    const device = getDevice();
+    const objectUniformSize = 64 // 16 floats for model matrix
+    const alignedSize = getAlignedSize(objectUniformSize);
     const model = getModelMatrix(entity.aabbModelIdx);
     // const model = getModelMatrix();
     // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
     glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
-    m_aabbMatrixUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-    m_aabbUniformBindGroupLayout = device.createBindGroupLayout({
+    // - would be nice to find out how many objects we will be storing before we create gpu buffer
+    m_aabbMatrixUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    m_aabbUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
             {
                 binding: 0,
@@ -219,7 +225,9 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: {}
+                buffer: {
+                    hasDynamicOffset: true
+                }
             },
             {
                 binding: 2,
@@ -234,7 +242,7 @@ export function createAABBUBO(entity) {
         ]
     });
 
-    m_aabbUniformBindGroup = device.createBindGroup({
+    m_aabbUniformBindGroup = m_device.createBindGroup({
         layout: m_aabbUniformBindGroupLayout,
         entries: [
             {
@@ -246,7 +254,9 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 resource: {
-                    buffer: m_aabbMatrixUBO
+                    buffer: m_aabbMatrixUBO,
+                    offset: 0,
+                    size: alignedSize
                 }
             },
             {
@@ -266,11 +276,10 @@ export function createAABBUBO(entity) {
 }
 
 export function createRayUBO() {
-    const device = getDevice();
     const model = glMatrix.mat4.create();
  
-    const m_rayModelMatrixUBO = createGPUBuffer(device, model, model.byteLength, GPUBufferUsage.UNIFORM);
-    m_rayUniformBindGroupLayout = device.createBindGroupLayout({
+    const m_rayModelMatrixUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
+    m_rayUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
             {
                 binding: 0,
@@ -295,7 +304,7 @@ export function createRayUBO() {
         ]
     });
 
-    m_rayUniformBindGroup = device.createBindGroup({
+    m_rayUniformBindGroup = m_device.createBindGroup({
         layout: m_aabbUniformBindGroupLayout,
         entries: [
             {
@@ -327,7 +336,6 @@ export function createRayUBO() {
 }
 
 export async function initTextures() {
-    const device = getDevice();
     const response = await fetch('./textures/Grass_Texture.png');
     const blob = await response.blob();
     const imgBitmap = await createImageBitmap(blob);
@@ -338,13 +346,13 @@ export async function initTextures() {
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
     };
     
-    m_texture = device.createTexture(textureDescriptor);
+    m_texture = m_device.createTexture(textureDescriptor);
     const texture = m_texture;
 
-    device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
+    m_device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
     imgBitmap.close();
 
-    m_sampler = device.createSampler({
+    m_sampler = m_device.createSampler({
         addressModeU: 'repeat',
         addressModeV: 'repeat',
         magFilter: 'linear',

@@ -4,6 +4,7 @@ import * as glMatrix from 'gl-matrix';
 
 import { Mesh } from "./mesh.js";
 import { getDevice } from './webgpu.js';
+import { Entity } from './entity.js';
 
 let m_axisArrowsBuffer = null;
 const m_aabbColor = new Float32Array([1.0, 1.0, 0.0]);
@@ -11,7 +12,7 @@ const m_rayColor = new Float32Array([ 0.0, 1.0, 1.0]);
 let m_aabbPositionBuffer = null;
 let m_aabbVerticesLength = null;
 
-export function createGPUBuffer(device, buffer, bufferBytes, usage) {
+export function createGPUBuffer(device, CPUBuffer, bufferBytes, usage) {
     const bufferDesc = {
         size: bufferBytes,
         usage: usage,
@@ -20,21 +21,21 @@ export function createGPUBuffer(device, buffer, bufferBytes, usage) {
 
     let gpuBuffer = device.createBuffer(bufferDesc);
 
-    if (buffer instanceof Float32Array) {
+    if (CPUBuffer instanceof Float32Array) {
         const writeArrayNormal = new Float32Array(gpuBuffer.getMappedRange());
-        writeArrayNormal.set(buffer);
-    } else if (buffer instanceof Uint16Array) {
+        writeArrayNormal.set(CPUBuffer);
+    } else if (CPUBuffer instanceof Uint16Array) {
         const writeArrayNormal = new Uint16Array(gpuBuffer.getMappedRange());
-        writeArrayNormal.set(buffer);
-    } else if (buffer instanceof Uint8Array) {
+        writeArrayNormal.set(CPUBuffer);
+    } else if (CPUBuffer instanceof Uint8Array) {
         const writeArrayNormal = new Uint8Array(gpuBuffer.getMappedRange());
-        writeArrayNormal.set(buffer);
-    } else if (buffer instanceof Uint32Array) {
+        writeArrayNormal.set(CPUBuffer);
+    } else if (CPUBuffer instanceof Uint32Array) {
     const writeArrayNormal = new Uint32Array(gpuBuffer.getMappedRange());
-    writeArrayNormal.set(buffer);
+    writeArrayNormal.set(CPUBuffer);
     } else {
         const writeArrayNormal = Float32Array(gpuBuffer.getMappedRange());
-        writeArrayNormal.set(buffer);
+        writeArrayNormal.set(CPUBuffer);
         console.error("Unhandled buffer format ", typeof gpuBuffer);
     }
 
@@ -86,4 +87,17 @@ export function getAABBPositionGPUBuffer(positions) {
 export function getAABBVerticesLength() {
     if (!m_aabbVerticesLength) getAABBGizmoPositionGPUBuffer();
     return m_aabbVerticesLength;
+}
+
+export function updateDynamicGPUBuffer(alignedSize, entities, buffer, matrixCPU) {
+    console.log(Entity.modelMatrixLength);
+    for (let i = 0; i < entities.length * Entity.modelMatrixLength; i++) {
+        const offset = i * alignedSize;
+        getDevice().queue.writeBuffer(buffer, offset, entities.matrixCPU)
+    }
+}
+
+export function getAlignedSize(objectUniformSize) {
+    const alignment = getDevice().limits.minUniformBufferOffsetAlignment;
+     return Math.ceil(objectUniformSize / alignment) * alignment;
 }

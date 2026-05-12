@@ -34,6 +34,7 @@ export async function createEntities() {
 }
 
 // | Holds all entities
+// | Every Entity holds 
 const scene = [];
 
 export function getScene() {

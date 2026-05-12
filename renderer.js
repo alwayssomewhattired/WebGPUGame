@@ -5,7 +5,7 @@ import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindG
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
-import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer } from "./buffer.js";
+import { createGPUBuffer, getAlignedSize, getAxisArrowsPositionsGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
 import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer } from "./transformGizmo.js";
 import { getRayVerticesBuffer } from "./ray.js";
 import { keyboardInput } from "./keyboardListeners.js";
@@ -87,11 +87,15 @@ export function render() {
                 const aabbMatrixUBO = getAABBMatrixUBO();
 
                 device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.axisArrowsAABBModelIdx));
+                const alignedSize = getAlignedSize();
+                updateDynamicGPUBuffer(alignedSize)
 
                 passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
 
                 passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
-                device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.modelMatrixIdx));            
+                const aabbModelMatrixOffset = aabbMatrixUBO.length;
+                console.log(aabbModelMatrixOffset);
+                device.queue.writeBuffer(aabbMatrixUBO, aabbModelMatrixOffset, getModelMatrix(entity.modelMatrixIdx));            
 
                 passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
 

@@ -5,7 +5,9 @@ import { getDevice } from './webgpu.js';
 
 const m_globalModelMatrices = [];
 
-const m_globalModelMatrixGPUBuffers = []
+const m_globalModelMatrixGPUBuffers = [];
+
+let m_dynamicModelMatrixGPUBuffer = null;
 
 let m_viewMatrix = null;
 let m_inverseModelMatrix = null;
@@ -35,6 +37,7 @@ export function createModelMatrix() {
     const modelMatrix = glMatrix.mat4.create();
     m_globalModelMatrices.push(modelMatrix);
     const modelMatrixBuffer = createGPUBuffer(getDevice(), modelMatrix, modelMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST)
+    // getDevice().queue.writeBuffer(m_dynamicModelMatrixGPUBuffer,  )  
     m_globalModelMatrixGPUBuffers.push(modelMatrixBuffer);
     return modelMatrix;
 }
@@ -48,6 +51,18 @@ export function updateModelMatrix(entity) {
     glMatrix.mat4.rotateY(modelMatrix, modelMatrix, entity.rotation[1]);
     glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, entity.rotation[2]);
     glMatrix.mat4.scale(modelMatrix, modelMatrix, entity.scale);
+}
+
+export function getModelMatrixDynamicGPUBuffer() {
+    if (!m_modelMatrixDynamicGPUBuffer) {
+        throw new Error("Model MatrixDynamic GPU Buffer is null!!");
+    }
+    
+    return m_modelMatrixDynamicGPUBuffer;
+}
+
+export function createModelMatrixDynamicBuffer(buffer, alignedSize) {
+    m_modelMatrixDynamicGPUBuffer = createGPUBuffer(getDevice(), m_, alignedSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST); 
 }
 
 export function getViewMatrix() {

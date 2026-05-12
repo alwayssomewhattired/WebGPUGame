@@ -5,6 +5,8 @@ import { createGPUBuffer } from './buffer.js';
 import { getScene, setScene } from './fileParser.js';
 import { createModelMatrix, getModelMatrix } from './matrix.js';
 
+// | Entity holds four indices
+// | Entity holds four model matrices
 export class Entity {
     constructor(mesh, color, id, modelMatrixIdx) {
         this.mesh = mesh;
@@ -14,12 +16,15 @@ export class Entity {
                 
         this.color = color;
 
+        this.modelMatrixLength = 4;
         this.modelMatrixIdx = modelMatrixIdx;
         this.aabbModelIdx = modelMatrixIdx + 1;
         this.axisArrows = {
             modelIdx: modelMatrixIdx + 2
         };
         this.axisArrowsAABBModelIdx = modelMatrixIdx + 3;
+
+        this.modelMatrixBufferOffset 
 
         this.isSelected = false;
         this.pipeline = "main";
@@ -58,7 +63,7 @@ export class Entity {
 
         
         const axisArrowsAABBModelMatrix = createModelMatrix();
-        const axisArrowsAABBScale = glMatrix.vec3.fromValues(40.0, 4.0, 4.0);
+        const axisArrowsAABBScale = glMatrix.vec3.fromValues(4.0, 4.0, 4.0);
 
         glMatrix.mat4.identity(axisArrowsAABBModelMatrix);
         glMatrix.mat4.translate(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.translation);
