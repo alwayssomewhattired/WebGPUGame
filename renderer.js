@@ -1,7 +1,7 @@
 import { getPipeline, getTexCoordsBuffer } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getAABBMatrixUBO } from "./uniform.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getDynamicModelMatrixUBO } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
@@ -15,6 +15,7 @@ import { getModelMatrix, getModelMatrixGPUBuffer } from "./matrix.js";
 export function render() {
     
     const device = getDevice();
+    const scene = getScene();
     const pipeline = getPipeline();
     const texCoordsBuffer = getTexCoordsBuffer();
     const uniformBindGroup = getUniformBindGroup();
@@ -47,7 +48,7 @@ export function render() {
 
     // | main render
     passEncoder.setPipeline(pipeline);
-    for (const entity of getScene()) {
+    for (const entity of scene) {
         const positionBuffer = entity.mesh.vPositionsBuffer;
         const indexBuffer = entity.mesh.vIndicesBuffer;
         const indexBufferSize = entity.mesh.vIndexBufferSize;
@@ -64,7 +65,7 @@ export function render() {
         
     }
 
-    for (const entity of getScene()) {
+    for (const entity of scene) {
         if (entity.isSelected) {
             // | renders axisArrows vertices
             passEncoder.setPipeline(axisArrowsPipeline);
@@ -73,61 +74,33 @@ export function render() {
             // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
             passEncoder.draw(6, 3);
 
-            // fix this!!!
-            // make dynamic ubos and store offsets
-            // the problem was we were overwriting the same fucking memory
-            // DRAW does NOT immediately draw.
-            // draw records command buffers.
-            // We are overwriting the same ubo
             if (keyboardInput.b) {
                 // | aabb boxes
+                const alignedSize = getAlignedSize(64); // mat4x4
+
+                updateDynamicGPUBuffer(alignedSize, scene, getDynamicModelMatrixUBO(), entity.modelMatrixLength);  
+
                 passEncoder.setPipeline(getAABBPipeline());
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup());
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), new Uint32Array([0]));
                 passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
-                const aabbMatrixUBO = getAABBMatrixUBO();
-
-                device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.axisArrowsAABBModelIdx));
-                const alignedSize = getAlignedSize();
-                updateDynamicGPUBuffer(alignedSize)
-
+                const aabbMatrixUBO = getDynamicModelMatrixUBO();
+                
                 passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
+                
+                passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);    
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), new Uint32Array([alignedSize]));
 
-                passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
-                const aabbModelMatrixOffset = aabbMatrixUBO.length;
-                console.log(aabbModelMatrixOffset);
-                device.queue.writeBuffer(aabbMatrixUBO, aabbModelMatrixOffset, getModelMatrix(entity.modelMatrixIdx));            
+                const aabbModelMatrixOffset = aabbMatrixUBO.length;         
 
                 passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
 
-                passEncoder.setBindGroup(0, getRayUniformBindGroup());
-                for (const rayBuffer of getRayVerticesBuffer()) {
-                    passEncoder.setVertexBuffer(0, rayBuffer);
-                    passEncoder.draw(2, 1);
-                }
+                // | make a new pipeline for this ray shiet
+                // passEncoder.setBindGroup(0, getRayUniformBindGroup());
+                // for (const rayBuffer of getRayVerticesBuffer()) {
+                //     passEncoder.setVertexBuffer(0, rayBuffer);
+                //     passEncoder.draw(2, 1);
+                // }
             }
-        }
-    }
-
-    // passEncoder.setPipeline(getAABBPipeline());
-    // passEncoder.setBindGroup(0, getAABBUniformBindGroup());
-
-    for (const entity of getScene()) {
-            // | model meshes aabb
-            if (keyboardInput.b) {
-            // passEncoder.setBindGroup(0, getAABBUniformBindGroup());
-            // passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);
-            // const aabbMatrixUBO = getAABBMatrixUBO();
-            // device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.aabbModelIdx));
-            // // device.queue.writeBuffer(aabbMatrixUBO, 0, getModelMatrix(entity.axisArrowsAABBModelIdx));
-            
-
-            // passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
-            
-            // passEncoder.setBindGroup(0, getRayUniformBindGroup());
-            // for (const rayBuffer of getRayVerticesBuffer()) {
-            //     passEncoder.setVertexBuffer(0, rayBuffer);
-            //     passEncoder.draw(2, 1);
-            // }
         }
     }
 

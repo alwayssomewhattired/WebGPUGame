@@ -5,6 +5,7 @@ import * as glMatrix from 'gl-matrix';
 import { Mesh } from "./mesh.js";
 import { getDevice } from './webgpu.js';
 import { Entity } from './entity.js';
+import { getModelMatrix } from './matrix.js';
 
 let m_axisArrowsBuffer = null;
 const m_aabbColor = new Float32Array([1.0, 1.0, 0.0]);
@@ -89,15 +90,30 @@ export function getAABBVerticesLength() {
     return m_aabbVerticesLength;
 }
 
-export function updateDynamicGPUBuffer(alignedSize, entities, buffer, matrixCPU) {
-    console.log(Entity.modelMatrixLength);
-    for (let i = 0; i < entities.length * Entity.modelMatrixLength; i++) {
-        const offset = i * alignedSize;
-        getDevice().queue.writeBuffer(buffer, offset, entities.matrixCPU)
+export function updateDynamicGPUBuffer(alignedSize, entities, buffer, modelMatrixLength) {
+    for (let i = 0; i < entities.length; i++) {
+        const entity = entities[i];
+        const axisArrowsAABBModelMatrix = getModelMatrix(entity.axisArrowsAABBModelIdx);
+        const aabbModelMatrix = getModelMatrix(entity.modelMatrixIdx);
+        let offset = 0;
+        getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix)
+        offset = alignedSize;
+        getDevice().queue.writeBuffer(buffer, offset, aabbModelMatrix)
     }
+
+    // for (let i = 0; i < entities.length; i++) {
+    //     const entityOffset = i * alignedSize;
+    //     for (let j = 0; j < modelMatrixLength; j++) {
+    //         const offset = j * alignedSize + entityOffset;
+            // const axisArrowsAABBModelMatrix = getModelMatrix(entity.axisArrowsAABBModelIdx);
+            // const aabbModelMatrix = getModelMatrix(entity.modelMatrixIdx);
+            // getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix)
+            // getDevice().queue.writeBuffer(buffer, offset, aabbModelMatrix)
+    //     }
+    // }
 }
 
 export function getAlignedSize(objectUniformSize) {
     const alignment = getDevice().limits.minUniformBufferOffsetAlignment;
-     return Math.ceil(objectUniformSize / alignment) * alignment;
+    return Math.ceil(objectUniformSize / alignment) * alignment;
 }

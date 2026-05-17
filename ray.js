@@ -109,6 +109,5 @@ export function getSelectedObject(worldSpaceRay, scene) {
     }
 
     selected.isSelected = true;
-    console.log(selected);
     return selected;
 }

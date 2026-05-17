@@ -12,6 +12,8 @@ let m_rayModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
 let m_projectionMatrixUBO = null;
 let m_aabbMatrixUBO = null;
+let m_dynamicModelMatrixUBO = null;
+
 
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
@@ -207,14 +209,15 @@ export function createAxisArrowsUBO(entity) {
 }
 
 export function createAABBUBO(entity) {
-    const objectUniformSize = 64 // 16 floats for model matrix
-    const alignedSize = getAlignedSize(objectUniformSize);
+    const objectDataSize = 64 // 16 floats for model matrix
+    const alignedSize = getAlignedSize(objectDataSize);
+    const bufferAllocationSize = alignedSize * entity.modelMatrixLength;
     const model = getModelMatrix(entity.aabbModelIdx);
     // const model = getModelMatrix();
     // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
     glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
     // - would be nice to find out how many objects we will be storing before we create gpu buffer
-    m_aabbMatrixUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    m_dynamicModelMatrixUBO = createGPUBuffer(m_device, model, bufferAllocationSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     m_aabbUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
             {
@@ -254,7 +257,7 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 resource: {
-                    buffer: m_aabbMatrixUBO,
+                    buffer: m_dynamicModelMatrixUBO,
                     offset: 0,
                     size: alignedSize
                 }
@@ -458,10 +461,10 @@ export function getViewMatrixUBO() {
     return m_viewMatrixUBO;
 }
 
-export function getAABBMatrixUBO() {
-    if (!m_aabbMatrixUBO) {
-        throw new Error("AABB Matrix UBO not initialized!");
+export function getDynamicModelMatrixUBO() {
+    if (!m_dynamicModelMatrixUBO) {
+        throw new Error("Dynamic Model Matrix UBO not initialized!");
     }
 
-    return m_aabbMatrixUBO;
+    return m_dynamicModelMatrixUBO;
 }

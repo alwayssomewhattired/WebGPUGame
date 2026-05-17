@@ -16,7 +16,7 @@ export class Entity {
                 
         this.color = color;
 
-        this.modelMatrixLength = 4;
+        this.modelMatrixLength = 2; 
         this.modelMatrixIdx = modelMatrixIdx;
         this.aabbModelIdx = modelMatrixIdx + 1;
         this.axisArrows = {
@@ -63,7 +63,7 @@ export class Entity {
 
         
         const axisArrowsAABBModelMatrix = createModelMatrix();
-        const axisArrowsAABBScale = glMatrix.vec3.fromValues(4.0, 4.0, 4.0);
+        const axisArrowsAABBScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
 
         glMatrix.mat4.identity(axisArrowsAABBModelMatrix);
         glMatrix.mat4.translate(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.translation);

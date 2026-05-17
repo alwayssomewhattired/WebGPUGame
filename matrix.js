@@ -7,8 +7,6 @@ const m_globalModelMatrices = [];
 
 const m_globalModelMatrixGPUBuffers = [];
 
-let m_dynamicModelMatrixGPUBuffer = null;
-
 let m_viewMatrix = null;
 let m_inverseModelMatrix = null;
 let m_modelViewMatrix = null;
@@ -23,7 +21,7 @@ export function getModelMatrix(index) {
 }
 
 export function getModelMatrixGPUBuffer(index) {
-    const modelMatrix = m_globalModelMatrices[index];
+    const modelMatrix = m_globalModelMatrixGPUBuffers[index];
     if (!modelMatrix) throw new Error("model matrix is null!");
 
     return modelMatrix;
