@@ -3,7 +3,7 @@ import * as glMatrix from 'gl-matrix'
 
 import { createGPUBuffer } from './buffer.js';
 import { getScene, setScene } from './fileParser.js';
-import { createModelMatrix, getModelMatrix } from './matrix.js';
+import { createAndStoreModelMatrix, getModelMatrix } from './matrix.js';
 
 // | Entity holds four indices
 // | Entity holds four model matrices
@@ -16,12 +16,10 @@ export class Entity {
                 
         this.color = color;
 
-        this.modelMatrixLength = 2; 
+        this.modelMatrixLength = 4; 
         this.modelMatrixIdx = modelMatrixIdx;
         this.aabbModelIdx = modelMatrixIdx + 1;
-        this.axisArrows = {
-            modelIdx: modelMatrixIdx + 2
-        };
+        this.axisArrowsModelIdx = modelMatrixIdx + 2
         this.axisArrowsAABBModelIdx = modelMatrixIdx + 3;
 
         this.modelMatrixBufferOffset 
@@ -36,7 +34,7 @@ export class Entity {
 
     initModelMatrix() {
 
-        const modelMatrix = createModelMatrix();
+        const modelMatrix = createAndStoreModelMatrix();
         glMatrix.mat4.identity(modelMatrix);
         glMatrix.mat4.translate(modelMatrix, modelMatrix, this.translation);
         glMatrix.mat4.rotateX(modelMatrix, modelMatrix, this.rotation[0]);
@@ -44,7 +42,7 @@ export class Entity {
         glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, this.rotation[2]);
         glMatrix.mat4.scale(modelMatrix, modelMatrix, this.scale);
 
-        const aabbModelMatrix = createModelMatrix();
+        const aabbModelMatrix = createAndStoreModelMatrix();
         glMatrix.mat4.identity(aabbModelMatrix);
         glMatrix.mat4.translate(aabbModelMatrix, aabbModelMatrix, this.translation);
         glMatrix.mat4.rotateX(aabbModelMatrix, aabbModelMatrix, this.rotation[0]);
@@ -52,7 +50,7 @@ export class Entity {
         glMatrix.mat4.rotateZ(aabbModelMatrix, aabbModelMatrix, this.rotation[2]);
         glMatrix.mat4.scale(aabbModelMatrix, aabbModelMatrix, this.scale);
 
-        const axisArrowsModelMatrix = createModelMatrix();
+        const axisArrowsModelMatrix = createAndStoreModelMatrix();
         const axisArrowsScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
         glMatrix.mat4.identity(axisArrowsModelMatrix);
         glMatrix.mat4.translate(axisArrowsModelMatrix, axisArrowsModelMatrix, this.translation);
@@ -62,7 +60,7 @@ export class Entity {
         glMatrix.mat4.scale(axisArrowsModelMatrix, axisArrowsModelMatrix, axisArrowsScale);
 
         
-        const axisArrowsAABBModelMatrix = createModelMatrix();
+        const axisArrowsAABBModelMatrix = createAndStoreModelMatrix();
         const axisArrowsAABBScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
 
         glMatrix.mat4.identity(axisArrowsAABBModelMatrix);

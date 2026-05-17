@@ -31,7 +31,7 @@ export function getGlobalModelMatricesLength() {
     return m_globalModelMatrices.length;
 }
 
-export function createModelMatrix() {
+export function createAndStoreModelMatrix() {
     const modelMatrix = glMatrix.mat4.create();
     m_globalModelMatrices.push(modelMatrix);
     const modelMatrixBuffer = createGPUBuffer(getDevice(), modelMatrix, modelMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST)

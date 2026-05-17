@@ -90,16 +90,21 @@ export function getAABBVerticesLength() {
     return m_aabbVerticesLength;
 }
 
-export function updateDynamicGPUBuffer(alignedSize, entities, buffer, modelMatrixLength) {
-    for (let i = 0; i < entities.length; i++) {
-        const entity = entities[i];
+export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
+        const modelMatrix = getModelMatrix(entity.modelMatrixIdx)
+        const aabbModelMatrix = getModelMatrix(entity.aabbModelIdx);
+        const axisArrowsModelMatrix = getModelMatrix(entity.axisArrowsModelIdx);
         const axisArrowsAABBModelMatrix = getModelMatrix(entity.axisArrowsAABBModelIdx);
-        const aabbModelMatrix = getModelMatrix(entity.modelMatrixIdx);
-        let offset = 0;
-        getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix)
-        offset = alignedSize;
+        
+        getDevice().queue.writeBuffer(buffer, 0, glMatrix.mat4.create());
+        let offset = alignedSize;
+        getDevice().queue.writeBuffer(buffer, offset, modelMatrix)
+        offset += alignedSize;
         getDevice().queue.writeBuffer(buffer, offset, aabbModelMatrix)
-    }
+        offset += alignedSize;
+        getDevice().queue.writeBuffer(buffer, offset, axisArrowsModelMatrix)
+        offset += alignedSize;
+        getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix)
 
     // for (let i = 0; i < entities.length; i++) {
     //     const entityOffset = i * alignedSize;

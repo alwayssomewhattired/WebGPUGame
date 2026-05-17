@@ -20,6 +20,7 @@ export function render() {
     const texCoordsBuffer = getTexCoordsBuffer();
     const uniformBindGroup = getUniformBindGroup();
     const depthAttachment = getDepthAttachment();
+    const alignedSize = getAlignedSize(64); // mat4x4
 
     const context = canvas.getContext("webgpu");
     const canvasConfig = {
@@ -53,10 +54,9 @@ export function render() {
         const indexBuffer = entity.mesh.vIndicesBuffer;
         const indexBufferSize = entity.mesh.vIndexBufferSize;
         const normalBuffer = entity.mesh.vNormalsBuffer;
-        const commandEncoder = device.createCommandEncoder();
-        passEncoder.setBindGroup(0, uniformBindGroup);
+
+        passEncoder.setBindGroup(0, uniformBindGroup, [alignedSize]);
         passEncoder.setVertexBuffer(0, positionBuffer);
-        
         passEncoder.setVertexBuffer(1, texCoordsBuffer);
         passEncoder.setVertexBuffer(2, normalBuffer);
         passEncoder.setIndexBuffer(indexBuffer, 'uint16');
@@ -76,30 +76,28 @@ export function render() {
 
             if (keyboardInput.b) {
                 // | aabb boxes
-                const alignedSize = getAlignedSize(64); // mat4x4
 
-                updateDynamicGPUBuffer(alignedSize, scene, getDynamicModelMatrixUBO(), entity.modelMatrixLength);  
+                // updateDynamicGPUBuffer(alignedSize, scene, getDynamicModelMatrixUBO());  
 
                 passEncoder.setPipeline(getAABBPipeline());
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), new Uint32Array([0]));
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), new Uint32Array([alignedSize * 4]));
                 passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
                 const aabbMatrixUBO = getDynamicModelMatrixUBO();
                 
                 passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
                 
                 passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);    
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), new Uint32Array([alignedSize]));
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), new Uint32Array([alignedSize * 2]));
 
                 const aabbModelMatrixOffset = aabbMatrixUBO.length;         
 
                 passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
 
-                // | make a new pipeline for this ray shiet
-                // passEncoder.setBindGroup(0, getRayUniformBindGroup());
-                // for (const rayBuffer of getRayVerticesBuffer()) {
-                //     passEncoder.setVertexBuffer(0, rayBuffer);
-                //     passEncoder.draw(2, 1);
-                // }
+                passEncoder.setBindGroup(0, getRayUniformBindGroup(), [0]);
+                for (const rayBuffer of getRayVerticesBuffer()) {
+                    passEncoder.setVertexBuffer(0, rayBuffer);
+                    passEncoder.draw(2, 1);
+                }
             }
         }
     }

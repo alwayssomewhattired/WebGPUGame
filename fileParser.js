@@ -5,7 +5,7 @@ import * as glMatrix from 'gl-matrix'
 import { createMesh } from './mesh.js';
 import { Entity } from './entity.js';
 import { getDevice } from './webgpu.js';
-import { getGlobalModelMatricesLength, createModelMatrix } from './matrix.js';
+import { getGlobalModelMatricesLength, createAndStoreModelMatrix } from './matrix.js';
 
 const filePaths = [
     './models/psx-rat/rat.obj'
