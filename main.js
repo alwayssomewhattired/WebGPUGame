@@ -10,6 +10,7 @@ import { frame } from './frame.js';
 import { render } from './renderer.js';
 import { initMouse } from './camera.js';
 import { initTransformGizmo } from './transformGizmo.js';
+import { initGlobalModelMatrices } from './matrix.js';
 
 
 export async function main() {
@@ -18,6 +19,7 @@ export async function main() {
     initUniformConstructor();
     await initTextures();
     initDepthStencil();
+    initGlobalModelMatrices();
     await createEntities();
     const scene = getScene();
     createDynamicModelMatrixBuffer(scene);

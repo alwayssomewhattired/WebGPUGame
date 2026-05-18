@@ -1,8 +1,8 @@
 
 import * as glMatrix from 'gl-matrix'
-import { getViewProjectionMatrix } from './matrix.js';
+import { getModelMatrix, getViewProjectionMatrix } from './matrix.js';
 import { getScene } from "./fileParser.js"
-import { createGPUBuffer } from './buffer.js';
+import { createGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
 import { getWorldSpaceRayFromMouse, createRayVerticesGPUBuffer, getRayVerticesBuffer, getSelectedObject } from './ray.js';
 import { keyboardInput } from './keyboardListeners.js';
@@ -10,6 +10,9 @@ import { keyboardInput } from './keyboardListeners.js';
 let m_activeAxis = null;
 let m_aabbPositionsOffset;
 let m_aabbGizmoPositionsGPUBuffer = null;
+let m_currentEntity = null;
+let m_ray_ws = null;
+let m_lastHitPoint = null;
 
 export const gizmoPositionsCPUBuffer = new Float32Array([
     // bottom square
@@ -56,27 +59,31 @@ const axesBoxes = {
 export function initTransformGizmo() {
 
     canvas.addEventListener("mousedown", ({x, y}) => {
-        const ray_ws = getWorldSpaceRayFromMouse(x, y);
+        m_ray_ws = getWorldSpaceRayFromMouse(x, y);
         if (keyboardInput.b) {
-        getRayVerticesBuffer().push(createRayVerticesGPUBuffer(ray_ws.origin, ray_ws.direction));
+        getRayVerticesBuffer().push(createRayVerticesGPUBuffer(m_ray_ws.origin, m_ray_ws.direction));
         } 
         // else {
         //     getRayVerticesBuffer().length = 0;
         // }
-        const currentEntity = getSelectedObject(ray_ws, getScene());
-        if (currentEntity == null) throw new Error ("Entity is null!!!");
-        m_activeAxis = findAxis(ray_ws, currentEntity);
+        m_currentEntity = getSelectedObject(m_ray_ws, getScene());
+        if (m_currentEntity == null) throw new Error ("Entity is null!!!");
+        m_activeAxis = findAxis(m_ray_ws, m_currentEntity);
     });
 
     canvas.addEventListener("mousemove", (e) => {
         if (m_activeAxis) {
-            const moveDist = calculateWorldDelta(e, m_activeAxis);
-
-            if (m_activeAxis === 'x') currentEntity.position[0] += moveDist;
-            if (m_activeAxis === 'y') currentEntity.position[1] += moveDist;
-            if (m_activeAxis === 'z') currentEntity.position[2] += moveDist;
-
-            currentEntity.initModelMatrix();
+            m_ray_ws = getWorldSpaceRayFromMouse(e.x, e.y);
+            let moveDist = calculateWorldDelta(e, m_activeAxis, m_ray_ws);
+            if (!moveDist) {
+                throw new Error("move distance is invalid!!!");
+                return;
+            }
+            moveDist *= 0.001;
+            if (m_activeAxis === 'x') m_currentEntity.translation[0] += moveDist;
+            if (m_activeAxis === 'y') m_currentEntity.translation[1] += moveDist;
+            if (m_activeAxis === 'z') m_currentEntity.translation[2] += moveDist;
+            m_currentEntity.updateModelMatrix();
         }
     })
 
@@ -109,19 +116,67 @@ export function intersectAABB(ray, box) {
     return null;
 }
 
-function calculateWorldDelta(event, axis) {
-    const planeNormal = getBestPlaneNormal(axis);
-    const planePoint = selectedObject.pos;
+function getBestPlaneNormal(axis, rayDirection) {
+    const normals = {
+        x: [
+            [0, 1, 0],
+            [0, 0, 1]
+        ],
+        y: [
+            [1, 0, 0],
+            [0, 0, 1]
+        ],
+        z: [
+            [1, 0, 0],
+            [0, 1, 0]
+        ]
+    };
+
+    const candidates = normals[axis];
+
+    const dotA = Math.abs(glMatrix.vec3.dot(rayDirection, candidates[0]));
+    const dotB = Math.abs(glMatrix.vec3.dot(rayDirection, candidates[1]));
+
+    return dotA > dotB ? candidates[0] : candidates[1];
+}
+
+function intersectRayPlane(ray, planeNormal, planePoint) {
+    const denom = glMatrix.vec3.dot(planeNormal, ray.direction);
+
+    const EPSILON = 0.00001;
+    if (Math.abs(denom) < EPSILON) return null;
+
+    const diff = glMatrix.vec3.subtract(glMatrix.vec3.create(), planePoint, ray.origin);
+
+    const t = glMatrix.vec3.dot(diff, planeNormal) / denom;
+
+    if (t < 0) return null;
+
+    return glMatrix.vec3.scaleAndAdd(glMatrix.vec3.create(), ray.origin, ray.direction, t);
+}
+
+function calculateWorldDelta(event, axis, ray) {
+    const planeNormal = getBestPlaneNormal(axis, ray.direction);
+    const modelMatrix = getModelMatrix(m_currentEntity.axisArrowsModelIdx);
+    const planePoint = glMatrix.vec3.create();
+    glMatrix.mat4.getTranslation(planePoint, modelMatrix);
 
     const currentHit = intersectRayPlane(ray, planeNormal, planePoint);
+
+    let axisIndex = null;
+    const axisBox = Object.keys(axesBoxes);
+    for (let i = 0; i < axisBox.length; i++) {
+        if (axisBox[i] === axis) axisIndex = i;
+    }
 
     if (!m_lastHitPoint) {
         m_lastHitPoint = currentHit;
         return 0;
     }
-
-    const delta = currentHit[axisIndex(axis)] - m_lastHitPoint[axisIndex(axis)];
-
+    // console.log(currentHit[axisIndex]);
+    // console.log(m_lastHitPoint[axisIndex]);
+    const delta = currentHit[axisIndex] - m_lastHitPoint[axisIndex];
+    // console.log(delta);
     m_lastHitPoint = currentHit;
 
     return delta;
@@ -130,7 +185,7 @@ function calculateWorldDelta(event, axis) {
 function findAxis(mouseRay, entity) {
     const gizmoMatrix_ws = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), entity.translation);
     const invGizmoMatrix_ws = glMatrix.mat4.invert(glMatrix.mat4.create(), gizmoMatrix_ws);
-
+    console.log(entity.translation);
     const invModel3x3 = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), invGizmoMatrix_ws);
     const direction_ls = glMatrix.vec3.transformMat3(glMatrix.vec3.create(), mouseRay.direction, invModel3x3);
     glMatrix.vec3.normalize(direction_ls, direction_ls);

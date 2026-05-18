@@ -27,8 +27,8 @@ export async function createEntities() {
         const translation = glMatrix.vec3.create();
         const color = glMatrix.vec3.create();
 
-        const modelMatrixID = getGlobalModelMatricesLength();
-        const entity = new Entity(mesh, color, path, modelMatrixID);
+        const modelMatrixIdx = getGlobalModelMatricesLength();
+        const entity = new Entity(mesh, color, path, modelMatrixIdx);
         
     }
 }

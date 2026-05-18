@@ -1,9 +1,12 @@
 
 import * as glMatrix from 'gl-matrix'
 
-import { createGPUBuffer } from './buffer.js';
+import { createGPUBuffer, getAlignedSize, updateDynamicGPUBuffer } from './buffer.js';
+import { updateModelMatrix as bufferUpdateModelMatrix } from './matrix.js';
 import { getScene, setScene } from './fileParser.js';
 import { createAndStoreModelMatrix, getModelMatrix } from './matrix.js';
+import { getDynamicModelMatrixUBO } from './uniform.js';
+
 
 // | Entity holds four indices
 // | Entity holds four model matrices
@@ -33,24 +36,26 @@ export class Entity {
     }
 
     initModelMatrix() {
-
-        const modelMatrix = createAndStoreModelMatrix();
+        const modelMatrix = glMatrix.mat4.create();
         glMatrix.mat4.identity(modelMatrix);
         glMatrix.mat4.translate(modelMatrix, modelMatrix, this.translation);
         glMatrix.mat4.rotateX(modelMatrix, modelMatrix, this.rotation[0]);
         glMatrix.mat4.rotateY(modelMatrix, modelMatrix, this.rotation[1]);
         glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, this.rotation[2]);
         glMatrix.mat4.scale(modelMatrix, modelMatrix, this.scale);
+        createAndStoreModelMatrix(modelMatrix);
 
-        const aabbModelMatrix = createAndStoreModelMatrix();
+
+        const aabbModelMatrix = glMatrix.mat4.create();
         glMatrix.mat4.identity(aabbModelMatrix);
         glMatrix.mat4.translate(aabbModelMatrix, aabbModelMatrix, this.translation);
         glMatrix.mat4.rotateX(aabbModelMatrix, aabbModelMatrix, this.rotation[0]);
         glMatrix.mat4.rotateY(aabbModelMatrix, aabbModelMatrix, this.rotation[1]);
         glMatrix.mat4.rotateZ(aabbModelMatrix, aabbModelMatrix, this.rotation[2]);
         glMatrix.mat4.scale(aabbModelMatrix, aabbModelMatrix, this.scale);
+        createAndStoreModelMatrix(aabbModelMatrix);
 
-        const axisArrowsModelMatrix = createAndStoreModelMatrix();
+        const axisArrowsModelMatrix = glMatrix.mat4.create();
         const axisArrowsScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
         glMatrix.mat4.identity(axisArrowsModelMatrix);
         glMatrix.mat4.translate(axisArrowsModelMatrix, axisArrowsModelMatrix, this.translation);
@@ -58,16 +63,32 @@ export class Entity {
         glMatrix.mat4.rotateY(axisArrowsModelMatrix, axisArrowsModelMatrix, this.rotation[1]);
         glMatrix.mat4.rotateZ(axisArrowsModelMatrix, axisArrowsModelMatrix, this.rotation[2]);
         glMatrix.mat4.scale(axisArrowsModelMatrix, axisArrowsModelMatrix, axisArrowsScale);
-
+        createAndStoreModelMatrix(axisArrowsModelMatrix);
         
-        const axisArrowsAABBModelMatrix = createAndStoreModelMatrix();
+        const axisArrowsAABBModelMatrix = glMatrix.mat4.create();
         const axisArrowsAABBScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
-
         glMatrix.mat4.identity(axisArrowsAABBModelMatrix);
         glMatrix.mat4.translate(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.translation);
         glMatrix.mat4.rotateX(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.rotation[0]);
         glMatrix.mat4.rotateY(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.rotation[1]);
         glMatrix.mat4.rotateZ(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.rotation[2]);
         glMatrix.mat4.scale(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, axisArrowsAABBScale);
+        createAndStoreModelMatrix(axisArrowsAABBModelMatrix);
+
+    }
+
+    updateModelMatrix() {
+        // const modelMatrix = glMatrix.mat4.create();
+        // glMatrix.mat4.identity(modelMatrix);
+        // glMatrix.mat4.translate(modelMatrix, modelMatrix, this.translation);
+        // glMatrix.mat4.rotateX(modelMatrix, modelMatrix, this.rotation[0]);
+        // glMatrix.mat4.rotateY(modelMatrix, modelMatrix, this.rotation[1]);
+        // glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, this.rotation[2]);
+        // glMatrix.mat4.scale(modelMatrix, modelMatrix, this.scale);
+
+        bufferUpdateModelMatrix(this);
+
+        const alignedSize = getAlignedSize(64);
+        updateDynamicGPUBuffer(alignedSize, this, getDynamicModelMatrixUBO());
     }
 }

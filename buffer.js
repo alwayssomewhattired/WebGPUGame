@@ -92,6 +92,7 @@ export function getAABBVerticesLength() {
 
 export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
         const modelMatrix = getModelMatrix(entity.modelMatrixIdx)
+        // console.log(modelMatrix);
         const aabbModelMatrix = getModelMatrix(entity.aabbModelIdx);
         const axisArrowsModelMatrix = getModelMatrix(entity.axisArrowsModelIdx);
         const axisArrowsAABBModelMatrix = getModelMatrix(entity.axisArrowsAABBModelIdx);
@@ -106,16 +107,6 @@ export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
         offset += alignedSize;
         getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix)
 
-    // for (let i = 0; i < entities.length; i++) {
-    //     const entityOffset = i * alignedSize;
-    //     for (let j = 0; j < modelMatrixLength; j++) {
-    //         const offset = j * alignedSize + entityOffset;
-            // const axisArrowsAABBModelMatrix = getModelMatrix(entity.axisArrowsAABBModelIdx);
-            // const aabbModelMatrix = getModelMatrix(entity.modelMatrixIdx);
-            // getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix)
-            // getDevice().queue.writeBuffer(buffer, offset, aabbModelMatrix)
-    //     }
-    // }
 }
 
 export function getAlignedSize(objectUniformSize) {

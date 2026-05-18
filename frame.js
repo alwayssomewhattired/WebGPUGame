@@ -7,6 +7,7 @@ import { updatePosition, updateViewTransform } from './camera.js';
 import { keyboardInput } from "./keyboardListeners.js";
 import { render } from './renderer.js';
 import { getViewMatrix } from './matrix.js';
+import { getAlignedSize } from './buffer.js';
 
 
 let m_lastTime = 0;
@@ -18,7 +19,7 @@ export function frame(time) {
     const device = getDevice();
     const deltaTime = (time - m_lastTime) / 1000;
     m_lastTime = time;
-
+    const alignedSize = getAlignedSize(64);
     
     if (!keyboardInput.r) m_angle = 0;
     else updateAngle(deltaTime);
@@ -31,7 +32,7 @@ export function frame(time) {
     const scalingVector = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
     glMatrix.mat4.scale(modelMatrix, modelMatrix, scalingVector);
 
-    device.queue.writeBuffer(getDynamicModelMatrixUBO(), 0, modelMatrix);
+    device.queue.writeBuffer(getDynamicModelMatrixUBO(), alignedSize, modelMatrix);
 
     updateViewTransform(viewMatrix);
     updatePosition(keyboardInput, deltaTime);

@@ -9,7 +9,7 @@ import { createGPUBuffer, getAlignedSize, getAxisArrowsPositionsGPUBuffer, updat
 import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer } from "./transformGizmo.js";
 import { getRayVerticesBuffer } from "./ray.js";
 import { keyboardInput } from "./keyboardListeners.js";
-import { getModelMatrix, getModelMatrixGPUBuffer } from "./matrix.js";
+import { getModelMatrix } from "./matrix.js";
 
 
 export function render() {
@@ -69,7 +69,7 @@ export function render() {
         if (entity.isSelected) {
             // | renders axisArrows vertices
             passEncoder.setPipeline(axisArrowsPipeline);
-            passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup());
+            passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup(), [alignedSize * 3]);
             passEncoder.setVertexBuffer(0, getAxisArrowsPositionsGPUBuffer());
             // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
             passEncoder.draw(6, 3);
@@ -77,17 +77,17 @@ export function render() {
             if (keyboardInput.b) {
                 // | aabb boxes
 
-                // updateDynamicGPUBuffer(alignedSize, scene, getDynamicModelMatrixUBO());  
+                updateDynamicGPUBuffer(alignedSize, entity, getDynamicModelMatrixUBO());  
 
                 passEncoder.setPipeline(getAABBPipeline());
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), new Uint32Array([alignedSize * 4]));
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [alignedSize * 4]);
                 passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
                 const aabbMatrixUBO = getDynamicModelMatrixUBO();
                 
                 passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
                 
                 passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);    
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), new Uint32Array([alignedSize * 2]));
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [alignedSize * 2]);
 
                 const aabbModelMatrixOffset = aabbMatrixUBO.length;         
 

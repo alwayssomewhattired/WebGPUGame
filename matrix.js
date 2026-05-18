@@ -5,24 +5,20 @@ import { getDevice } from './webgpu.js';
 
 const m_globalModelMatrices = [];
 
-const m_globalModelMatrixGPUBuffers = [];
-
 let m_viewMatrix = null;
 let m_inverseModelMatrix = null;
 let m_modelViewMatrix = null;
 let m_projectionMatrix = null;
 let m_normalMatrix = null;
 
-export function getModelMatrix(index) {
-    const modelMatrix = m_globalModelMatrices[index];
-    if (!modelMatrix) throw new Error("model matrix is null!");
-
-    return modelMatrix;
+export function initGlobalModelMatrices() {
+    const modelMatrix = glMatrix.mat4.create();
+    m_globalModelMatrices.push(modelMatrix);
 }
 
-export function getModelMatrixGPUBuffer(index) {
-    const modelMatrix = m_globalModelMatrixGPUBuffers[index];
-    if (!modelMatrix) throw new Error("model matrix is null!");
+export function getModelMatrix(index) {
+    const modelMatrix = m_globalModelMatrices[index];
+    if (!modelMatrix) throw new Error("model matrix is null at index: " + index);
 
     return modelMatrix;
 }
@@ -31,24 +27,26 @@ export function getGlobalModelMatricesLength() {
     return m_globalModelMatrices.length;
 }
 
-export function createAndStoreModelMatrix() {
-    const modelMatrix = glMatrix.mat4.create();
+export function createAndStoreModelMatrix(modelMatrix) {
     m_globalModelMatrices.push(modelMatrix);
-    const modelMatrixBuffer = createGPUBuffer(getDevice(), modelMatrix, modelMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST)
-    // getDevice().queue.writeBuffer(m_dynamicModelMatrixGPUBuffer,  )  
-    m_globalModelMatrixGPUBuffers.push(modelMatrixBuffer);
     return modelMatrix;
 }
 
 export function updateModelMatrix(entity) {
     const modelMatrix = m_globalModelMatrices[entity.modelMatrixIdx];
-    if (!modelMatrix) throw new Error("model matrix is null!");
+    const modelMatrix2 = m_globalModelMatrices[entity.axisArrowsModelIdx];
+    if (!modelMatrix || !modelMatrix2) throw new Error("model matrix is null!");
     glMatrix.mat4.identity(modelMatrix);
     glMatrix.mat4.translate(modelMatrix, modelMatrix, entity.translation);
+
     glMatrix.mat4.rotateX(modelMatrix, modelMatrix, entity.rotation[0]);
     glMatrix.mat4.rotateY(modelMatrix, modelMatrix, entity.rotation[1]);
     glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, entity.rotation[2]);
     glMatrix.mat4.scale(modelMatrix, modelMatrix, entity.scale);
+
+    // glMatrix.mat4.identity(modelMatrix2);
+    glMatrix.mat4.translate(modelMatrix2, modelMatrix2, entity.translation);
+
 }
 
 export function getModelMatrixDynamicGPUBuffer() {

@@ -184,6 +184,7 @@ export function createUBO(entity) {
 
 export function createAxisArrowsUBO(entity) {
     const model = getModelMatrix(entity.axisArrowsModelIdx);
+    const alignedSize = getAlignedSize(64);
     // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(4.0,4.0,4.0));
     const axisArrowsUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = m_device.createBindGroupLayout({
@@ -191,7 +192,9 @@ export function createAxisArrowsUBO(entity) {
             {
                 binding: 0,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: {}
+                buffer: {
+                    hasDynamicOffset: true
+                }
             },
             {
                 binding: 1,
@@ -209,10 +212,12 @@ export function createAxisArrowsUBO(entity) {
     m_axisArrowsUniformBindGroup = m_device.createBindGroup({
         layout: m_axisArrowsUniformBindGroupLayout,
         entries: [
-            {
+             {
                 binding: 0,
                 resource: {
-                    buffer: axisArrowsUBO
+                    buffer: m_dynamicModelMatrixUBO,
+                    offset: 0,
+                    size: alignedSize
                 }
             },
             {
