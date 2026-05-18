@@ -34,18 +34,36 @@ export function createAndStoreModelMatrix(modelMatrix) {
 
 export function updateModelMatrix(entity) {
     const modelMatrix = m_globalModelMatrices[entity.modelMatrixIdx];
-    const modelMatrix2 = m_globalModelMatrices[entity.axisArrowsModelIdx];
-    if (!modelMatrix || !modelMatrix2) throw new Error("model matrix is null!");
+    const modelMatrix2 = m_globalModelMatrices[entity.aabbModelIdx];
+    const modelMatrix3 = m_globalModelMatrices[entity.axisArrowsModelIdx];
+    const modelMatrix4 = m_globalModelMatrices[entity.axisArrowsAABBModelIdx];
+
+    if (!modelMatrix) throw new Error("model matrix is null!");
     glMatrix.mat4.identity(modelMatrix);
     glMatrix.mat4.translate(modelMatrix, modelMatrix, entity.translation);
-
     glMatrix.mat4.rotateX(modelMatrix, modelMatrix, entity.rotation[0]);
     glMatrix.mat4.rotateY(modelMatrix, modelMatrix, entity.rotation[1]);
     glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, entity.rotation[2]);
     glMatrix.mat4.scale(modelMatrix, modelMatrix, entity.scale);
 
-    // glMatrix.mat4.identity(modelMatrix2);
+    console.log(modelMatrix);
+
+    glMatrix.mat4.identity(modelMatrix2);
     glMatrix.mat4.translate(modelMatrix2, modelMatrix2, entity.translation);
+    glMatrix.mat4.rotateX(modelMatrix2, modelMatrix2, entity.rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix2, modelMatrix2, entity.rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix2, modelMatrix2, entity.rotation[2]);
+    glMatrix.mat4.scale(modelMatrix2, modelMatrix2, entity.scale);
+
+    glMatrix.mat4.identity(modelMatrix3);
+    glMatrix.mat4.translate(modelMatrix3, modelMatrix3, entity.translation);
+
+    glMatrix.mat4.identity(modelMatrix4);
+    glMatrix.mat4.translate(modelMatrix4, modelMatrix4, entity.translation);
+    glMatrix.mat4.rotateX(modelMatrix4, modelMatrix4, entity.rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix4, modelMatrix4, entity.rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix4, modelMatrix4, entity.rotation[2]);
+    glMatrix.mat4.scale(modelMatrix4, modelMatrix4, entity.scale);
 
 }
 

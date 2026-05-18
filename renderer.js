@@ -73,11 +73,10 @@ export function render() {
             passEncoder.setVertexBuffer(0, getAxisArrowsPositionsGPUBuffer());
             // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
             passEncoder.draw(6, 3);
+            updateDynamicGPUBuffer(alignedSize, entity, getDynamicModelMatrixUBO());  
 
             if (keyboardInput.b) {
                 // | aabb boxes
-
-                updateDynamicGPUBuffer(alignedSize, entity, getDynamicModelMatrixUBO());  
 
                 passEncoder.setPipeline(getAABBPipeline());
                 passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [alignedSize * 4]);

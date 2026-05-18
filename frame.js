@@ -6,7 +6,7 @@ import { getDynamicModelMatrixUBO, getViewMatrixUBO } from './uniform.js';
 import { updatePosition, updateViewTransform } from './camera.js';
 import { keyboardInput } from "./keyboardListeners.js";
 import { render } from './renderer.js';
-import { getViewMatrix } from './matrix.js';
+import { getModelMatrix, getViewMatrix } from './matrix.js';
 import { getAlignedSize } from './buffer.js';
 
 
@@ -15,24 +15,24 @@ let m_angle = 0;
 
 export function frame(time) {
     const modelMatrix = glMatrix.mat4.create();
+    // const modelMatrix = getModelMatrix()
     const viewMatrix = glMatrix.mat4.create();
     const device = getDevice();
     const deltaTime = (time - m_lastTime) / 1000;
     m_lastTime = time;
     const alignedSize = getAlignedSize(64);
     
-    if (!keyboardInput.r) m_angle = 0;
-    else updateAngle(deltaTime);
-    
-
-    glMatrix.mat4.translate(modelMatrix, modelMatrix, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
-
-    glMatrix.mat4.rotateY(modelMatrix, modelMatrix, m_angle);
-
-    const scalingVector = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
-    glMatrix.mat4.scale(modelMatrix, modelMatrix, scalingVector);
-
-    device.queue.writeBuffer(getDynamicModelMatrixUBO(), alignedSize, modelMatrix);
+    if (!keyboardInput.r) {
+        m_angle = 0;
+    }
+    else {
+        updateAngle(deltaTime);
+        glMatrix.mat4.translate(modelMatrix, modelMatrix, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
+        glMatrix.mat4.rotateY(modelMatrix, modelMatrix, m_angle);
+        const scalingVector = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
+        glMatrix.mat4.scale(modelMatrix, modelMatrix, scalingVector);
+        device.queue.writeBuffer(getDynamicModelMatrixUBO(), alignedSize, modelMatrix);
+    }
 
     updateViewTransform(viewMatrix);
     updatePosition(keyboardInput, deltaTime);

@@ -108,6 +108,6 @@ export function getSelectedObject(worldSpaceRay, scene) {
         }
     }
 
-    selected.isSelected = true;
+    if (selected) selected.isSelected = true;
     return selected;
 }

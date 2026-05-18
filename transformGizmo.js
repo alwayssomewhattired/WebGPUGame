@@ -63,11 +63,9 @@ export function initTransformGizmo() {
         if (keyboardInput.b) {
         getRayVerticesBuffer().push(createRayVerticesGPUBuffer(m_ray_ws.origin, m_ray_ws.direction));
         } 
-        // else {
-        //     getRayVerticesBuffer().length = 0;
-        // }
+
         m_currentEntity = getSelectedObject(m_ray_ws, getScene());
-        if (m_currentEntity == null) throw new Error ("Entity is null!!!");
+        if (!m_currentEntity) return;
         m_activeAxis = findAxis(m_ray_ws, m_currentEntity);
     });
 
@@ -76,10 +74,9 @@ export function initTransformGizmo() {
             m_ray_ws = getWorldSpaceRayFromMouse(e.x, e.y);
             let moveDist = calculateWorldDelta(e, m_activeAxis, m_ray_ws);
             if (!moveDist) {
-                throw new Error("move distance is invalid!!!");
                 return;
             }
-            moveDist *= 0.001;
+
             if (m_activeAxis === 'x') m_currentEntity.translation[0] += moveDist;
             if (m_activeAxis === 'y') m_currentEntity.translation[1] += moveDist;
             if (m_activeAxis === 'z') m_currentEntity.translation[2] += moveDist;
@@ -173,10 +170,8 @@ function calculateWorldDelta(event, axis, ray) {
         m_lastHitPoint = currentHit;
         return 0;
     }
-    // console.log(currentHit[axisIndex]);
-    // console.log(m_lastHitPoint[axisIndex]);
+ 
     const delta = currentHit[axisIndex] - m_lastHitPoint[axisIndex];
-    // console.log(delta);
     m_lastHitPoint = currentHit;
 
     return delta;
