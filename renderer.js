@@ -1,15 +1,18 @@
 import { getPipeline, getTexCoordsBuffer } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getDynamicModelMatrixUBO } from "./uniform.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getDynamicModelMatrixUBO, getRotationArcUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
-import { createGPUBuffer, getAlignedSize, getAxisArrowsPositionsGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
-import { gizmoPositionsCPUBuffer, getAABBGizmoPositionsGPUBuffer } from "./transformGizmo.js";
+import { createGPUBuffer, getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
+import { getGlobalRotationArcVerticesOffset, gizmoPositionsCPUBuffer } from "./transformGizmo.js";
+import { getAABBGizmoPositionsGPUBuffer } from "./aabb.js";
 import { getRayVerticesBuffer } from "./ray.js";
 import { keyboardInput } from "./keyboardListeners.js";
 import { getModelMatrix } from "./matrix.js";
+import { getArcPipeline } from "./pipelines/arcPipeline.js";
+import { getTriangleListPipeline } from "./pipelines/triangleListPipeline.js";
 
 
 export function render() {
@@ -17,6 +20,8 @@ export function render() {
     const device = getDevice();
     const scene = getScene();
     const pipeline = getPipeline();
+    const arcPipeline = getArcPipeline();
+    const triangleListPipeline = getTriangleListPipeline();
     const texCoordsBuffer = getTexCoordsBuffer();
     const uniformBindGroup = getUniformBindGroup();
     const depthAttachment = getDepthAttachment();
@@ -70,10 +75,19 @@ export function render() {
             // | renders axisArrows vertices
             passEncoder.setPipeline(axisArrowsPipeline);
             passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup(), [alignedSize * 3]);
-            passEncoder.setVertexBuffer(0, getAxisArrowsPositionsGPUBuffer());
+            passEncoder.setVertexBuffer(0, getAxisArrowsVerticesGPUBuffer());
             // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
             passEncoder.draw(6, 3);
             updateDynamicGPUBuffer(alignedSize, entity, getDynamicModelMatrixUBO());  
+
+            passEncoder.setPipeline(arcPipeline);
+            passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [alignedSize * 5]);
+            passEncoder.setVertexBuffer(0, getRotationArcVerticesGPUBuffer());
+            passEncoder.draw(6, 1);
+
+            // passEncoder.setPipeline(triangleListPipeline);
+            // passEncoder.setVertexBuffer(0, getRotationArcVerticesGPUBuffer(), getGlobalRotationArcVerticesOffset());
+            // passEncoder.draw(7, 1);
 
             if (keyboardInput.b) {
                 // | aabb boxes

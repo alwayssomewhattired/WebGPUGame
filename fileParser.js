@@ -9,6 +9,7 @@ import { getGlobalModelMatricesLength, createAndStoreModelMatrix } from './matri
 
 const filePaths = [
     './models/psx-rat/rat.obj'
+    // './models/stop-sign-psx/source/stop-sign.obj'
 ];
 
 export async function createEntities() {

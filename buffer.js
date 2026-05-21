@@ -6,8 +6,10 @@ import { Mesh } from "./mesh.js";
 import { getDevice } from './webgpu.js';
 import { Entity } from './entity.js';
 import { getModelMatrix } from './matrix.js';
+import { createRotationArcVertices } from './transformGizmo.js';
 
 let m_axisArrowsBuffer = null;
+let m_rotationArcVerticesBuffer = null;
 const m_aabbColor = new Float32Array([1.0, 1.0, 0.0]);
 const m_rayColor = new Float32Array([ 0.0, 1.0, 1.0]);
 let m_aabbPositionBuffer = null;
@@ -46,7 +48,7 @@ export function createGPUBuffer(device, CPUBuffer, bufferBytes, usage) {
 }
 
 // arrow pointing to +X
-export function getAxisArrowsPositionsGPUBuffer() {
+export function getAxisArrowsVerticesGPUBuffer() {
     if (!m_axisArrowsBuffer) {
         const vPositions = new Float32Array([
             // x    r
@@ -63,6 +65,19 @@ export function getAxisArrowsPositionsGPUBuffer() {
     }
 
     return m_axisArrowsBuffer;
+}
+
+export function initRotationArcVerticesGPUBuffer() {
+    const vertices = createRotationArcVertices();
+    m_rotationArcVerticesBuffer = createGPUBuffer(getDevice(), vertices, vertices.byteLength, GPUBufferUsage.VERTEX);
+}
+
+export function getRotationArcVerticesGPUBuffer() {
+    if (!m_rotationArcVerticesBuffer) {
+        throw new Error("rotation arc vertices buffer is fucked mate");
+    }
+    return m_rotationArcVerticesBuffer;
+
 }
 
 export function getAABBColorGPUBuffer() {
@@ -96,6 +111,7 @@ export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
         const aabbModelMatrix = getModelMatrix(entity.aabbModelIdx);
         const axisArrowsModelMatrix = getModelMatrix(entity.axisArrowsModelIdx);
         const axisArrowsAABBModelMatrix = getModelMatrix(entity.axisArrowsAABBModelIdx);
+        const rotationArcModelMatrix = getModelMatrix(entity.rotationArcModelIdx);
         
         getDevice().queue.writeBuffer(buffer, 0, glMatrix.mat4.create());
         let offset = alignedSize;
@@ -106,6 +122,8 @@ export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
         getDevice().queue.writeBuffer(buffer, offset, axisArrowsModelMatrix)
         offset += alignedSize;
         getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix)
+        offset += alignedSize;
+        getDevice().queue.writeBuffer(buffer, offset, rotationArcModelMatrix)
 
 }
 

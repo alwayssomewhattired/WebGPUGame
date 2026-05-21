@@ -24,6 +24,7 @@ export class Entity {
         this.aabbModelIdx = modelMatrixIdx + 1;
         this.axisArrowsModelIdx = modelMatrixIdx + 2
         this.axisArrowsAABBModelIdx = modelMatrixIdx + 3;
+        this.rotationArcModelIdx = modelMatrixIdx + 4;
 
         this.modelMatrixBufferOffset 
 
@@ -74,6 +75,17 @@ export class Entity {
         glMatrix.mat4.rotateZ(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, this.rotation[2]);
         glMatrix.mat4.scale(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, axisArrowsAABBScale);
         createAndStoreModelMatrix(axisArrowsAABBModelMatrix);
+
+        const rotationArcModelMatrix = glMatrix.mat4.create();
+        const rotationArcScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
+        glMatrix.mat4.identity(rotationArcModelMatrix);
+        glMatrix.mat4.translate(rotationArcModelMatrix, rotationArcModelMatrix, this.translation);
+        glMatrix.mat4.translate(rotationArcModelMatrix, rotationArcModelMatrix, [-0.25,0,0.1]);
+        glMatrix.mat4.rotateX(rotationArcModelMatrix, rotationArcModelMatrix, this.rotation[0]);
+        glMatrix.mat4.rotateY(rotationArcModelMatrix, rotationArcModelMatrix, this.rotation[1]);
+        glMatrix.mat4.rotateZ(rotationArcModelMatrix, rotationArcModelMatrix, this.rotation[2]);
+        glMatrix.mat4.scale(rotationArcModelMatrix, rotationArcModelMatrix, rotationArcScale);
+        createAndStoreModelMatrix(rotationArcModelMatrix);
 
     }
 

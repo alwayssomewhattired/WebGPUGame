@@ -1,7 +1,7 @@
 
 import * as glMatrix from 'gl-matrix';
 
-import { createGPUBuffer, getAxisArrowsPositionsGPUBuffer, getAABBColorGPUBuffer, 
+import { createGPUBuffer, getAxisArrowsVerticesGPUBuffer, getAABBColorGPUBuffer, 
     getRayColorGPUBuffer, getAlignedSize,
     updateDynamicGPUBuffer} from './buffer.js'
 import { getDevice } from './webgpu.js'
@@ -20,6 +20,8 @@ let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_axisArrowsUniformBindGroup = null;
 let m_axisArrowsUniformBindGroupLayout = null;
+let m_rotationArcUniformBindGroup = null;
+let m_rotationArcUniformBindGroupLayout = null;
 let m_aabbUniformBindGroup = null;
 let m_aabbUniformBindGroupLayout = null;
 let m_rayUniformBindGroup = null;
@@ -43,7 +45,7 @@ export function createDynamicModelMatrixBuffer(scene) {
     const alignedSize = getAlignedSize(64);
     const modelMatrix = glMatrix.mat4.create();
     const modelMatricesSize = scene[0].modelMatrixLength;
-    const modelMatrixByteLength = ((modelMatrix.byteLength * modelMatricesSize) * scene.length * 4) + alignedSize;
+    const modelMatrixByteLength = ((modelMatrix.byteLength * modelMatricesSize) * scene.length * 5) + alignedSize;
     m_dynamicModelMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     for (const entity of scene) {
@@ -75,7 +77,6 @@ export function createUBO(entity) {
         GPUBufferUsage.UNIFORM);
 
     m_viewMatrixUBO = createGPUBuffer(m_device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-    // let modelViewMatrixUniformBuffer = createGPUBuffer(m_device, modelViewMatrix, GPUBufferUsage.UNIFORM);
     m_projectionMatrixUBO = createGPUBuffer(m_device, projectionMatrix, projectionMatrix.byteLength, 
         GPUBufferUsage.UNIFORM);
     const normalMatrixUniformBuffer = createGPUBuffer(m_device, normalMatrix, normalMatrix.byteLength, 
@@ -185,7 +186,6 @@ export function createUBO(entity) {
 export function createAxisArrowsUBO(entity) {
     const model = getModelMatrix(entity.axisArrowsModelIdx);
     const alignedSize = getAlignedSize(64);
-    // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(4.0,4.0,4.0));
     const axisArrowsUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
@@ -211,6 +211,61 @@ export function createAxisArrowsUBO(entity) {
 
     m_axisArrowsUniformBindGroup = m_device.createBindGroup({
         layout: m_axisArrowsUniformBindGroupLayout,
+        entries: [
+             {
+                binding: 0,
+                resource: {
+                    buffer: m_dynamicModelMatrixUBO,
+                    offset: 0,
+                    size: alignedSize
+                }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: m_viewMatrixUBO
+                }
+            },
+            {
+                binding: 2,
+                resource: {
+                    buffer: m_projectionMatrixUBO
+                }
+            },
+        ]
+    });
+}
+
+// | - rotation arc
+// | - rotation arc head
+export function createRotationArcUBO(entity) {
+    const model = getModelMatrix(entity.rotationArcModelIdx);
+    const alignedSize = getAlignedSize(64);
+    const rotationArcUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
+    m_rotationArcUniformBindGroupLayout = m_device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {
+                    hasDynamicOffset: true
+                }
+            },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 2,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+        ]
+    });
+
+    m_rotationArcUniformBindGroup = m_device.createBindGroup({
+        layout: m_rotationArcUniformBindGroupLayout,
         entries: [
              {
                 binding: 0,
@@ -461,6 +516,27 @@ export function getUniformBindGroupLayout() {
 
     return m_uniformBindGroupLayout;
 }
+
+
+export function getRotationArcUniformBindGroup() {
+    if (!m_rotationArcUniformBindGroup) {
+        throw new Error("RotationArcUniformBindGroup not initialized!");
+    }
+
+    return m_rotationArcUniformBindGroup;
+}
+
+export function getRotationArcUniformBindGroupLayout() {
+    if (!m_rotationArcUniformBindGroupLayout) {
+        throw new Error("RotationArcUniformBindGroupLayout not initialized!");
+    }
+
+    return m_rotationArcUniformBindGroupLayout;
+}
+
+
+
+
 
 export function getTexture() {
     if (!m_texture) {

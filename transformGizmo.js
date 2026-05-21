@@ -6,10 +6,10 @@ import { createGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
 import { getWorldSpaceRayFromMouse, createRayVerticesGPUBuffer, getRayVerticesBuffer, getSelectedObject } from './ray.js';
 import { keyboardInput } from './keyboardListeners.js';
+import { axesBoxes, intersectAABB } from './aabb.js';
 
 let m_activeAxis = null;
 let m_aabbPositionsOffset;
-let m_aabbGizmoPositionsGPUBuffer = null;
 let m_currentEntity = null;
 let m_ray_ws = null;
 let m_lastHitPoint = null;
@@ -31,30 +31,6 @@ export const gizmoPositionsCPUBuffer = new Float32Array([
      1,-1, 1,  1, 1, 1,
     -1,-1, 1, -1, 1, 1,
 ]);
-
-export function getAABBGizmoPositionsGPUBuffer() {
-    if (!m_aabbGizmoPositionsGPUBuffer) {
-        m_aabbGizmoPositionsGPUBuffer = createGPUBuffer(getDevice(), gizmoPositionsCPUBuffer,
-        gizmoPositionsCPUBuffer.byteLength, GPUBufferUsage.VERTEX)
-    }
-
-    return m_aabbGizmoPositionsGPUBuffer;
-}
-
-const axesBoxes = {
-    x: {
-        aabbMin: [0.0, -0.1, -0.1],
-        aabbMax: [1.0, 0.1, 0.1]
-    },
-    y: {
-        aabbMin: [-0.1, 0.0, -0.1],
-        aabbMax: [0.1, 1.0, 0.1]
-    },
-    z: {
-        aabbMin: [-0.1, -0.1, 0.0],
-        aabbMax: [0.1, 0.1, 1.0]
-    }
-};
 
 export function initTransformGizmo() {
 
@@ -87,30 +63,6 @@ export function initTransformGizmo() {
     canvas.addEventListener("mouseup", (e) => {
         if (m_activeAxis) m_activeAxis = null;
     })
-}
-
-
-export function intersectAABB(ray, box) {
-    let tMin = -Infinity;
-    let tMax = Infinity;
-
-    for (let i = 0; i < 3; i++) {
-        const invDir = 1.0 / ray.direction[i];
-        let t1 = (box.aabbMin[i] - ray.origin[i]) * invDir;
-        let t2 = (box.aabbMax[i] - ray.origin[i]) * invDir;
-
-        // | Makes sure t1 is entry and t2 is exit
-        if (t1 > t2) [t1, t2] = [t2, t1];
-
-        tMin = Math.max(tMin, t1);
-        tMax = Math.min(tMax, t2);
-    }
-
-    // | returns distance to hit
-    if (tMax >= tMin && tMax >= 0) {
-        return tMin >= 0 ? tMin : tMax;
-    }
-    return null;
 }
 
 function getBestPlaneNormal(axis, rayDirection) {
@@ -180,7 +132,6 @@ function calculateWorldDelta(event, axis, ray) {
 function findAxis(mouseRay, entity) {
     const gizmoMatrix_ws = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), entity.translation);
     const invGizmoMatrix_ws = glMatrix.mat4.invert(glMatrix.mat4.create(), gizmoMatrix_ws);
-    console.log(entity.translation);
     const invModel3x3 = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), invGizmoMatrix_ws);
     const direction_ls = glMatrix.vec3.transformMat3(glMatrix.vec3.create(), mouseRay.direction, invModel3x3);
     glMatrix.vec3.normalize(direction_ls, direction_ls);
@@ -204,4 +155,119 @@ function findAxis(mouseRay, entity) {
     }
     // - closest Axis is always null here
     return closestAxis;
+}
+
+
+
+//
+//
+// | ROTATION
+//
+//
+
+const rotationAxes = {
+    x: [1, 0, 0],
+    y: [0, 1, 0],
+    z: [0, 0, 1]
+};
+
+let m_angle = null;
+const m_globalRotationArcVertices = [];
+let m_globalRotationArcVerticesOffset = null;
+
+export function createRotationArcVertices(
+    radius = 1.0,
+    segments = 64,
+    startAngle = 0,
+    endAngle = Math.PI * 4
+) {
+    let t = null;
+
+    // curved arc
+    for (let i = 0; i <= segments; i++) {
+        t = i / segments;
+
+        m_angle = startAngle + (endAngle - startAngle) * t;
+
+        // x rotation
+        // const x = 0;
+        // const y = radius * Math.cos(angle);
+        // const z = radius * Math.sin(angle);
+
+        // y rotation
+        const x = radius * Math.cos(m_angle);
+        const y = 0;
+        const z = radius * Math.sin(m_angle);
+        const r = 0.0;
+        const g = 1.0;
+        const b = 0.0;
+
+        // // z rotation
+        // const x = radius * Math.cos(angle);
+        // const y = radius * Math.sin(angle);
+        // const z = 0;
+
+        m_globalRotationArcVertices.push(x,y,z,r,g,b);
+    }
+
+    m_globalRotationArcVerticesOffset = m_globalRotationArcVertices.length;
+    createRotationArcHeadVertices();
+
+    return new Float32Array([m_globalRotationArcVertices]);
+}
+
+function createRotationArcHeadVertices(
+    radius = 1.0,
+    segments = 64,
+    startAngle = 0,
+    endAngle = Math.PI * 4
+) {
+
+    // x 
+    // const tip = [0, radius * Math.cos(endAngle), radius * Math.sin(endAngle)];
+    // tangent = [0, -Math.sin(angle), Math.cos(angle)];
+    // const side = [-tangent[2], 0, tangent[0]];
+    // const arrowSize = 0.08;
+    // const left = [
+    //     tip[0] - tangent[0] * arrowSize + side[0] * arrowSize,
+    //     tip[1],
+    //     tip[2] - tangent[2] * arrowSize + side[2] * arrowSize
+    // ];
+    // const right = [
+    //     tip[0] - tangent[0] * arrowSize - side[0] * arrowSize,
+    //     tip[1],
+    //     tip[2] - tangent[2] * arrowSize - side[2] * arrowSize
+    // ];
+
+    // // y
+    const tip = [radius * Math.cos(endAngle), 0, radius * Math.sin(endAngle)];
+    const tangent = [-Math.sin(m_angle), 0, Math.cos(m_angle)];
+    const side = [-tangent[2], 0, tangent[0]];
+    const arrowSize = 0.08;
+    const left = [
+        tip[0] - tangent[0] * arrowSize + side[0] * arrowSize,
+        tip[1],
+        tip[2] - tangent[2] * arrowSize + side[2] * arrowSize
+    ];
+    const right = [
+        tip[0] - tangent[0] * arrowSize - side[0] * arrowSize,
+        tip[1],
+        tip[2] - tangent[2] * arrowSize - side[2] * arrowSize
+    ];
+    const r = 0;
+    const g = 1;
+    const b = 0;
+
+    // // z
+    // const tip = [radius * Math.cos(endAngle), radius * Math.sin(endAngle), 0];
+    // tangent = [-Math.sin(angle), Math.cos(angle), 0];
+
+
+    m_globalRotationArcVertices.push([tip, side, left, right, r, g, b]);
+}
+
+export function getGlobalRotationArcVerticesOffset() {
+    if (!m_globalRotationArcVerticesOffset) throw new Error("rotation arc vertex offset is null");
+
+    return m_globalRotationArcVerticesOffset;
 }
