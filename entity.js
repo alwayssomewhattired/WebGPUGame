@@ -100,13 +100,6 @@ export class Entity {
     }
 
     updateModelMatrix() {
-        // const modelMatrix = glMatrix.mat4.create();
-        // glMatrix.mat4.identity(modelMatrix);
-        // glMatrix.mat4.translate(modelMatrix, modelMatrix, this.translation);
-        // glMatrix.mat4.rotateX(modelMatrix, modelMatrix, this.rotation[0]);
-        // glMatrix.mat4.rotateY(modelMatrix, modelMatrix, this.rotation[1]);
-        // glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, this.rotation[2]);
-        // glMatrix.mat4.scale(modelMatrix, modelMatrix, this.scale);
 
         bufferUpdateModelMatrix(this);
 

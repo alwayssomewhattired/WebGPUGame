@@ -44,8 +44,7 @@ export function initTransformGizmo() {
         m_currentEntity = getSelectedObject(m_ray_ws, getScene());
         if (!m_currentEntity) return;
         m_activeAxis = findAxis(m_ray_ws, m_currentEntity);
-        const isRing = checkRotationRingHit();
-        if (isRing) m_activeAxis = 'x';
+        checkRotationRingHit();
     });
 
     canvas.addEventListener("mousemove", (e) => {
@@ -303,22 +302,28 @@ export function checkRotationRingHit() {
         modelMatrix[14]
     );
 
-    // - hardcoded for y
-    const hitPosition = intersectRayPlane(m_ray_ws, [0,1,0], planePoint);
-    
-    if (hitPosition == null) return;
+    for (const rotationAxis in rotationAxes) {
+        console.log(rotationAxis);
+        const hitPosition = intersectRayPlane(m_ray_ws, rotationAxes[rotationAxis], planePoint);
+        
+        if (hitPosition == null) return;
 
-    const hitDistance = glMatrix.vec3.create();
-    glMatrix.vec3.subtract(hitDistance, hitPosition, planePoint);
+        const hitDistance = glMatrix.vec3.create();
+        glMatrix.vec3.subtract(hitDistance, hitPosition, planePoint);
 
-    const hitDistanceLength = glMatrix.vec3.length(hitDistance);
+        const hitDistanceLength = glMatrix.vec3.length(hitDistance);
 
-    const innerRadius = RotationHandle.radius - RotationHandle.thickness;
-    const outerRadius = RotationHandle.radius + RotationHandle.thickness;
-    if (hitDistanceLength >= innerRadius && hitDistanceLength <= outerRadius) {
-        m_isRingSelected = true;
-    } else {
-         m_isRingSelected = false;
+        const innerRadius = RotationHandle.radius - RotationHandle.thickness;
+        const outerRadius = RotationHandle.radius + RotationHandle.thickness;
+        if (hitDistanceLength >= innerRadius && hitDistanceLength <= outerRadius) {
+            console.log('hit');
+            m_isRingSelected = true;
+            m_activeAxis = rotationAxis;
+            return m_isRingSelected;
+        } else {
+             m_isRingSelected = false;
+        }
+
     }
 
     return m_isRingSelected;

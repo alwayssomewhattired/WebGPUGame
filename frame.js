@@ -15,7 +15,6 @@ let m_angle = 0;
 
 export function frame(time) {
     const modelMatrix = glMatrix.mat4.create();
-    // const modelMatrix = getModelMatrix()
     const viewMatrix = glMatrix.mat4.create();
     const device = getDevice();
     const deltaTime = (time - m_lastTime) / 1000;

@@ -41,7 +41,6 @@ export function updateModelMatrix(entity) {
     const modelMatrix6 = m_globalModelMatrices[entity.rotationArcHeadModelIdx];
 
 
-
     if (!modelMatrix) throw new Error("model matrix is null!");
     glMatrix.mat4.identity(modelMatrix);
     glMatrix.mat4.translate(modelMatrix, modelMatrix, entity.translation);
@@ -68,10 +67,10 @@ export function updateModelMatrix(entity) {
     glMatrix.mat4.scale(modelMatrix4, modelMatrix4, entity.scale);
 
     glMatrix.mat4.identity(modelMatrix5);
-    glMatrix.mat4.translate(modelMatrix5, modelMatrix3, entity.translation);
+    glMatrix.mat4.translate(modelMatrix5, modelMatrix5, entity.translation);
 
     glMatrix.mat4.identity(modelMatrix6);
-    glMatrix.mat4.translate(modelMatrix6, modelMatrix3, entity.translation);
+    glMatrix.mat4.translate(modelMatrix6, modelMatrix6, entity.translation);
 
 }
 
