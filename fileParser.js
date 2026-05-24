@@ -18,6 +18,7 @@ export const sceneNameToIndexMap = new Map([
 ]);
 
 export async function createEntities() {
+    let idx = 0;
     for (const path of filePaths) {
         const objResponse = await fetch(path);
         const objBody = await objResponse.text();
@@ -34,7 +35,9 @@ export async function createEntities() {
         const color = glMatrix.vec3.create();
 
         const modelMatrixIdx = getGlobalModelMatricesLength();
-        const entity = new Entity(mesh, color, path, modelMatrixIdx);
+        const entity = new Entity(mesh, color, path, modelMatrixIdx, idx);
+        console.log(idx);
+        idx++;
         scene.push(entity);
     }
 }

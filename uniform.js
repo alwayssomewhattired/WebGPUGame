@@ -14,6 +14,8 @@ let m_viewMatrixUBO = null;
 let m_projectionMatrixUBO = null;
 let m_aabbMatrixUBO = null;
 let m_dynamicModelMatrixUBO = null;
+let m_dynamicModelViewMatrixUBO = null;
+let m_megaMatrixUBO = null;
 
 
 let m_uniformBindGroup = null;
@@ -41,22 +43,38 @@ export function initUniformConstructor() {
 // 2: mesh aabb model matrix
 // 3: axis arrows model matrix
 // 4: axis arrows aabb model matrix
-export function createDynamicModelMatrixBuffer(scene) {
+export function createMegaMatrixUBO(scene) {
     const alignedSize = getAlignedSize(64);
     const modelMatrix = glMatrix.mat4.create();
     const modelMatricesSize = scene[0].modelMatrixLength;
-    const modelMatricesPerEntity = 6;
     const modelMatrixByteLength = (
-        (modelMatrix.byteLength * 6) 
-        * scene.length * modelMatricesPerEntity) 
+        (modelMatrix.byteLength * modelMatricesSize) 
+        * scene.length * modelMatricesSize) 
         + alignedSize;
 
-    m_dynamicModelMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    m_megaMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     for (const entity of scene) {
         const alignedSize = getAlignedSize(64);
         updateDynamicGPUBuffer(alignedSize, entity, m_dynamicModelMatrixUBO);
     }
+}
+
+// export function createDynamicModelViewMatrixBuffer(scene) {
+//     const alignedSize = getAlignedSize(64);
+//     const modelMatrix = glMatrix.mat4.create();
+//     const modelMatricesSize = 1;
+//     const modelMatrixByteLength = (
+//         (modelMatrix.byteLength * modelMatricesSize) 
+//         * scene.length * modelMatricesSize) 
+//         + alignedSize;
+
+//     m_dynamicModelViewMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
+//     for (const entity of scene) {
+//         const alignedSize = getAlignedSize(64);
+//         updateDynamicGPUBuffer(alignedSize, entity, m_dynamicModelViewMatrixUBO);
+//     }
 }
 
 export function createUBO(entity) {
@@ -575,10 +593,18 @@ export function getViewMatrixUBO() {
     return m_viewMatrixUBO;
 }
 
-export function getDynamicModelMatrixUBO() {
-    if (!m_dynamicModelMatrixUBO) {
-        throw new Error("Dynamic Model Matrix UBO not initialized!");
+// export function getDynamicModelMatrixUBO() {
+//     if (!m_dynamicModelMatrixUBO) {
+//         throw new Error("Dynamic Model Matrix UBO not initialized!");
+//     }
+
+//     return m_dynamicModelMatrixUBO;
+// }
+
+export function getMegaMatrixUBO() {
+    if (!m_megaMatrixUBO) {
+        throw new Error("Mega Matrix UBO not initialized!");
     }
 
-    return m_dynamicModelMatrixUBO;
+    return m_megaMatrixUBO;
 }

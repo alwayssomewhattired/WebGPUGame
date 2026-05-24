@@ -3,44 +3,64 @@ import * as glMatrix from 'gl-matrix'
 import { createGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
 
-// | I think the first element is an empty model matrix
-const m_globalModelMatrices = [];
+// 0: default-empty
+// PER-ENTITY
+// 1: model matrix
+// 2: aabbModelMatrix
+// 3: axisArrowsModelMatrix
+// 4: axisArrowsAABBModelMatrix
+// 5: rotationArcModelIdx
+// 6: rotationArcHeadModelIdx
+// - TO-DO: make muthafuckin mega matrix buffer!!!!!!!!
+const m_megaMatrixCPUBuffer = [];
+// const m_megaMatrixCPUBuffer = []
+
+// const m_globalModelViewMatrices = [];
+
 
 let m_viewMatrix = null;
 let m_inverseModelMatrix = null;
-let m_modelViewMatrix = null;
+// let m_modelViewMatrix = null;
 let m_projectionMatrix = null;
 let m_normalMatrix = null;
 
-export function initGlobalModelMatrices() {
+// | pushes a default-empty model matrix 
+export function initMegaMatrixCPUBuffer() {
     const modelMatrix = glMatrix.mat4.create();
-    m_globalModelMatrices.push(modelMatrix);
+    m_megaMatrixCPUBuffer.push(modelMatrix);
 }
 
-export function getModelMatrix(index) {
-    const modelMatrix = m_globalModelMatrices[index];
-    if (!modelMatrix) throw new Error("model matrix is null at index: " + index);
+export function getMatrix(index) {
+    const matrix = m_megaMatrixCPUBuffer[index];
+    if (!matrix) throw new Error("matrix is null at index: " + index);
 
+    return matrix;
+}
+
+// export function getModelViewMatrix(index) {
+//     const modelViewMatrix = m_megaMatrixCPUBuffer[index];
+//     if (!modelViewMatrix) throw new Error("modelView matrix is null at index: " + index);
+
+//     return modelViewMatrix;
+// }
+
+export function getMegaMatrixCPUBufferLength() { 
+    return m_megaMatrixCPUBuffer.length;
+}
+
+export function createAndStoreMatrix(modelMatrix) {
+    m_megaMatrixCPUBuffer.push(modelMatrix);
     return modelMatrix;
 }
 
-export function getGlobalModelMatricesLength() { 
-    return m_globalModelMatrices.length;
-}
-
-export function createAndStoreModelMatrix(modelMatrix) {
-    m_globalModelMatrices.push(modelMatrix);
-    return modelMatrix;
-}
-
-export function updateModelMatrix(entity) {
-    const modelMatrix = m_globalModelMatrices[entity.modelMatrixIdx];
-    const modelMatrix2 = m_globalModelMatrices[entity.aabbModelIdx];
-    const modelMatrix3 = m_globalModelMatrices[entity.axisArrowsModelIdx];
-    const modelMatrix4 = m_globalModelMatrices[entity.axisArrowsAABBModelIdx];
-    const modelMatrix5 = m_globalModelMatrices[entity.rotationArcModelIdx];
-    const modelMatrix6 = m_globalModelMatrices[entity.rotationArcHeadModelIdx];
-
+export function updateMatrix(entity) {
+    const modelMatrix = m_megaMatrixCPUBuffer[entity.modelMatrixIdx];
+    const modelMatrix2 = m_megaMatrixCPUBuffer[entity.aabbModelIdx];
+    const modelMatrix3 = m_megaMatrixCPUBuffer[entity.axisArrowsModelIdx];
+    const modelMatrix4 = m_megaMatrixCPUBuffer[entity.axisArrowsAABBModelIdx];
+    const modelMatrix5 = m_megaMatrixCPUBuffer[entity.rotationArcModelIdx];
+    const modelMatrix6 = m_megaMatrixCPUBuffer[entity.rotationArcHeadModelIdx];
+    const modelMatrix7 = m_megaMatrixCPUBuffer[entity.modelViewIdx];
 
     if (!modelMatrix) throw new Error("model matrix is null!");
     glMatrix.mat4.identity(modelMatrix);
@@ -73,19 +93,26 @@ export function updateModelMatrix(entity) {
     glMatrix.mat4.identity(modelMatrix6);
     glMatrix.mat4.translate(modelMatrix6, modelMatrix6, entity.translation);
 
+    glMatrix.mat4.identity(modelMatrix7);
+    glMatrix.mat4.translate(modelMatrix7, modelMatrix7, entity.translation);
+    glMatrix.mat4.rotateX(modelMatrix7, modelMatrix7, entity.rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix7, modelMatrix7, entity.rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix7, modelMatrix7, entity.rotation[2]);
+    glMatrix.mat4.scale(modelMatrix7, modelMatrix7, entity.scale);
+
 }
 
-export function getModelMatrixDynamicGPUBuffer() {
-    if (!m_modelMatrixDynamicGPUBuffer) {
-        throw new Error("Model MatrixDynamic GPU Buffer is null!!");
-    }
+// export function getMegaMatrixDynamicGPUBuffer() {
+//     if (!m_megaMatrixDynamicGPUBuffer) {
+//         throw new Error("Model MatrixDynamic GPU Buffer is null!!");
+//     }
     
-    return m_modelMatrixDynamicGPUBuffer;
-}
+//     return m_modelMatrixDynamicGPUBuffer;
+// }
 
-export function createModelMatrixDynamicBuffer(buffer, alignedSize) {
-    m_modelMatrixDynamicGPUBuffer = createGPUBuffer(getDevice(), m_, alignedSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST); 
-}
+// export function createModelMatrixDynamicBuffer(buffer, alignedSize) {
+//     m_modelMatrixDynamicGPUBuffer = createGPUBuffer(getDevice(), m_, alignedSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST); 
+// }
 
 export function getViewMatrix() {
     if (!m_viewMatrix) {

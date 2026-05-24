@@ -55,12 +55,14 @@ export function render() {
     // | main render
     passEncoder.setPipeline(pipeline);
     for (const entity of scene) {
+        const entityMatricesCount = entity.modelMatrixLength;
         const positionBuffer = entity.mesh.vPositionsBuffer;
         const indexBuffer = entity.mesh.vIndicesBuffer;
         const indexBufferSize = entity.mesh.vIndexBufferSize;
         const normalBuffer = entity.mesh.vNormalsBuffer;
-
-        passEncoder.setBindGroup(0, uniformBindGroup, [alignedSize]);
+        const refinedIdx = alignedSize * ((entityMatricesCount * entity.idx) + 1) ;
+        // console.log(refinedIdx);
+        passEncoder.setBindGroup(0, uniformBindGroup, [refinedIdx]);
         passEncoder.setVertexBuffer(0, positionBuffer);
         passEncoder.setVertexBuffer(1, texCoordsBuffer);
         passEncoder.setVertexBuffer(2, normalBuffer);

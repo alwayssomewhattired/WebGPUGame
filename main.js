@@ -10,7 +10,7 @@ import { frame } from './frame.js';
 import { render } from './renderer.js';
 import { initMouse } from './camera.js';
 import { initTransformGizmo } from './transformGizmo.js';
-import { initGlobalModelMatrices } from './matrix.js';
+import { initMegaMatrixCPUBuffer } from './matrix.js';
 import { initArcPipeline } from './pipelines/arcPipeline.js';
 import { initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer } from './buffer.js';
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
@@ -22,7 +22,7 @@ export async function main() {
     initUniformConstructor();
     await initTextures();
     initDepthStencil();
-    initGlobalModelMatrices();
+    initMegaMatrixCPUBuffer();
     await createEntities();
     const scene = getScene();
     createDynamicModelMatrixBuffer(scene);

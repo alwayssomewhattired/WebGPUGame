@@ -5,7 +5,7 @@ import * as glMatrix from 'gl-matrix';
 import { Mesh } from "./mesh.js";
 import { getDevice } from './webgpu.js';
 import { Entity } from './entity.js';
-import { getModelMatrix } from './matrix.js';
+import { getMatrix, getModelMatrix } from './matrix.js';
 import { createRotationArcHeadVertices, createRotationArcVertices } from './transformGizmo.js';
 
 let m_axisArrowsBuffer = null;
@@ -121,15 +121,14 @@ export function getAABBVerticesLength() {
 }
 
 export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
-        const modelMatrix = getModelMatrix(entity.modelMatrixIdx)
-        // console.log(modelMatrix);
-        const aabbModelMatrix = getModelMatrix(entity.aabbModelIdx);
-        const axisArrowsModelMatrix = getModelMatrix(entity.axisArrowsModelIdx);
-        const axisArrowsAABBModelMatrix = getModelMatrix(entity.axisArrowsAABBModelIdx);
-        const rotationArcModelMatrix = getModelMatrix(entity.rotationArcModelIdx);
-        const rotationArcHeadModelMatrix = getModelMatrix(entity.rotationArcHeadModelIdx);
+        const modelMatrix = getMatrix(entity.modelMatrixIdx)
+        const aabbModelMatrix = getMatrix(entity.aabbModelIdx);
+        const axisArrowsModelMatrix = getMatrix(entity.axisArrowsModelIdx);
+        const axisArrowsAABBModelMatrix = getMatrix(entity.axisArrowsAABBModelIdx);
+        const rotationArcModelMatrix = getMatrix(entity.rotationArcModelIdx);
+        const rotationArcHeadModelMatrix = getMatrix(entity.rotationArcHeadModelIdx);
+        const modelViewMatrix = getMatrix(entity.modelViewIdx);
 
-        
         getDevice().queue.writeBuffer(buffer, 0, glMatrix.mat4.create());
         let offset = alignedSize;
         getDevice().queue.writeBuffer(buffer, offset, modelMatrix);
@@ -143,6 +142,8 @@ export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
         getDevice().queue.writeBuffer(buffer, offset, rotationArcModelMatrix);
         offset += alignedSize;
         getDevice().queue.writeBuffer(buffer, offset, rotationArcHeadModelMatrix);
+        offset += alignedSize;
+        getDevice().queue.writeBuffer(buffer, offset, modelViewMatrix);
 
 }
 
