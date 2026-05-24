@@ -12,7 +12,7 @@ import { initMouse } from './camera.js';
 import { initTransformGizmo } from './transformGizmo.js';
 import { initGlobalModelMatrices } from './matrix.js';
 import { initArcPipeline } from './pipelines/arcPipeline.js';
-import { initRotationArcVerticesGPUBuffer } from './buffer.js';
+import { initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer } from './buffer.js';
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
 
 
@@ -42,6 +42,7 @@ export async function main() {
     initTriangleListPipeline();
 
     initRotationArcVerticesGPUBuffer();
+    initRotationArcHeadVerticesGPUBuffer();
     initTransformGizmo();
 
     render();

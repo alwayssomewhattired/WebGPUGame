@@ -25,6 +25,7 @@ export class Entity {
         this.axisArrowsModelIdx = modelMatrixIdx + 2
         this.axisArrowsAABBModelIdx = modelMatrixIdx + 3;
         this.rotationArcModelIdx = modelMatrixIdx + 4;
+        this.rotationArcHeadModelIdx = modelMatrixIdx + 5;
 
         this.modelMatrixBufferOffset 
 
@@ -77,15 +78,24 @@ export class Entity {
         createAndStoreModelMatrix(axisArrowsAABBModelMatrix);
 
         const rotationArcModelMatrix = glMatrix.mat4.create();
-        const rotationArcScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
         glMatrix.mat4.identity(rotationArcModelMatrix);
         glMatrix.mat4.translate(rotationArcModelMatrix, rotationArcModelMatrix, this.translation);
-        glMatrix.mat4.translate(rotationArcModelMatrix, rotationArcModelMatrix, [-0.25,0,0.1]);
         glMatrix.mat4.rotateX(rotationArcModelMatrix, rotationArcModelMatrix, this.rotation[0]);
         glMatrix.mat4.rotateY(rotationArcModelMatrix, rotationArcModelMatrix, this.rotation[1]);
         glMatrix.mat4.rotateZ(rotationArcModelMatrix, rotationArcModelMatrix, this.rotation[2]);
-        glMatrix.mat4.scale(rotationArcModelMatrix, rotationArcModelMatrix, rotationArcScale);
         createAndStoreModelMatrix(rotationArcModelMatrix);
+
+        const rotationArcHeadModelMatrix = glMatrix.mat4.create();
+        const rotationArcHeadScale = glMatrix.vec3.fromValues(0.1, 0.1, 0.1);
+        glMatrix.mat4.identity(rotationArcHeadModelMatrix);
+        glMatrix.mat4.translate(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, this.translation);
+        glMatrix.mat4.translate(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, [1.0, 0, 0]);
+        glMatrix.mat4.rotateX(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, this.rotation[0]);
+        glMatrix.mat4.rotateY(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, this.rotation[1]);
+        glMatrix.mat4.rotateZ(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, this.rotation[2]);
+        glMatrix.mat4.scale(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, rotationArcHeadScale);
+
+        createAndStoreModelMatrix(rotationArcHeadModelMatrix);
 
     }
 

@@ -45,7 +45,7 @@ export function createDynamicModelMatrixBuffer(scene) {
     const alignedSize = getAlignedSize(64);
     const modelMatrix = glMatrix.mat4.create();
     const modelMatricesSize = scene[0].modelMatrixLength;
-    const modelMatrixByteLength = ((modelMatrix.byteLength * modelMatricesSize) * scene.length * 5) + alignedSize;
+    const modelMatrixByteLength = ((modelMatrix.byteLength * modelMatricesSize) * scene.length * 6) + alignedSize;
     m_dynamicModelMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     for (const entity of scene) {
@@ -263,7 +263,7 @@ export function createRotationArcUBO(entity) {
             },
         ]
     });
-
+7
     m_rotationArcUniformBindGroup = m_device.createBindGroup({
         layout: m_rotationArcUniformBindGroupLayout,
         entries: [

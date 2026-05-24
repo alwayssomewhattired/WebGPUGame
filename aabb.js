@@ -1,4 +1,6 @@
 
+import * as glMatrix from 'gl-matrix'
+
 import { getDevice } from "./webgpu.js";
 import { createGPUBuffer } from "./buffer.js";
 import { gizmoPositionsCPUBuffer } from "./transformGizmo.js";
@@ -49,4 +51,32 @@ export function intersectAABB(ray, box) {
         return tMin >= 0 ? tMin : tMax;
     }
     return null;
+}
+
+export function findAxis(mouseRay, entity) {
+    const gizmoMatrix_ws = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), entity.translation);
+    const invGizmoMatrix_ws = glMatrix.mat4.invert(glMatrix.mat4.create(), gizmoMatrix_ws);
+    const invModel3x3 = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), invGizmoMatrix_ws);
+    const direction_ls = glMatrix.vec3.transformMat3(glMatrix.vec3.create(), mouseRay.direction, invModel3x3);
+    glMatrix.vec3.normalize(direction_ls, direction_ls);
+
+    const ray_ls = {
+        origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), mouseRay.origin, invGizmoMatrix_ws),
+        direction: glMatrix.vec3.normalize(glMatrix.vec3.create(), direction_ls
+        )
+    };
+
+    let closestAxis = null;
+    let minT = Infinity;
+
+    for (const axis in axesBoxes) {
+        const box = axesBoxes[axis];
+        const t = intersectAABB(ray_ls, box);
+        if (t !== null && t < minT) {
+            minT = t;
+            closestAxis = axis;
+        }
+    }
+    
+    return closestAxis;
 }

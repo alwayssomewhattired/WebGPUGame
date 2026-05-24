@@ -38,6 +38,8 @@ export function updateModelMatrix(entity) {
     const modelMatrix3 = m_globalModelMatrices[entity.axisArrowsModelIdx];
     const modelMatrix4 = m_globalModelMatrices[entity.axisArrowsAABBModelIdx];
     const modelMatrix5 = m_globalModelMatrices[entity.rotationArcModelIdx];
+    const modelMatrix6 = m_globalModelMatrices[entity.rotationArcHeadModelIdx];
+
 
 
     if (!modelMatrix) throw new Error("model matrix is null!");
@@ -67,6 +69,9 @@ export function updateModelMatrix(entity) {
 
     glMatrix.mat4.identity(modelMatrix5);
     glMatrix.mat4.translate(modelMatrix5, modelMatrix3, entity.translation);
+
+    glMatrix.mat4.identity(modelMatrix6);
+    glMatrix.mat4.translate(modelMatrix6, modelMatrix3, entity.translation);
 
 }
 

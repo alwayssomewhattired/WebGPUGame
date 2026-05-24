@@ -5,8 +5,8 @@ import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindG
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
-import { createGPUBuffer, getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
-import { getGlobalRotationArcVerticesOffset, gizmoPositionsCPUBuffer } from "./transformGizmo.js";
+import { createGPUBuffer, getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcHeadVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
+import { getGlobalRotationArcHeadVerticesCount, getGlobalRotationArcVerticesCount, gizmoPositionsCPUBuffer } from "./transformGizmo.js";
 import { getAABBGizmoPositionsGPUBuffer } from "./aabb.js";
 import { getRayVerticesBuffer } from "./ray.js";
 import { keyboardInput } from "./keyboardListeners.js";
@@ -70,6 +70,11 @@ export function render() {
         
     }
 
+    const rotationArcVerticesCount = getGlobalRotationArcVerticesCount();
+    const rotationArcHeadVerticesCount = getGlobalRotationArcHeadVerticesCount();
+    // const rotationArcHeadVerticesCount = 1;
+
+
     for (const entity of scene) {
         if (entity.isSelected) {
             // | renders axisArrows vertices
@@ -83,11 +88,12 @@ export function render() {
             passEncoder.setPipeline(arcPipeline);
             passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [alignedSize * 5]);
             passEncoder.setVertexBuffer(0, getRotationArcVerticesGPUBuffer());
-            passEncoder.draw(6, 1);
+            passEncoder.draw(rotationArcVerticesCount, 1);
 
-            // passEncoder.setPipeline(triangleListPipeline);
-            // passEncoder.setVertexBuffer(0, getRotationArcVerticesGPUBuffer(), getGlobalRotationArcVerticesOffset());
-            // passEncoder.draw(7, 1);
+            passEncoder.setPipeline(triangleListPipeline);
+            passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [alignedSize * 6]);
+            passEncoder.setVertexBuffer(0, getRotationArcHeadVerticesGPUBuffer());
+            passEncoder.draw(rotationArcHeadVerticesCount, 1);
 
             if (keyboardInput.b) {
                 // | aabb boxes

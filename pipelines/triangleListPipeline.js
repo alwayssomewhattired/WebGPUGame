@@ -25,13 +25,13 @@ export function initTriangleListPipeline() {
 
     const colorAttribDesc = {
         shaderLocation: 1,
-        offset: 4 * 4, // tip, side, left, right
+        offset: 4 * 3, // x,y,z
         format: 'float32x3'
     };
 
     const positionBufferLayoutDesc = {
         attributes: [positionAttribDesc, colorAttribDesc],
-        arrayStride: 4 * 7,
+        arrayStride: 4 * 6,
         stepMode: 'vertex'
     };
 
