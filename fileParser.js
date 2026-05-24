@@ -8,9 +8,14 @@ import { getDevice } from './webgpu.js';
 import { getGlobalModelMatricesLength, createAndStoreModelMatrix } from './matrix.js';
 
 const filePaths = [
-    './models/psx-rat/rat.obj'
-    // './models/stop-sign-psx/source/stop-sign.obj'
+    './models/psx-rat/rat.obj',
+    './models/stop-sign-psx/source/stop-sign.obj'
 ];
+
+export const sceneNameToIndexMap = new Map([
+    ["rat",         0],
+    ['stop-sign',   1]
+]);
 
 export async function createEntities() {
     for (const path of filePaths) {
@@ -30,12 +35,12 @@ export async function createEntities() {
 
         const modelMatrixIdx = getGlobalModelMatricesLength();
         const entity = new Entity(mesh, color, path, modelMatrixIdx);
-        
+        scene.push(entity);
     }
 }
 
-// | Holds all entities
-// | Every Entity holds 
+// 1: rat
+// 2: stop-sign
 const scene = [];
 
 export function getScene() {
@@ -46,7 +51,23 @@ export function getScene() {
     }
 }
 
-export function setScene(entity) {
-    scene.push(entity);
+export function getEntity(objectName) {
+    const index = sceneNameToIndexMap.get(objectName);
+    return scene[index];
 }
 
+export function updateEntity(objectName, translation, rotation, scale) {
+    const entity = getEntity(objectName);
+    if (translation) entity.translation = translation;
+    if (rotation) entity.rotation = rotation;
+    if (scale) entity.scale = scale;
+    entity.updateModelMatrix();
+}
+
+// | our hardcoded entity updates
+export function updateEntities() {
+    
+    const scale = glMatrix.vec3.fromValues(0.01,0.01,0.01);
+    const rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
+    updateEntity('stop-sign', 0, rotation, scale);
+}

@@ -3,6 +3,7 @@ import * as glMatrix from 'gl-matrix'
 import { createGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
 
+// | I think the first element is an empty model matrix
 const m_globalModelMatrices = [];
 
 let m_viewMatrix = null;

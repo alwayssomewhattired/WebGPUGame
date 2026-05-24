@@ -45,7 +45,12 @@ export function createDynamicModelMatrixBuffer(scene) {
     const alignedSize = getAlignedSize(64);
     const modelMatrix = glMatrix.mat4.create();
     const modelMatricesSize = scene[0].modelMatrixLength;
-    const modelMatrixByteLength = ((modelMatrix.byteLength * modelMatricesSize) * scene.length * 6) + alignedSize;
+    const modelMatricesPerEntity = 6;
+    const modelMatrixByteLength = (
+        (modelMatrix.byteLength * 6) 
+        * scene.length * modelMatricesPerEntity) 
+        + alignedSize;
+
     m_dynamicModelMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     for (const entity of scene) {

@@ -3,7 +3,7 @@ import * as glMatrix from 'gl-matrix'
 
 import { createGPUBuffer, getAlignedSize, updateDynamicGPUBuffer } from './buffer.js';
 import { updateModelMatrix as bufferUpdateModelMatrix } from './matrix.js';
-import { getScene, setScene } from './fileParser.js';
+import { getScene } from './fileParser.js';
 import { createAndStoreModelMatrix, getModelMatrix } from './matrix.js';
 import { getDynamicModelMatrixUBO } from './uniform.js';
 
@@ -32,7 +32,6 @@ export class Entity {
         this.isSelected = false;
         this.pipeline = "main";
         this.id = id;
-        setScene(this);
         // this.updateModelMatrix();
         this.initModelMatrix();
     }

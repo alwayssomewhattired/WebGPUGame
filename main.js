@@ -5,7 +5,7 @@ import { getDevice } from './webgpu.js';
 import { initPipeline} from './pipelines/pipeline.js'
 import { initAxisArrowsPipeline } from './pipelines/axisArrowsPipeline.js';
 import { initDepthStencil } from './depth_stencil.js';
-import { createEntities, getScene } from './fileParser.js';
+import { createEntities, getScene, updateEntities } from './fileParser.js';
 import { frame } from './frame.js';
 import { render } from './renderer.js';
 import { initMouse } from './camera.js';
@@ -34,6 +34,9 @@ export async function main() {
         createAABBUBO(entity);
         createRotationArcUBO(entity);
     }
+
+    updateEntities();
+
     createRayUBO();
 
     initPipeline();
