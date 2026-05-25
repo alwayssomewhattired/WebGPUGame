@@ -1,4 +1,4 @@
-import { getPipeline, getTexCoordsBuffer } from "./pipelines/pipeline.js";
+import { getPipeline  } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
 import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup } from "./uniform.js";
@@ -21,7 +21,6 @@ export function render() {
     const pipeline = getPipeline();
     const arcPipeline = getArcPipeline();
     const triangleListPipeline = getTriangleListPipeline();
-    const texCoordsBuffer = getTexCoordsBuffer();
     const uniformBindGroup = getUniformBindGroup();
     const depthAttachment = getDepthAttachment();
     const alignedSize = getAlignedSize(64); // mat4x4
@@ -56,18 +55,16 @@ export function render() {
     passEncoder.setPipeline(pipeline);
     for (const entity of scene) {
         const entityMatricesCount = entity.modelMatrixLength;
-        const positionBuffer = entity.mesh.vPositionsBuffer;
+        const vDataBuffer = entity.mesh.vDataBuffer;
         const indexBuffer = entity.mesh.vIndicesBuffer;
         const indexBufferSize = entity.mesh.vIndexBufferSize;
         const normalBuffer = entity.mesh.vNormalsBuffer;
         
         passEncoder.setBindGroup(0, uniformBindGroup, [offset]);
-        passEncoder.setVertexBuffer(0, positionBuffer);
-        passEncoder.setVertexBuffer(1, texCoordsBuffer);
-        passEncoder.setVertexBuffer(2, normalBuffer);
-        passEncoder.setIndexBuffer(indexBuffer, 'uint16');
-        passEncoder.drawIndexed(indexBufferSize);
-        passEncoder.draw(4, 1);
+        passEncoder.setVertexBuffer(0, vDataBuffer);
+        // passEncoder.setIndexBuffer(indexBuffer, 'uint16');
+        // passEncoder.drawIndexed(indexBufferSize);
+        passEncoder.draw(entity.mesh.vCount, 1);
 
         offset *= (entityMatricesCount + 1);
 

@@ -19,65 +19,34 @@ export function initPipeline() {
         format: 'bgra8unorm'
     };
 
-    const positionAttribDesc = {
-        shaderLocation: 0, // location(0)
-        offset: 0,
-        format: 'float32x3'
+    const vertexBufferLayoutDesc = {
+        arrayStride: 4 * 8, // sizeof(float) * elements (x,y,z, u,v, normal.x,normal.y,normal.z)
+        stepMode: 'vertex',
+        attributes: [
+            {
+                shaderLocation: 0,
+                offset: 0,
+                format: 'float32x3'
+            },
+            {
+                shaderLocation: 1,
+                offset: 4 * 3,
+                format: 'float32x2'
+            },
+            {
+                shaderLocation: 2,
+                offset: 4 * 5,
+                format: 'float32x3'
+            }
+        ]
     };
-
-    const positionBufferLayoutDesc = {
-        attributes: [positionAttribDesc],
-        arrayStride: 4 * 3, // sizeof(float) * elements
-        stepMode: 'vertex'
-    };
-
-    const texCoordsAttribDesc = {
-        shaderLocation: 1,
-        offset: 0,
-        format: 'float32x2'
-    };
-
-    const texCoordsBufferLayoutDesc = {
-        attributes: [texCoordsAttribDesc],
-        arrayStride: 4 * 2,
-        stepMode: 'vertex'
-    };
-
-    const texCoords = new Float32Array([
-        1.0,
-        0.0,
-
-        1.0,
-        1.0,
-
-        0.0,
-        0.0,
-        
-        0.0,
-        1.0,
-    ]);
-
-    m_texCoordsBuffer = createGPUBuffer(device, texCoords, texCoords.byteLength, GPUBufferUsage.VERTEX)
-
-    const normalAttribDesc = {
-        shaderLocation: 2,
-        offset: 0,
-        format: 'float32x3'
-    };
-
-    const normalBufferLayoutDesc = {
-        attributes: [normalAttribDesc],
-        arrayStride: 4 * 3,
-        stepMode: 'vertex'
-    };
-
 
     const pipelineDesc = {
         layout,
         vertex: {
             module: shaderModule,
             entryPoint: 'vs_main',
-            buffers: [positionBufferLayoutDesc, texCoordsBufferLayoutDesc, normalBufferLayoutDesc]
+            buffers: [vertexBufferLayoutDesc]
         },
         fragment: {
             module: shaderModule,
@@ -105,12 +74,4 @@ export function getPipeline() {
     }
 
     return m_pipeline;
-}
-
-export function getTexCoordsBuffer() {
-    if (!m_texCoordsBuffer) {
-        throw new Error("Tex Coords buffer is unavailable!");
-    }
-
-    return m_texCoordsBuffer;
 }

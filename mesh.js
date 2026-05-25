@@ -6,17 +6,14 @@ import { createGPUBuffer } from "./buffer.js";
 import { getDevice } from './webgpu.js';
 
 export class Mesh {
-    constructor(vPositions, vPositionsBuffer, vIndices, vIndicesBuffer, vIndexBufferSize,
-        vNormals, vNormalsBuffer, aabbMin, aabbMax) {
+    constructor(vCount, vData, vDataBuffer, vIndices, vIndicesBuffer, vIndexBufferSize, aabbMin, aabbMax) {
         // | 3 (x,y,z)
-        this.vPositions = vPositions;
-
-        this.vPositionsBuffer = vPositionsBuffer;
+        this.vCount = vCount;
+        this.vData = vData;
+        this.vDataBuffer = vDataBuffer;
         this.vIndices = vIndices;
         this.vIndicesBuffer = vIndicesBuffer;
         this.vIndexBufferSize = vIndexBufferSize;
-        this.vNormals = vNormals;
-        this.vNormalsBuffer = vNormalsBuffer;
         this.aabbMin = aabbMin;
         this.aabbMax = aabbMax;
         this.aabbPositionsBuffer = createAABBPositions(this);
@@ -29,38 +26,48 @@ let m_aabbPositionsOffset = 0;
 // * obj * raw file
 // * entity * instance of entity class
 export function createMesh(obj, device) {
-    let positions = [];
+    const object = obj.result.models[0];
+    let vertexData = [];
     let aabbMin = glMatrix.vec3.create();
     let aabbMax = glMatrix.vec3.create();
-    for (let v of obj.result.models[0].vertices) {
-        // | AABB
-        aabbMin[0] = Math.min(v.x, aabbMin[0]);
-        aabbMin[1] = Math.min(v.y, aabbMin[1]);
-        aabbMin[2] = Math.min(v.z, aabbMin[2]);
 
-        aabbMax[0] = Math.max(v.x, aabbMax[0]);
-        aabbMax[1] = Math.max(v.y, aabbMax[1]);
-        aabbMax[2] = Math.max(v.z, aabbMax[2]);
-
-        // | positions
-        positions.push(v.x);
-        positions.push(v.y);
-        positions.push(v.z);
-
-    }
-
-    positions = new Float32Array(positions);
-    const positionBuffer = createGPUBuffer(device, positions, positions.byteLength, GPUBufferUsage.VERTEX);
-
-
-    let faces = obj.result.models[0].faces;
+    let faces = object.faces;
     let faceCount = faces.length;
     let vertexCount = 0;
-    for (let f of faces) {
-        for (let v of f.vertices) {
+    for (let face of faces) {
+        for (let vertex of face.vertices) {
+
+            const pos = object.vertices[vertex.vertexIndex - 1];
+            const uv = object.textureCoords[vertex.textureCoordsIndex - 1];
+            const normal = object.vertexNormals[vertex.vertexNormalIndex - 1];
+
+            // | AABB
+            aabbMin[0] = Math.min(pos.x, aabbMin[0]);
+            aabbMin[1] = Math.min(pos.y, aabbMin[1]);
+            aabbMin[2] = Math.min(pos.z, aabbMin[2]);
+
+            aabbMax[0] = Math.max(pos.x, aabbMax[0]);
+            aabbMax[1] = Math.max(pos.y, aabbMax[1]);
+            aabbMax[2] = Math.max(pos.z, aabbMax[2]);
+
+            vertexData.push(
+                pos.x,
+                pos.y,
+                pos.z,
+                uv.u,
+                uv.v, // - possibly flip this
+                normal.x,
+                normal.y,
+                normal.z
+            );
+
             vertexCount++;
+
         }
     }
+
+    vertexData = new Float32Array(vertexData);
+    const vertexBuffer = createGPUBuffer(device, vertexData, vertexData.byteLength, GPUBufferUsage.VERTEX);
 
     let indices = [];
     let normals = Array(vertexCount * 3).fill(0);
@@ -81,9 +88,9 @@ export function createMesh(obj, device) {
             const index = v.vertexIndex - 1;
             indices.push(index);
 
-            xOffset = positions[index * 3];
-            yOffset = positions[index * 3 + 1];
-            zOffset = positions[index * 3 + 2];
+            xOffset = vertexData[index * 3];
+            yOffset = vertexData[index * 3 + 1];
+            zOffset = vertexData[index * 3 + 2];
 
             const vertex = glMatrix.vec3.fromValues(
                 xOffset,
@@ -116,26 +123,23 @@ export function createMesh(obj, device) {
             
         }
     }
-    
-    normals = new Float32Array(normals);
-    const normalBuffer = createGPUBuffer(device, normals, normals.byteLength, GPUBufferUsage.VERTEX);
 
     indices = new Uint16Array(indices);
     const indexBufferSize = indices.length;
 
     const indexBuffer = createGPUBuffer(device, indices, indices.byteLength, GPUBufferUsage.INDEX);
 
-        for (let f of obj.result.models[0].faces) {
+        for (let f of object.faces) {
         let points = [];
         let facet_indices = [];
         for (let v of f.vertices) {
             const index = v.vertexIndex - 1;
 
-            const vertex = glMatrix.vec3.fromValues(positions);
+            const vertex = glMatrix.vec3.fromValues(vertexData);
         }
     }
     
-    const mesh = new Mesh(positions, positionBuffer, indices, indexBuffer, indexBufferSize, normals, normalBuffer,
+    const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indices, indexBuffer, indexBufferSize, 
         aabbMin, aabbMax, m_aabbPositionsOffset
     );
 
