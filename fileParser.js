@@ -5,7 +5,7 @@ import * as glMatrix from 'gl-matrix'
 import { createMesh } from './mesh.js';
 import { Entity } from './entity.js';
 import { getDevice } from './webgpu.js';
-import { getGlobalModelMatricesLength, createAndStoreModelMatrix } from './matrix.js';
+import { getMegaMatrixCPUBufferLength } from './matrix.js';
 
 const filePaths = [
     './models/psx-rat/rat.obj',
@@ -34,9 +34,8 @@ export async function createEntities() {
         const translation = glMatrix.vec3.create();
         const color = glMatrix.vec3.create();
 
-        const modelMatrixIdx = getGlobalModelMatricesLength();
+        const modelMatrixIdx = getMegaMatrixCPUBufferLength();
         const entity = new Entity(mesh, color, path, modelMatrixIdx, idx);
-        console.log(idx);
         idx++;
         scene.push(entity);
     }
@@ -61,16 +60,28 @@ export function getEntity(objectName) {
 
 export function updateEntity(objectName, translation, rotation, scale) {
     const entity = getEntity(objectName);
-    if (translation) entity.translation = translation;
-    if (rotation) entity.rotation = rotation;
-    if (scale) entity.scale = scale;
-    entity.updateModelMatrix();
+
+    glMatrix.vec3.add(entity.translation, entity.translation, translation);
+    glMatrix.vec3.add(entity.rotation, entity.rotation, rotation);
+    entity.scale = scale;
+    entity.updateMatrix();
 }
 
 // | our hardcoded entity updates
 export function updateEntities() {
+
+    let translation = null;
+    let rotation = null;
+    let scale = null;
     
-    const scale = glMatrix.vec3.fromValues(0.01,0.01,0.01);
-    const rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
-    updateEntity('stop-sign', 0, rotation, scale);
+    translation = glMatrix.vec3.fromValues(0,0,0);
+    scale = glMatrix.vec3.fromValues(0.1,0.1,0.1);
+    rotation = glMatrix.vec3.fromValues(0, 0, 0);
+    updateEntity('rat', translation, rotation, scale);
+
+    translation = glMatrix.vec3.fromValues(2,2,5);
+    scale = glMatrix.vec3.fromValues(0.01,0.01,0.01);
+    rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
+    updateEntity('stop-sign', translation, rotation, scale);
+
 }

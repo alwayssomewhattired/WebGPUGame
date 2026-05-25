@@ -5,7 +5,7 @@ import * as glMatrix from 'gl-matrix';
 import { Mesh } from "./mesh.js";
 import { getDevice } from './webgpu.js';
 import { Entity } from './entity.js';
-import { getMatrix, getModelMatrix } from './matrix.js';
+import { getMatrix } from './matrix.js';
 import { createRotationArcHeadVertices, createRotationArcVertices } from './transformGizmo.js';
 
 let m_axisArrowsBuffer = null;
@@ -129,8 +129,9 @@ export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
         const rotationArcHeadModelMatrix = getMatrix(entity.rotationArcHeadModelIdx);
         const modelViewMatrix = getMatrix(entity.modelViewIdx);
 
-        getDevice().queue.writeBuffer(buffer, 0, glMatrix.mat4.create());
         let offset = alignedSize;
+        if (entity.idx > 0) offset *= ((entity.modelMatrixLength * entity.idx) + 1);
+        
         getDevice().queue.writeBuffer(buffer, offset, modelMatrix);
         offset += alignedSize;
         getDevice().queue.writeBuffer(buffer, offset, aabbModelMatrix);

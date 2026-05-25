@@ -2,11 +2,11 @@
 
 import * as glMatrix from 'gl-matrix'
 import { getDevice } from "./webgpu.js";
-import { getDynamicModelMatrixUBO, getViewMatrixUBO } from './uniform.js';
+import { getMegaMatrixUBO, getViewMatrixUBO } from './uniform.js';
 import { updatePosition, updateViewTransform } from './camera.js';
 import { keyboardInput } from "./keyboardListeners.js";
 import { render } from './renderer.js';
-import { getModelMatrix, getViewMatrix } from './matrix.js';
+import { getViewMatrix } from './matrix.js';
 import { getAlignedSize } from './buffer.js';
 
 
@@ -30,7 +30,7 @@ export function frame(time) {
         glMatrix.mat4.rotateY(modelMatrix, modelMatrix, m_angle);
         const scalingVector = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
         glMatrix.mat4.scale(modelMatrix, modelMatrix, scalingVector);
-        device.queue.writeBuffer(getDynamicModelMatrixUBO(), alignedSize, modelMatrix);
+        device.queue.writeBuffer(getMegaMatrixUBO(), alignedSize, modelMatrix);
     }
 
     updateViewTransform(viewMatrix);

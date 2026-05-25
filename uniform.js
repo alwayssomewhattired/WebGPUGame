@@ -6,9 +6,8 @@ import { createGPUBuffer, getAxisArrowsVerticesGPUBuffer, getAABBColorGPUBuffer,
     updateDynamicGPUBuffer} from './buffer.js'
 import { getDevice } from './webgpu.js'
 import { getScene } from './fileParser.js';
-import { getModelMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
+import { getMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
 
-// let m_modelMatrixUBO = null;
 let m_rayModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
 let m_projectionMatrixUBO = null;
@@ -56,25 +55,8 @@ export function createMegaMatrixUBO(scene) {
 
     for (const entity of scene) {
         const alignedSize = getAlignedSize(64);
-        updateDynamicGPUBuffer(alignedSize, entity, m_dynamicModelMatrixUBO);
+        updateDynamicGPUBuffer(alignedSize, entity, m_megaMatrixUBO);
     }
-}
-
-// export function createDynamicModelViewMatrixBuffer(scene) {
-//     const alignedSize = getAlignedSize(64);
-//     const modelMatrix = glMatrix.mat4.create();
-//     const modelMatricesSize = 1;
-//     const modelMatrixByteLength = (
-//         (modelMatrix.byteLength * modelMatricesSize) 
-//         * scene.length * modelMatricesSize) 
-//         + alignedSize;
-
-//     m_dynamicModelViewMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-
-//     for (const entity of scene) {
-//         const alignedSize = getAlignedSize(64);
-//         updateDynamicGPUBuffer(alignedSize, entity, m_dynamicModelViewMatrixUBO);
-//     }
 }
 
 export function createUBO(entity) {
@@ -82,10 +64,9 @@ export function createUBO(entity) {
     const texture = getTexture();
     const sampler = getSampler();
 
-    const modelMatrix = getModelMatrix(entity.modelMatrixIdx);
+    const modelMatrix = getMatrix(entity.modelMatrixIdx);
     const viewMatrix = getViewMatrix();
-    const modelViewMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.multiply(modelViewMatrix, modelMatrix, viewMatrix);
+    const modelViewMatrix = getMatrix(entity.modelViewIdx);
     const projectionMatrix = getProjectionMatrix();
 
     const normalMatrix = glMatrix.mat4.create();
@@ -158,7 +139,7 @@ export function createUBO(entity) {
             {
                 binding: 0,
                 resource: {
-                    buffer: m_dynamicModelMatrixUBO,
+                    buffer: m_megaMatrixUBO,
                     offset: 0,
                     size: alignedSize
                 }
@@ -207,7 +188,7 @@ export function createUBO(entity) {
 }
 
 export function createAxisArrowsUBO(entity) {
-    const model = getModelMatrix(entity.axisArrowsModelIdx);
+    const model = getMatrix(entity.axisArrowsModelIdx);
     const alignedSize = getAlignedSize(64);
     const axisArrowsUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = m_device.createBindGroupLayout({
@@ -238,7 +219,7 @@ export function createAxisArrowsUBO(entity) {
              {
                 binding: 0,
                 resource: {
-                    buffer: m_dynamicModelMatrixUBO,
+                    buffer: m_megaMatrixUBO,
                     offset: 0,
                     size: alignedSize
                 }
@@ -262,7 +243,7 @@ export function createAxisArrowsUBO(entity) {
 // | - rotation arc
 // | - rotation arc head
 export function createRotationArcUBO(entity) {
-    const model = getModelMatrix(entity.rotationArcModelIdx);
+    const model = getMatrix(entity.rotationArcModelIdx);
     const alignedSize = getAlignedSize(64);
     const rotationArcUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_rotationArcUniformBindGroupLayout = m_device.createBindGroupLayout({
@@ -293,7 +274,7 @@ export function createRotationArcUBO(entity) {
              {
                 binding: 0,
                 resource: {
-                    buffer: m_dynamicModelMatrixUBO,
+                    buffer: m_megaMatrixUBO,
                     offset: 0,
                     size: alignedSize
                 }
@@ -318,12 +299,7 @@ export function createAABBUBO(entity) {
     const objectDataSize = 64 // 16 floats for model matrix
     const alignedSize = getAlignedSize(objectDataSize);
     const bufferAllocationSize = alignedSize * entity.modelMatrixLength;
-    // const model = getModelMatrix(entity.aabbModelIdx);
-    // const model = getModelMatrix();
-    // glMatrix.mat4.translate(model, model, glMatrix.vec3.fromValues(0.0, 0.0, -10.0));
-    // glMatrix.mat4.scale(model, model, glMatrix.vec3.fromValues(2.0,2.0,2.0));
-    // - would be nice to find out how many objects we will be storing before we create gpu buffer
-    // m_dynamicModelMatrixUBO = createGPUBuffer(m_device, model, bufferAllocationSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
     m_aabbUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
             {
@@ -363,7 +339,7 @@ export function createAABBUBO(entity) {
             {
                 binding: 1,
                 resource: {
-                    buffer: m_dynamicModelMatrixUBO,
+                    buffer: m_megaMatrixUBO,
                     offset: 0,
                     size: alignedSize
                 }
@@ -388,7 +364,6 @@ export function createRayUBO() {
     const model = glMatrix.mat4.create();
     const alignedSize = getAlignedSize(64);
  
-    // const m_rayModelMatrixUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_rayUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
             {
@@ -428,7 +403,7 @@ export function createRayUBO() {
             {
                 binding: 1,
                 resource: {
-                    buffer: m_dynamicModelMatrixUBO,
+                    buffer: m_megaMatrixUBO,
                     offset: 0,
                     size: alignedSize
                 }
@@ -577,14 +552,6 @@ export function getSampler() {
     return m_sampler;
 }
 
-// export function getModelMatrixUBO() {
-//     if (!m_modelMatrixUBO) {
-//         throw new Error("Model Matrix UBO not initialized!");
-//     }
-
-//     return m_modelMatrixUBO;
-// }
-
 export function getViewMatrixUBO() {
     if (!m_viewMatrixUBO) {
         throw new Error("View Matrix UBO not initialized!");
@@ -592,14 +559,6 @@ export function getViewMatrixUBO() {
 
     return m_viewMatrixUBO;
 }
-
-// export function getDynamicModelMatrixUBO() {
-//     if (!m_dynamicModelMatrixUBO) {
-//         throw new Error("Dynamic Model Matrix UBO not initialized!");
-//     }
-
-//     return m_dynamicModelMatrixUBO;
-// }
 
 export function getMegaMatrixUBO() {
     if (!m_megaMatrixUBO) {

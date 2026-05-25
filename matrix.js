@@ -11,16 +11,11 @@ import { getDevice } from './webgpu.js';
 // 4: axisArrowsAABBModelMatrix
 // 5: rotationArcModelIdx
 // 6: rotationArcHeadModelIdx
-// - TO-DO: make muthafuckin mega matrix buffer!!!!!!!!
+// 7: modelViewIdx
 const m_megaMatrixCPUBuffer = [];
-// const m_megaMatrixCPUBuffer = []
-
-// const m_globalModelViewMatrices = [];
-
 
 let m_viewMatrix = null;
 let m_inverseModelMatrix = null;
-// let m_modelViewMatrix = null;
 let m_projectionMatrix = null;
 let m_normalMatrix = null;
 
@@ -36,13 +31,6 @@ export function getMatrix(index) {
 
     return matrix;
 }
-
-// export function getModelViewMatrix(index) {
-//     const modelViewMatrix = m_megaMatrixCPUBuffer[index];
-//     if (!modelViewMatrix) throw new Error("modelView matrix is null at index: " + index);
-
-//     return modelViewMatrix;
-// }
 
 export function getMegaMatrixCPUBufferLength() { 
     return m_megaMatrixCPUBuffer.length;
@@ -101,18 +89,6 @@ export function updateMatrix(entity) {
     glMatrix.mat4.scale(modelMatrix7, modelMatrix7, entity.scale);
 
 }
-
-// export function getMegaMatrixDynamicGPUBuffer() {
-//     if (!m_megaMatrixDynamicGPUBuffer) {
-//         throw new Error("Model MatrixDynamic GPU Buffer is null!!");
-//     }
-    
-//     return m_modelMatrixDynamicGPUBuffer;
-// }
-
-// export function createModelMatrixDynamicBuffer(buffer, alignedSize) {
-//     m_modelMatrixDynamicGPUBuffer = createGPUBuffer(getDevice(), m_, alignedSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST); 
-// }
 
 export function getViewMatrix() {
     if (!m_viewMatrix) {

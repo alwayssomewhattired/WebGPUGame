@@ -1,7 +1,7 @@
 
 import * as glMatrix from "gl-matrix"
 
-import { getViewProjectionMatrix, getModelMatrix } from "./matrix.js";
+import { getViewProjectionMatrix, getMatrix } from "./matrix.js";
 import { getDevice } from "./webgpu.js";
 import { createGPUBuffer } from "./buffer.js";
 import { intersectAABB } from "./aabb.js";
@@ -77,7 +77,7 @@ export function getSelectedObject(worldSpaceRay, scene) {
 
     for (const entity of scene) {
         if (entity.isSelected) entity.isSelected = false;
-        glMatrix.mat4.invert(invModelMatrix, getModelMatrix(entity.modelMatrixIdx));
+        glMatrix.mat4.invert(invModelMatrix, getMatrix(entity.modelMatrixIdx));
 
         // | translation bypass (w = 0)
         const dir4 = glMatrix.vec4.fromValues(

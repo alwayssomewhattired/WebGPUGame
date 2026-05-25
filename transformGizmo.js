@@ -1,6 +1,6 @@
 
 import * as glMatrix from 'gl-matrix'
-import { getModelMatrix, getViewProjectionMatrix } from './matrix.js';
+import { getMatrix, getViewProjectionMatrix } from './matrix.js';
 import { getScene } from "./fileParser.js"
 import { createGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
@@ -112,7 +112,7 @@ function intersectRayPlane(ray, planeNormal, planePoint) {
 
 function calculateWorldDelta(event, axis, ray) {
     const planeNormal = getBestPlaneNormal(axis, ray.direction);
-    const modelMatrix = getModelMatrix(m_currentEntity.axisArrowsModelIdx);
+    const modelMatrix = getMatrix(m_currentEntity.axisArrowsModelIdx);
     const planePoint = glMatrix.vec3.create();
     glMatrix.mat4.getTranslation(planePoint, modelMatrix);
 
@@ -294,7 +294,7 @@ let m_pastAngle = 0;
 let m_isRingSelected = false;
 
 export function checkRotationRingHit() {
-    const modelMatrix = getModelMatrix(m_currentEntity.axisArrowsModelIdx);
+    const modelMatrix = getMatrix(m_currentEntity.axisArrowsModelIdx);
 
     const planePoint = glMatrix.vec3.fromValues(
         modelMatrix[12],

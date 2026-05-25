@@ -4,12 +4,9 @@ import * as glMatrix from 'gl-matrix'
 import { createGPUBuffer, getAlignedSize, updateDynamicGPUBuffer } from './buffer.js';
 import { getViewMatrix } from './matrix.js';
 import { getScene } from './fileParser.js';
-import { createAndStoreMatrix, getMatrix } from './matrix.js';
+import { updateMatrix as matrix_updateMatrix ,createAndStoreMatrix, getMatrix } from './matrix.js';
 import { getMegaMatrixUBO } from './uniform.js';
 
-
-// | Entity holds four indices
-// | Entity holds four model matrices
 export class Entity {
     constructor(mesh, color, id, modelMatrixIdx, idx) {
         this.idx = idx;
@@ -27,14 +24,14 @@ export class Entity {
         this.axisArrowsAABBModelIdx = modelMatrixIdx + 3;
         this.rotationArcModelIdx = modelMatrixIdx + 4;
         this.rotationArcHeadModelIdx = modelMatrixIdx + 5;
-        this.rotationArcHeadModelIdx = modelMatrixIdx + 6;
+        this.modelViewIdx = modelMatrixIdx + 6;
+        
 
         this.modelMatrixBufferOffset 
 
         this.isSelected = false;
         this.pipeline = "main";
         this.id = id;
-        // this.updateModelMatrix();
         this.initModelMatrix();
     }
 
@@ -99,14 +96,14 @@ export class Entity {
         createAndStoreMatrix(rotationArcHeadModelMatrix);
 
         const viewMatrix= getViewMatrix();
-        const modelViewMatrix = glMatrix.create();
+        const modelViewMatrix = glMatrix.mat4.create();
         glMatrix.mat4.multiply(modelViewMatrix, modelMatrix, viewMatrix);
         createAndStoreMatrix(modelViewMatrix);
     }
 
     updateMatrix() {
 
-        bufferUpdateMatrix(this);
+        matrix_updateMatrix(this);
         const alignedSize = getAlignedSize(64);
         updateDynamicGPUBuffer(alignedSize, this, getMegaMatrixUBO());
     }

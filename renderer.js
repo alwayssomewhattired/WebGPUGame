@@ -1,7 +1,7 @@
 import { getPipeline, getTexCoordsBuffer } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getDynamicModelMatrixUBO, getRotationArcUniformBindGroup } from "./uniform.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
@@ -10,7 +10,6 @@ import { getGlobalRotationArcHeadVerticesCount, getGlobalRotationArcVerticesCoun
 import { getAABBGizmoPositionsGPUBuffer } from "./aabb.js";
 import { getRayVerticesBuffer } from "./ray.js";
 import { keyboardInput } from "./keyboardListeners.js";
-import { getModelMatrix } from "./matrix.js";
 import { getArcPipeline } from "./pipelines/arcPipeline.js";
 import { getTriangleListPipeline } from "./pipelines/triangleListPipeline.js";
 
@@ -53,6 +52,7 @@ export function render() {
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
 
     // | main render
+    let offset = alignedSize;
     passEncoder.setPipeline(pipeline);
     for (const entity of scene) {
         const entityMatricesCount = entity.modelMatrixLength;
@@ -60,40 +60,42 @@ export function render() {
         const indexBuffer = entity.mesh.vIndicesBuffer;
         const indexBufferSize = entity.mesh.vIndexBufferSize;
         const normalBuffer = entity.mesh.vNormalsBuffer;
-        const refinedIdx = alignedSize * ((entityMatricesCount * entity.idx) + 1) ;
-        // console.log(refinedIdx);
-        passEncoder.setBindGroup(0, uniformBindGroup, [refinedIdx]);
+        
+        passEncoder.setBindGroup(0, uniformBindGroup, [offset]);
         passEncoder.setVertexBuffer(0, positionBuffer);
         passEncoder.setVertexBuffer(1, texCoordsBuffer);
         passEncoder.setVertexBuffer(2, normalBuffer);
         passEncoder.setIndexBuffer(indexBuffer, 'uint16');
         passEncoder.drawIndexed(indexBufferSize);
         passEncoder.draw(4, 1);
-        
+
+        offset *= (entityMatricesCount + 1);
+
     }
 
     const rotationArcVerticesCount = getGlobalRotationArcVerticesCount();
     const rotationArcHeadVerticesCount = getGlobalRotationArcHeadVerticesCount();
     // const rotationArcHeadVerticesCount = 1;
 
-
+    offset = alignedSize;
     for (const entity of scene) {
+        const entityMatricesCount = entity.modelMatrixLength;
         if (entity.isSelected) {
             // | renders axisArrows vertices
             passEncoder.setPipeline(axisArrowsPipeline);
-            passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup(), [alignedSize * 3]);
+            passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup(), [offset * 3]);
             passEncoder.setVertexBuffer(0, getAxisArrowsVerticesGPUBuffer());
             // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
             passEncoder.draw(6, 3);
-            updateDynamicGPUBuffer(alignedSize, entity, getDynamicModelMatrixUBO());  
+            updateDynamicGPUBuffer(offset, entity, getMegaMatrixUBO());  
 
             passEncoder.setPipeline(arcPipeline);
-            passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [alignedSize * 5]);
+            passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [offset * 5]);
             passEncoder.setVertexBuffer(0, getRotationArcVerticesGPUBuffer());
             passEncoder.draw(rotationArcVerticesCount, 1);
 
             passEncoder.setPipeline(triangleListPipeline);
-            passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [alignedSize * 6]);
+            passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [offset * 6]);
             passEncoder.setVertexBuffer(0, getRotationArcHeadVerticesGPUBuffer());
             passEncoder.draw(rotationArcHeadVerticesCount, 1);
 
@@ -101,14 +103,14 @@ export function render() {
                 // | aabb boxes
 
                 passEncoder.setPipeline(getAABBPipeline());
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [alignedSize * 4]);
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [offset * 4]);
                 passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
-                const aabbMatrixUBO = getDynamicModelMatrixUBO();
+                const aabbMatrixUBO = getMegaMatrixUBO();
                 
                 passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
                 
                 passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);    
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [alignedSize * 2]);
+                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [offset * 2]);
 
                 const aabbModelMatrixOffset = aabbMatrixUBO.length;         
 
@@ -121,6 +123,8 @@ export function render() {
                 }
             }
         }
+
+        offset *= entityMatricesCount;
     }
 
     passEncoder.end();

@@ -36,13 +36,6 @@ fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>, diffuseColor:vec3<f32>) -> vec3
     return max(dot(lightDir, normal), 0.0) * diffuseColor;
 }
 
-// | Instanced data
-// @location(5) var<location(5)> instanceMatrix: mat4x4<f32>;
-// @location(6) var<location(6)> instanceColor: vec4<f32>;
-// @location(7) aabb_center: vec3<f32>;
-// @location(8) aabb_extents: vec3<f32>;
-// @location(9) arrow_color: vec4<f32>;
-
 
 // *** VERTEX ***
 @vertex
@@ -51,10 +44,6 @@ fn vs_main(
     @location(1) inTexCoords: vec2<f32>,
     @location(2) inNormal: vec3<f32>,
 ) -> VertexOutput {
-
-    // | instanced data work-in-progress
-    // out.clip_position = view * instanceMatrix * vec4<f32>(inPos, 1.0);
-    // out.color = instanceColor;
 
     var surfaceNormal:vec3<f32> = normalize((normalTransform * vec4<f32>(inNormal,0.0)).xyz);
     var viewDir:vec3<f32> = normalize((normalTransform * vec4<f32>(-viewDirection, 0.0)).xyz);
@@ -80,14 +69,15 @@ const specularConstant:f32 = 1.0;
 @fragment
 fn fs_main(in: VertexOutput, @builtin(front_facing) face: bool) ->  @location(0) vec4<f32> {
 
-    var lightDir:vec3<f32> = in.lightDir;
-    var surfaceNormal:vec3<f32> = normalize(in.surfaceNormal);
-    var viewDir:vec3<f32> = in.viewDir;
+    // *** LIGHT COLOR ***
+    // var lightDir:vec3<f32> = in.lightDir;
+    // var surfaceNormal:vec3<f32> = normalize(in.surfaceNormal);
+    // var viewDir:vec3<f32> = in.viewDir;
 
-    var radiance:vec3<f32> = ambientColor.rgb * ambientConstant + 
-    diffuse(lightDir, surfaceNormal, diffuseColor.rgb) * diffuseConstant +
-    specular(lightDir, viewDir, surfaceNormal, specularColor.rgb, shininess) * specularConstant;
-    return vec4<f32>(radiance, 1.0);
+    // var radiance:vec3<f32> = ambientColor.rgb * ambientConstant + 
+    // diffuse(lightDir, surfaceNormal, diffuseColor.rgb) * diffuseConstant +
+    // specular(lightDir, viewDir, surfaceNormal, specularColor.rgb, shininess) * specularConstant;
+    // return vec4<f32>(radiance, 1.0);
 
     // *** FLAT COLOR ***
     // return vec4<f32>(0.0, 0.0, 1.0, 1.0);
@@ -101,5 +91,5 @@ fn fs_main(in: VertexOutput, @builtin(front_facing) face: bool) ->  @location(0)
     // }
 
     // *** TEXTURE COLOR ***
-    // return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
         }
