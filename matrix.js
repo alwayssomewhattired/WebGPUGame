@@ -73,7 +73,6 @@ export function updateMatrix(entity) {
     glMatrix.mat4.rotateX(modelMatrix4, modelMatrix4, entity.rotation[0]);
     glMatrix.mat4.rotateY(modelMatrix4, modelMatrix4, entity.rotation[1]);
     glMatrix.mat4.rotateZ(modelMatrix4, modelMatrix4, entity.rotation[2]);
-    glMatrix.mat4.scale(modelMatrix4, modelMatrix4, entity.scale);
 
     glMatrix.mat4.identity(modelMatrix5);
     glMatrix.mat4.translate(modelMatrix5, modelMatrix5, entity.translation);

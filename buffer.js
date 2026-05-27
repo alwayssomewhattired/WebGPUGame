@@ -120,7 +120,7 @@ export function getAABBVerticesLength() {
     return m_aabbVerticesLength;
 }
 
-export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
+export function updateDynamicGPUBuffer(unalignedSize, entity, buffer) {
         const modelMatrix = getMatrix(entity.modelMatrixIdx)
         const aabbModelMatrix = getMatrix(entity.aabbModelIdx);
         const axisArrowsModelMatrix = getMatrix(entity.axisArrowsModelIdx);
@@ -129,21 +129,23 @@ export function updateDynamicGPUBuffer(alignedSize, entity, buffer) {
         const rotationArcHeadModelMatrix = getMatrix(entity.rotationArcHeadModelIdx);
         const modelViewMatrix = getMatrix(entity.modelViewIdx);
 
-        let offset = alignedSize;
-        if (entity.idx > 0) offset *= ((entity.modelMatrixLength * entity.idx) + 1);
+        const alignedSizeBase = getAlignedSize(64);
+
+        let offset = unalignedSize;
+        if (entity.idx > 0) offset += alignedSizeBase;
         
         getDevice().queue.writeBuffer(buffer, offset, modelMatrix);
-        offset += alignedSize;
+        offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, aabbModelMatrix);
-        offset += alignedSize;
+        offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, axisArrowsModelMatrix);
-        offset += alignedSize;
+        offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix);
-        offset += alignedSize;
+        offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, rotationArcModelMatrix);
-        offset += alignedSize;
+        offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, rotationArcHeadModelMatrix);
-        offset += alignedSize;
+        offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, modelViewMatrix);
 
 }

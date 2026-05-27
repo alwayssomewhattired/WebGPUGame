@@ -63,7 +63,7 @@ export function initTransformGizmo() {
             if (m_activeAxis === 'y' && m_isRingSelected) m_currentEntity.rotation[1] += moveDist;
             if (m_activeAxis === 'z' && m_isRingSelected) m_currentEntity.rotation[2] += moveDist;
 
-            m_currentEntity.updateModelMatrix();
+            m_currentEntity.updateMatrix();
         }
     })
 
