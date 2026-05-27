@@ -81,21 +81,31 @@ export function render() {
         if (entity.isSelected) {
             // | renders axisArrows vertices
             passEncoder.setPipeline(axisArrowsPipeline);
-            passEncoder.setBindGroup(0, getAxisArrowsUniformBindGroup(), [offset * (3 + entityMatricesCountOffset)]);
-            console.log(offset * (3 + entityMatricesCountOffset));
+            passEncoder.setBindGroup(
+                0, 
+                getAxisArrowsUniformBindGroup(), 
+                [offset * entity.axisArrowsModelIdx]
+            );
+
             passEncoder.setVertexBuffer(0, getAxisArrowsVerticesGPUBuffer());
-            // passEncoder.setVertexBuffer(1, aabbInstanceBuffer);
             passEncoder.draw(6, 3);
-
-            updateDynamicGPUBuffer(offset, entity, getMegaMatrixUBO()); 
-
+            updateDynamicGPUBuffer(entity, getMegaMatrixUBO()); 
             passEncoder.setPipeline(arcPipeline);
-            passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [offset * (5 + entityMatricesCountOffset)]);
+            passEncoder.setBindGroup(
+                0, 
+                getRotationArcUniformBindGroup(), 
+                [offset * entity.rotationArcModelIdx]
+            );
+
             passEncoder.setVertexBuffer(0, getRotationArcVerticesGPUBuffer());
             passEncoder.draw(rotationArcVerticesCount, 1);
 
             passEncoder.setPipeline(triangleListPipeline);
-            passEncoder.setBindGroup(0, getRotationArcUniformBindGroup(), [offset * (6 + entityMatricesCountOffset)]);
+            passEncoder.setBindGroup(
+                0, 
+                getRotationArcUniformBindGroup(), 
+                [offset * entity.rotationArcHeadModelIdx]
+            );
             passEncoder.setVertexBuffer(0, getRotationArcHeadVerticesGPUBuffer());
             passEncoder.draw(rotationArcHeadVerticesCount, 1);
 
@@ -103,14 +113,22 @@ export function render() {
                 // | aabb boxes
 
                 passEncoder.setPipeline(getAABBPipeline());
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [offset * (4 + entityMatricesCountOffset)]);
+                passEncoder.setBindGroup(
+                    0, 
+                    getAABBUniformBindGroup(), 
+                    [offset * entity.axisArrowsAABBModelIdx]
+                );
                 passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
                 const aabbMatrixUBO = getMegaMatrixUBO();
                 
                 passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
                 
                 passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);    
-                passEncoder.setBindGroup(0, getAABBUniformBindGroup(), [offset * (2 + entityMatricesCountOffset)]);
+                passEncoder.setBindGroup(
+                    0, 
+                    getAABBUniformBindGroup(), 
+                    [offset * entity.aabbModelIdx]
+                );
 
                 const aabbModelMatrixOffset = aabbMatrixUBO.length;         
 

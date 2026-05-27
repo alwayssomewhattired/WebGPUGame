@@ -50,12 +50,10 @@ export function createMegaMatrixUBO(scene) {
         (modelMatrix.byteLength * modelMatricesSize) 
         * scene.length * modelMatricesSize) 
         + alignedSize;
-    console.log(modelMatrixByteLength);
     m_megaMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     for (const entity of scene) {
-        const alignedSize = getAlignedSize(64);
-        updateDynamicGPUBuffer(alignedSize, entity, m_megaMatrixUBO);
+        updateDynamicGPUBuffer(entity, m_megaMatrixUBO);
     }
 }
 

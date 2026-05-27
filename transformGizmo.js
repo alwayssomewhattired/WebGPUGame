@@ -303,7 +303,6 @@ export function checkRotationRingHit() {
     );
 
     for (const rotationAxis in rotationAxes) {
-        console.log(rotationAxis);
         const hitPosition = intersectRayPlane(m_ray_ws, rotationAxes[rotationAxis], planePoint);
         
         if (hitPosition == null) return;
@@ -316,7 +315,6 @@ export function checkRotationRingHit() {
         const innerRadius = RotationHandle.radius - RotationHandle.thickness;
         const outerRadius = RotationHandle.radius + RotationHandle.thickness;
         if (hitDistanceLength >= innerRadius && hitDistanceLength <= outerRadius) {
-            console.log('hit');
             m_isRingSelected = true;
             m_activeAxis = rotationAxis;
             return m_isRingSelected;

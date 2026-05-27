@@ -104,7 +104,14 @@ export class Entity {
     updateMatrix() {
 
         matrix_updateMatrix(this);
-        const alignedSize = getAlignedSize(64);
-        updateDynamicGPUBuffer(alignedSize, this, getMegaMatrixUBO());
+        updateDynamicGPUBuffer(this, getMegaMatrixUBO());
     }
+}
+
+
+///////
+
+
+export function getEntityModelMatricesCount() {
+    return getScene()[0].modelMatrixLength;
 }

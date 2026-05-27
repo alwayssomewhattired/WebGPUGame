@@ -1,6 +1,6 @@
 
 import { initWebGPU } from './webgpu.js';
-import { initUniformConstructor, createRayUBO, initTextures, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO } from './uniform.js';
+import { initUniformConstructor, createRayUBO, initTextures, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO } from './uniform.js';
 import { getDevice } from './webgpu.js';
 import { initPipeline} from './pipelines/pipeline.js'
 import { initAxisArrowsPipeline } from './pipelines/axisArrowsPipeline.js';
@@ -12,7 +12,7 @@ import { initMouse } from './camera.js';
 import { initTransformGizmo } from './transformGizmo.js';
 import { initMegaMatrixCPUBuffer } from './matrix.js';
 import { initArcPipeline } from './pipelines/arcPipeline.js';
-import { initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer } from './buffer.js';
+import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
 
 
@@ -47,6 +47,9 @@ export async function main() {
     initRotationArcVerticesGPUBuffer();
     initRotationArcHeadVerticesGPUBuffer();
     initTransformGizmo();
+    
+    // const offset = getAlignedSize(64);
+    // for (const entity of getScene()) updateDynamicGPUBuffer(offset, entity, getMegaMatrixUBO()); 
 
     render();
     requestAnimationFrame(frame);
