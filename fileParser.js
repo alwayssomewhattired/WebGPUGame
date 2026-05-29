@@ -8,7 +8,7 @@ import { getDevice } from './webgpu.js';
 import { getMegaMatrixCPUBufferLength } from './matrix.js';
 
 const filePaths = [
-    './models/psx-rat/rat.obj',
+    './models/psx-rat/source/rat.obj',
     './models/stop-sign-psx/source/stop-sign.obj'
 ];
 
@@ -29,16 +29,71 @@ export async function createEntities() {
                 resolve(obj);
             })
         })();
+
+        // | mtl
+        const mtlRelativePath = obj.result.materialLibraries[0];
+        const lastSlashIdx = path.lastIndexOf('/');
+        const result = lastSlashIdx !== -1 ? path.substring(0, lastSlashIdx) : path;
+        const mtlPath = result + '/' + mtlRelativePath;
+
+        const mtlBody = await fetch(mtlPath)
+                            .then(r => r.text());
+        const materials = parseMTL(mtlBody, result);
+
         const device = getDevice();
         const mesh = createMesh(obj, device);
         const translation = glMatrix.vec3.create();
         const color = glMatrix.vec3.create();
 
         const modelMatrixIdx = getMegaMatrixCPUBufferLength();
-        const entity = new Entity(mesh, color, path, modelMatrixIdx, idx);
+        const entity = new Entity(mesh, color, path, modelMatrixIdx, materials, idx);
         idx++;
         scene.push(entity);
     }
+}
+
+function parseMTL(mtlText, path) {
+
+    // name to path
+    const materials = new Map();
+
+    const lines = mtlText.split('\n');
+
+    let currentMaterialName = null;
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        if (line.length === 0 || line.startsWith('#')) continue;
+
+        const parts = line.split(/\s+/);
+
+        const keyword = parts[0];
+
+        switch (keyword) {
+            
+            case 'newmtl': {
+                const materialName = parts[1];
+
+                currentMaterialName = materialName,
+
+                materials.set(
+                    materialName,
+                    null
+                );
+
+                break;
+            }
+
+            case 'map_Kd': {
+                if (!currentMaterialName) break;
+                materials.set(currentMaterialName, 'models/' + parts[1]);
+                break;
+            }
+        }
+    }
+
+    return materials;
 }
 
 // 1: rat

@@ -8,12 +8,14 @@ import { updateMatrix as matrix_updateMatrix ,createAndStoreMatrix, getMatrix } 
 import { getMegaMatrixUBO } from './uniform.js';
 
 export class Entity {
-    constructor(mesh, color, id, modelMatrixIdx, idx) {
+    constructor(mesh, color, id, modelMatrixIdx, materials, idx) {
         this.idx = idx;
         this.mesh = mesh;
         this.translation = glMatrix.vec3.fromValues(0.0, 0.0, -10.0);
         this.rotation = glMatrix.vec3.fromValues(0, 0, 0);
         this.scale = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
+
+        this.materials = materials;
                 
         this.color = color;
 

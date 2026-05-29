@@ -16,6 +16,8 @@ let m_dynamicModelMatrixUBO = null;
 let m_dynamicModelViewMatrixUBO = null;
 let m_megaMatrixUBO = null;
 
+let m_globalTextureArray = null;
+
 
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
@@ -422,22 +424,45 @@ export function createRayUBO() {
     });
 }
 
+
 export async function initTextures() {
-    const response = await fetch('./textures/Grass_Texture.png');
-    const blob = await response.blob();
-    const imgBitmap = await createImageBitmap(blob);
-    
+
+    // we assume all textures are 1024 x 1024
+    const textureCount = 2;
     const textureDescriptor = {
-        size: { width: imgBitmap.width, height: imgBitmap.height },
+        size: { width: 1024, height: 1024, depthOrArrayLayers: textureCount},
         format: 'rgba8unorm',
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
     };
-    
-    m_texture = m_device.createTexture(textureDescriptor);
-    const texture = m_texture;
 
-    m_device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
-    imgBitmap.close();
+    let response = null;
+    const scene = getScene();
+    let count = 0;
+    for (let i = 0; i < scene.length; i++) {
+        const entity = scene[i];
+        for (const [name, path] of entity.materials) {
+            response = await fetch(path);
+        
+            const blob = await response.blob();
+            const imgBitmap = await createImageBitmap(blob);
+
+            const texture = m_device.createTexture(textureDescriptor);
+
+            m_globalTextureArray.push(texture);
+
+            m_device.queue.copyExternalImageToTexture(
+                { source: imgBitmap }, 
+                { texture }, 
+                textureDescriptor.size
+            );
+
+            imgBitmap.close();
+            
+            entity.textureIdx = count;
+            count ++;
+        }
+    }
+
 
     m_sampler = m_device.createSampler({
         addressModeU: 'repeat',

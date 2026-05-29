@@ -20,13 +20,13 @@ export async function main() {
     await initWebGPU();
     await initMouse();
     initUniformConstructor();
-    await initTextures();
     initDepthStencil();
     initMegaMatrixCPUBuffer();
     await createEntities();
     const scene = getScene();
     createMegaMatrixUBO(scene);
-    updateEntities();
+    updateEntities();   
+    await initTextures();
 
     // 1. mouse
     for (const entity of getScene()) {
