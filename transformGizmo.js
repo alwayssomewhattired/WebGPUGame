@@ -2,7 +2,7 @@
 import * as glMatrix from 'gl-matrix'
 import { getMatrix, getViewProjectionMatrix } from './matrix.js';
 import { getScene } from "./fileParser.js"
-import { createGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
+import { updateDynamicGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
 import { getWorldSpaceRayFromMouse, createRayVerticesGPUBuffer, getRayVerticesBuffer, getSelectedObject } from './ray.js';
 import { keyboardInput } from './keyboardListeners.js';

@@ -1,11 +1,11 @@
 import { getPipeline  } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup } from "./uniform.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
-import { createGPUBuffer, getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcHeadVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
+import { getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcHeadVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
 import { getGlobalRotationArcHeadVerticesCount, getGlobalRotationArcVerticesCount, gizmoPositionsCPUBuffer } from "./transformGizmo.js";
 import { getAABBGizmoPositionsGPUBuffer } from "./aabb.js";
 import { getRayVerticesBuffer } from "./ray.js";
@@ -50,8 +50,13 @@ export function render() {
     const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
 
+    
     // | main render
+    passEncoder.setBindGroup(0, getGlobalUniformBindGroup());
+
     let offset = alignedSize;
+    let textureOffset = 0;
+    
     passEncoder.setPipeline(pipeline);
     for (const entity of scene) {
         const entityMatricesCount = entity.modelMatrixLength;
@@ -59,14 +64,14 @@ export function render() {
         const indexBuffer = entity.mesh.vIndicesBuffer;
         const indexBufferSize = entity.mesh.vIndexBufferSize;
         const normalBuffer = entity.mesh.vNormalsBuffer;
-        
-        passEncoder.setBindGroup(0, uniformBindGroup, [offset]);
+        passEncoder.setBindGroup(1, uniformBindGroup, [offset, textureOffset]);
         passEncoder.setVertexBuffer(0, vDataBuffer);
         // passEncoder.setIndexBuffer(indexBuffer, 'uint16');
         // passEncoder.drawIndexed(indexBufferSize);
         passEncoder.draw(entity.mesh.vCount, 1);
 
         offset *= (entityMatricesCount + 1);
+        textureOffset += alignedSize;
 
     }
 
@@ -82,7 +87,7 @@ export function render() {
             // | renders axisArrows vertices
             passEncoder.setPipeline(axisArrowsPipeline);
             passEncoder.setBindGroup(
-                0, 
+                1, 
                 getAxisArrowsUniformBindGroup(), 
                 [offset * entity.axisArrowsModelIdx]
             );
@@ -92,7 +97,7 @@ export function render() {
             updateDynamicGPUBuffer(entity, getMegaMatrixUBO()); 
             passEncoder.setPipeline(arcPipeline);
             passEncoder.setBindGroup(
-                0, 
+                1, 
                 getRotationArcUniformBindGroup(), 
                 [offset * entity.rotationArcModelIdx]
             );
@@ -102,7 +107,7 @@ export function render() {
 
             passEncoder.setPipeline(triangleListPipeline);
             passEncoder.setBindGroup(
-                0, 
+                1, 
                 getRotationArcUniformBindGroup(), 
                 [offset * entity.rotationArcHeadModelIdx]
             );
@@ -114,7 +119,7 @@ export function render() {
 
                 passEncoder.setPipeline(getAABBPipeline());
                 passEncoder.setBindGroup(
-                    0, 
+                    1, 
                     getAABBUniformBindGroup(), 
                     [offset * entity.axisArrowsAABBModelIdx]
                 );
@@ -125,7 +130,7 @@ export function render() {
                 
                 passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);    
                 passEncoder.setBindGroup(
-                    0, 
+                    1, 
                     getAABBUniformBindGroup(), 
                     [offset * entity.aabbModelIdx]
                 );
@@ -134,7 +139,7 @@ export function render() {
 
                 passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
 
-                passEncoder.setBindGroup(0, getRayUniformBindGroup(), [0]);
+                passEncoder.setBindGroup(1, getRayUniformBindGroup(), [0]);
                 for (const rayBuffer of getRayVerticesBuffer()) {
                     passEncoder.setVertexBuffer(0, rayBuffer);
                     passEncoder.draw(2, 1);

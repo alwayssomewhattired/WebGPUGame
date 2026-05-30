@@ -16,9 +16,12 @@ let m_dynamicModelMatrixUBO = null;
 let m_dynamicModelViewMatrixUBO = null;
 let m_megaMatrixUBO = null;
 
-let m_globalTextureArray = null;
+let m_globalTextureUBO = null;
+let m_textureCount = null;
+let m_globalTextureIndices = [];
 
-
+let m_globalUniformBindGroup = null;
+let m_globalUniformBindGroupLayout = null;
 let m_uniformBindGroup = null;
 let m_uniformBindGroupLayout = null;
 let m_axisArrowsUniformBindGroup = null;
@@ -59,20 +62,18 @@ export function createMegaMatrixUBO(scene) {
     }
 }
 
-export function createUBO(entity) {
-    const alignedSize = getAlignedSize(64);
-    const texture = getTexture();
-    const sampler = getSampler();
+export function createGlobalBindGroup() {
 
-    const modelMatrix = getMatrix(entity.modelMatrixIdx);
+    const texture = m_globalTextureUBO
+    const sampler = m_sampler;
     const viewMatrix = getViewMatrix();
-    const modelViewMatrix = getMatrix(entity.modelViewIdx);
     const projectionMatrix = getProjectionMatrix();
 
-    const normalMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
-    glMatrix.mat4.transpose(normalMatrix, normalMatrix);
-
+    m_viewMatrixUBO = createGPUBuffer(m_device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+    m_projectionMatrixUBO = createGPUBuffer(m_device, projectionMatrix, projectionMatrix.byteLength, GPUBufferUsage.UNIFORM);
+       
+    const textureUBO = m_globalTextureUBO;
+    
     const lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
     const lightDirectionUBO = createGPUBuffer(m_device, lightDirectionBuffer, lightDirectionBuffer.byteLength, 
         GPUBufferUsage.UNIFORM);
@@ -80,11 +81,101 @@ export function createUBO(entity) {
     const viewDirectionUBO = createGPUBuffer(m_device, viewDirectionBuffer, viewDirectionBuffer.byteLength, 
         GPUBufferUsage.UNIFORM);
 
-    m_viewMatrixUBO = createGPUBuffer(m_device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-    m_projectionMatrixUBO = createGPUBuffer(m_device, projectionMatrix, projectionMatrix.byteLength, 
-        GPUBufferUsage.UNIFORM);
+    m_globalUniformBindGroupLayout = m_device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 2,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: {
+                    sampleType: 'float',
+                    viewDimension: '2d-array'
+                }
+            },
+            {
+                binding: 3,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: {}
+            },
+            {
+                binding: 4,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 5,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            }
+        ]
+    });
+
+    m_globalUniformBindGroup = m_device.createBindGroup({
+        layout: m_globalUniformBindGroupLayout,
+        entries: [
+            {
+                binding: 0,
+                resource: {
+                    buffer: m_viewMatrixUBO
+                }
+            },
+            {
+                binding: 1,
+                resource: {
+                    buffer: m_projectionMatrixUBO
+                }
+            },
+            {
+                binding: 2,
+                resource: m_globalTextureUBO.createView({ dimension: '2d-array'})
+            },
+            {
+                binding: 3,
+                resource: sampler
+            },
+            {
+                binding: 4,
+                resource: {
+                    buffer: lightDirectionUBO
+                }
+            },
+            {
+                binding: 5,
+                resource: {
+                    buffer: viewDirectionUBO
+                }
+            }
+        ]
+    });
+}
+
+export function createUBO(entity) {
+    const alignedSize = getAlignedSize(64);
+
+    const modelMatrix = getMatrix(entity.modelMatrixIdx);
+    const viewMatrix = getViewMatrix();
+    const modelViewMatrix = getMatrix(entity.modelViewIdx);
+
+    const normalMatrix = glMatrix.mat4.create();
+    glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
+    glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+
     const normalMatrixUniformBuffer = createGPUBuffer(m_device, normalMatrix, normalMatrix.byteLength, 
         GPUBufferUsage.UNIFORM);
+
+    const textureCount = 2;
+    const alignedTextureSize = alignedSize * textureCount;
+    const globalTextureIndicesArray = new Uint32Array(m_globalTextureIndices);
+    const textureIndexUBO = createGPUBuffer(m_device, globalTextureIndicesArray, alignedTextureSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     m_uniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
@@ -98,38 +189,15 @@ export function createUBO(entity) {
             {
                 binding: 1,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
-            {
-                binding: 2,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
-            {
-                binding: 3,
-                visibility: GPUShaderStage.VERTEX,
                 buffer: { type: 'uniform'}
             },
             {
-                binding: 4,
+                binding: 2,
                 visibility: GPUShaderStage.FRAGMENT,
-                texture: {}
-            },
-            {
-                binding: 5,
-                visibility: GPUShaderStage.FRAGMENT,
-                sampler: {}
-            },
-            {
-                binding: 6,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
-            {
-                binding: 7,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
+                buffer: {
+                    hasDynamicOffset: true
+                }
+            }
         ]
     });
 
@@ -147,44 +215,19 @@ export function createUBO(entity) {
             {
                 binding: 1,
                 resource: {
-                    buffer: m_viewMatrixUBO
+                    buffer: normalMatrixUniformBuffer
                 }
             },
             {
                 binding: 2,
                 resource: {
-                    buffer: m_projectionMatrixUBO
+                    buffer: textureIndexUBO,
+                    offset: 0,
+                    size: alignedSize
                 }
-            },
-            {
-                binding: 3,
-                resource: {
-                    buffer: normalMatrixUniformBuffer
-                }
-            },
-            {
-                binding: 4,
-                resource: texture.createView()
-            },
-            {
-                binding: 5,
-                resource: sampler
-            },
-            {
-                binding: 6,
-                resource: {
-                    buffer: lightDirectionUBO
-                }
-            },
-            {
-                binding: 7,
-                resource: {
-                    buffer: viewDirectionUBO
-                }
-            },
+            }
         ]
     });
-
 }
 
 export function createAxisArrowsUBO(entity) {
@@ -428,12 +471,15 @@ export function createRayUBO() {
 export async function initTextures() {
 
     // we assume all textures are 1024 x 1024
-    const textureCount = 2;
+    // we also assume we have count of total 2 textures for all entities
+    m_textureCount = 2;
     const textureDescriptor = {
-        size: { width: 1024, height: 1024, depthOrArrayLayers: textureCount},
+        size: { width: 1024, height: 1024, depthOrArrayLayers: m_textureCount},
         format: 'rgba8unorm',
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
     };
+
+    m_globalTextureUBO = m_device.createTexture(textureDescriptor);
 
     let response = null;
     const scene = getScene();
@@ -446,20 +492,28 @@ export async function initTextures() {
             const blob = await response.blob();
             const imgBitmap = await createImageBitmap(blob);
 
-            const texture = m_device.createTexture(textureDescriptor);
-
-            m_globalTextureArray.push(texture);
-
             m_device.queue.copyExternalImageToTexture(
                 { source: imgBitmap }, 
-                { texture }, 
-                textureDescriptor.size
+                { texture: m_globalTextureUBO,
+                  origin: {
+                        x: 0,
+                        y: 0,
+                        z: count
+                  }
+                },
+                {
+                    width: textureDescriptor.size.width,
+                    height: textureDescriptor.size.height
+                }
             );
 
             imgBitmap.close();
-            
+
             entity.textureIdx = count;
-            count ++;
+            entity.textureOffset = 16 * count;
+            m_globalTextureIndices.push(count, 0, 0, 0,);
+
+            count++;
         }
     }
 
@@ -474,12 +528,36 @@ export async function initTextures() {
 
 }
 
+export function getGlobalUniformBindGroup() {
+    if (!m_globalUniformBindGroup) {
+        throw new Error("Global UniformBufferBindGroup not initialized!");
+    }
+
+    return m_globalUniformBindGroup;
+}
+
+export function getGlobalUniformBindGroupLayout() {
+    if (!m_globalUniformBindGroupLayout) {
+        throw new Error("Global UniformBufferBindGroupLayout not initialized!");
+    }
+
+    return m_globalUniformBindGroupLayout;
+}
+
 export function getUniformBindGroup() {
     if (!m_uniformBindGroup) {
         throw new Error("UniformBufferBindGroup not initialized!");
     }
 
     return m_uniformBindGroup;
+}
+
+export function getUniformBindGroupLayout() {
+    if (!m_uniformBindGroupLayout) {
+        throw new Error("UniformBufferBindGroupLayout not initialized!");
+    }
+
+    return m_uniformBindGroupLayout;
 }
 
 export function getAxisArrowsUniformBindGroup() {
@@ -530,15 +608,6 @@ export function getRayUniformBindGroupLayout() {
     return m_rayUniformBindGroupLayout;
 }
 
-export function getUniformBindGroupLayout() {
-    if (!m_uniformBindGroupLayout) {
-        throw new Error("UniformBufferBindGroupLayout not initialized!");
-    }
-
-    return m_uniformBindGroupLayout;
-}
-
-
 export function getRotationArcUniformBindGroup() {
     if (!m_rotationArcUniformBindGroup) {
         throw new Error("RotationArcUniformBindGroup not initialized!");
@@ -555,26 +624,6 @@ export function getRotationArcUniformBindGroupLayout() {
     return m_rotationArcUniformBindGroupLayout;
 }
 
-
-
-
-
-export function getTexture() {
-    if (!m_texture) {
-        throw new Error("Texture not initialized!");
-    }
-
-    return m_texture;
-}
-
-export function getSampler() {
-    if (!m_sampler) {
-        throw new Error("Sampler not initialized!");
-    }
-
-    return m_sampler;
-}
-
 export function getViewMatrixUBO() {
     if (!m_viewMatrixUBO) {
         throw new Error("View Matrix UBO not initialized!");
@@ -589,4 +638,10 @@ export function getMegaMatrixUBO() {
     }
 
     return m_megaMatrixUBO;
+}
+
+export function getGlobalTextureArray() {
+    if (!m_globalTextureArray) throw new Error("global texture array is null!!!");
+
+    return m_globalTextureArray;
 }

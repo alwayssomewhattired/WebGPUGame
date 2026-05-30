@@ -1,6 +1,6 @@
 
 import { initWebGPU } from './webgpu.js';
-import { initUniformConstructor, createRayUBO, initTextures, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO } from './uniform.js';
+import { initUniformConstructor, createRayUBO, initTextures, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO, createGlobalBindGroup } from './uniform.js';
 import { getDevice } from './webgpu.js';
 import { initPipeline} from './pipelines/pipeline.js'
 import { initAxisArrowsPipeline } from './pipelines/axisArrowsPipeline.js';
@@ -28,7 +28,7 @@ export async function main() {
     updateEntities();   
     await initTextures();
 
-    // 1. mouse
+    createGlobalBindGroup();
     for (const entity of getScene()) {
         createUBO(entity);
         createAxisArrowsUBO(entity);

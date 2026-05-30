@@ -26,20 +26,20 @@ export function createGPUBuffer(device, CPUBuffer, bufferBytes, usage) {
 
     let gpuBuffer = device.createBuffer(bufferDesc);
 
-    if (CPUBuffer instanceof Float32Array) {
+    if (CPUBuffer instanceof Float32Array || CPUBuffer.constructor.name === Float32Array) {
         const writeArrayNormal = new Float32Array(gpuBuffer.getMappedRange());
         writeArrayNormal.set(CPUBuffer);
-    } else if (CPUBuffer instanceof Uint16Array) {
+    } else if (CPUBuffer instanceof Uint16Array || CPUBuffer.constructor.name === Uint16Array) {
         const writeArrayNormal = new Uint16Array(gpuBuffer.getMappedRange());
         writeArrayNormal.set(CPUBuffer);
-    } else if (CPUBuffer instanceof Uint8Array) {
+    } else if (CPUBuffer instanceof Uint8Array || CPUBuffer.constructor.name === Uint8Array) {
         const writeArrayNormal = new Uint8Array(gpuBuffer.getMappedRange());
         writeArrayNormal.set(CPUBuffer);
-    } else if (CPUBuffer instanceof Uint32Array) {
+    } else if (CPUBuffer instanceof Uint32Array || CPUBuffer.constructor.name === Uint32Array) {
     const writeArrayNormal = new Uint32Array(gpuBuffer.getMappedRange());
     writeArrayNormal.set(CPUBuffer);
     } else {
-        const writeArrayNormal = Float32Array(gpuBuffer.getMappedRange());
+        const writeArrayNormal = new Float32Array(gpuBuffer.getMappedRange());
         writeArrayNormal.set(CPUBuffer);
         console.error("Unhandled buffer format ", typeof gpuBuffer);
     }

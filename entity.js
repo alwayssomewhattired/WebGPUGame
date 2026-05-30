@@ -1,7 +1,7 @@
 
 import * as glMatrix from 'gl-matrix'
 
-import { createGPUBuffer, getAlignedSize, updateDynamicGPUBuffer } from './buffer.js';
+import { getAlignedSize, updateDynamicGPUBuffer } from './buffer.js';
 import { getViewMatrix } from './matrix.js';
 import { getScene } from './fileParser.js';
 import { updateMatrix as matrix_updateMatrix ,createAndStoreMatrix, getMatrix } from './matrix.js';
@@ -9,7 +9,11 @@ import { getMegaMatrixUBO } from './uniform.js';
 
 export class Entity {
     constructor(mesh, color, id, modelMatrixIdx, materials, idx) {
+
         this.idx = idx;
+        this.textureIdx = null;
+        this.textureOffset = null;
+
         this.mesh = mesh;
         this.translation = glMatrix.vec3.fromValues(0.0, 0.0, -10.0);
         this.rotation = glMatrix.vec3.fromValues(0, 0, 0);

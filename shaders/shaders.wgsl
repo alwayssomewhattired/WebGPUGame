@@ -1,21 +1,28 @@
 
 
 @group(0) @binding(0)
-var<uniform> model: mat4x4<f32>;
-@group(0) @binding(1)
 var<uniform> view: mat4x4<f32>;
-@group(0) @binding(2)
+@group(0) @binding(1)
 var<uniform> projection: mat4x4<f32>;
+@group(0) @binding(2)
+var t_diffuse: texture_2d_array<f32>;
 @group(0) @binding(3)
-var<uniform> normalTransform: mat4x4<f32>;
-@group(0) @binding(4)
-var t_diffuse: texture_2d<f32>;
-@group(0) @binding(5)
 var s_diffuse: sampler;
-@group(0) @binding(6)
+@group(0) @binding(4)
 var<uniform> lightDirection: vec3<f32>;
-@group(0) @binding(7)
+@group(0) @binding(5)
 var<uniform> viewDirection: vec3<f32>;
+
+@group(1) @binding(0)
+var<uniform> model: mat4x4<f32>;
+@group(1) @binding(1)
+var<uniform> normalTransform: mat4x4<f32>;
+@group(1) @binding(2)
+var<uniform> textureData: TextureData; 
+
+struct TextureData {
+    textureIndex: u32,
+}
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -91,5 +98,7 @@ fn fs_main(in: VertexOutput, @builtin(front_facing) face: bool) ->  @location(0)
     // }
 
     // *** TEXTURE COLOR ***
-    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    // return textureSample(t_diffuse, s_diffuse, in.tex_coords, textureData.textureIndex);
+    return textureSample(t_diffuse, s_diffuse, in.tex_coords, textureData.textureIndex);
+
         }

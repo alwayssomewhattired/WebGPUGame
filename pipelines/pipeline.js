@@ -1,8 +1,8 @@
 
 import { getDevice } from "../webgpu.js"
 import { getShaderModule} from '../webgpu.js'
-import { createGPUBuffer } from '../buffer.js'
 import { getUniformBindGroupLayout } from '/uniform.js'
+import { getGlobalUniformBindGroupLayout } from "../uniform.js";
 
 let m_pipeline = null;
 let m_texCoordsBuffer = null
@@ -10,9 +10,10 @@ let m_texCoordsBuffer = null
 export function initPipeline() {
     const device = getDevice();
     const shaderModule = getShaderModule();
+    const globalUniformBindGroupLayout = getGlobalUniformBindGroupLayout();
     const uniformBindGroupLayout = getUniformBindGroupLayout();
     
-    const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+    const pipelineLayoutDesc = { bindGroupLayouts: [globalUniformBindGroupLayout, uniformBindGroupLayout] };
     const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
     const colorState = {
