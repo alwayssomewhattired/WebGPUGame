@@ -9,20 +9,24 @@ import { getMegaMatrixCPUBufferLength } from './matrix.js';
 
 const filePaths = [
     './models/psx-rat/source/rat.obj',
-    './models/stop-sign-psx/source/stop-sign.obj'
+    './models/stop-sign-psx/source/stop-sign.obj',
+    './models/pizzeria.glb'
 ];
 
 export const sceneNameToIndexMap = new Map([
-    ["rat",         0],
-    ['stop-sign',   1]
+    ["rat", 0],
+    ['stop-sign', 1],
+    ['pizzeria', 2]
 ]);
 
 export async function createEntities() {
     let idx = 0;
     for (const path of filePaths) {
+        const extension = path.split('.').pop();
+        if (extension === "glb") await parseGLB(path);
         const objResponse = await fetch(path);
         const objBody = await objResponse.text();
-        const obj = await (async() => {
+        const obj = await (async () => {
             return new Promise((resolve, reject) => {
                 const obj = new OBJFile(objBody);
                 obj.parse();
@@ -37,7 +41,7 @@ export async function createEntities() {
         const mtlPath = result + '/' + mtlRelativePath;
 
         const mtlBody = await fetch(mtlPath)
-                            .then(r => r.text());
+            .then(r => r.text());
         const materials = parseMTL(mtlBody, result);
 
         const device = getDevice();
@@ -71,16 +75,16 @@ function parseMTL(mtlText, path) {
         const keyword = parts[0];
 
         switch (keyword) {
-            
+
             case 'newmtl': {
                 const materialName = parts[1];
 
                 currentMaterialName = materialName,
 
-                materials.set(
-                    materialName,
-                    null
-                );
+                    materials.set(
+                        materialName,
+                        null
+                    );
 
                 break;
             }
@@ -102,9 +106,9 @@ const scene = [];
 
 export function getScene() {
     if (scene.length > 0) {
-        return scene ;
+        return scene;
     } else {
-        throw new Error ("Scene is empty!!!");
+        throw new Error("Scene is empty!!!");
     }
 }
 
@@ -128,15 +132,100 @@ export function updateEntities() {
     let translation = null;
     let rotation = null;
     let scale = null;
-    
-    translation = glMatrix.vec3.fromValues(0,0,0);
-    scale = glMatrix.vec3.fromValues(0.1,0.1,0.1);
+
+    translation = glMatrix.vec3.fromValues(0, 0, 0);
+    scale = glMatrix.vec3.fromValues(0.1, 0.1, 0.1);
     rotation = glMatrix.vec3.fromValues(0, 0, 0);
     updateEntity('rat', translation, rotation, scale);
 
-    translation = glMatrix.vec3.fromValues(2,2,5);
-    scale = glMatrix.vec3.fromValues(0.01,0.01,0.01);
+    translation = glMatrix.vec3.fromValues(2, 2, 5);
+    scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
     rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
     updateEntity('stop-sign', translation, rotation, scale);
 
+}
+
+async function parseGLB(url) {
+    const arrayBuffer = await fetch(url).then(r => r.arrayBuffer());
+    const view = new DataView(arrayBuffer);
+
+    const magic = String.fromCharCode(
+        view.getUint8(0),
+        view.getUint8(1),
+        view.getUint8(2),
+        view.getUint8(3)
+    );
+
+    if (magic !== "glTF") throw new Error("File is not GLB");
+
+    const version = view.getUint32(4, true);
+    const length = view.getUint32(8, true);
+
+
+    let offset = 12;
+
+    let json = null;
+    let binBuffer = null;
+
+    while (offset < length) {
+        const chunkLength = view.getUint32(offset, true);
+        offset += 4;
+
+        const chunkType = view.getUint32(offset, true);
+        offset += 4;
+
+        const chunkBytes = new Uint8Array(arrayBuffer, offset, chunkLength);
+
+        // JSON chunk
+        if (chunkType === 0x4E4F534A) {
+            json = JSON.parse(new TextDecoder().decode(chunkBytes));
+        }
+
+        // BIN chunk
+        if (chunkType === 0x004E4942) {
+            binBuffer = chunkBytes.buffer;
+        }
+
+        offset += chunkLength;
+    }
+
+    const mesh = json.meshes[0];
+    const primitive = mesh.primitives[0];
+
+    console.log(json);
+
+    const accessorIndex = primitive.attributes.POSITION;
+
+    const accessor = json.accessors[accessorIndex];
+
+    const bufferView = json.bufferViews[accessor.bufferView];
+
+    const finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+
+    const vertexElements = getVertexElementsFromGLB(accessor.type);
+
+    const verticesCount = vertexElements * accessor.count;
+
+    const positions = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+
+    console.log(positions);
+}
+
+function getVertexElementsFromGLB(type) {
+    switch (type) {
+        case 'VEC3':    return 3;
+        case 'VEC2':    return 2;
+        case 'SCALAR':  return 1
+        default: throw new Error("getVertexElementsFromGLB failure");
+    }
+}
+
+function getTypedArrayFromGLB(componentType, buffer, offset, length) {
+    switch (componentType) {
+        case 5126: return new Float32Array(buffer, offset, length);
+        case 5123: return new Uint16Array(buffer, offset, length);
+        case 5125: return new Uint32Array(buffer, offset, length);
+        case 5121: return new Uint8Array(buffer, offset, length);
+        default: throw new Error("GLB has unknown type");
+    }
 }
