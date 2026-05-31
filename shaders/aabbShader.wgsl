@@ -1,12 +1,12 @@
 
-@group(0) @binding(0) var<uniform> color: vec3<f32>;
-
-@group(0) @binding(1)
-var<uniform> modelMatrix: mat4x4<f32>;
-@group(0) @binding(2)
+@group(0) @binding(0)
 var<uniform> viewMatrix: mat4x4<f32>;
-@group(0) @binding(3)
+@group(0) @binding(1)
 var<uniform> projectionMatrix: mat4x4<f32>;
+
+@group(1) @binding(0) var<uniform> color: vec3<f32>;
+@group(1) @binding(1)
+var<uniform> modelMatrix: mat4x4<f32>;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>

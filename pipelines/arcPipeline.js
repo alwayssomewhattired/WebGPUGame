@@ -1,5 +1,5 @@
 
-import { getRotationArcUniformBindGroupLayout } from "../uniform.js";
+import { getGlobalUniformBindGroupLayout, getRotationArcUniformBindGroupLayout } from "../uniform.js";
 import { getDevice, getInstancedShaderModule } from "../webgpu.js";
 
 let m_arcPipeline = null;
@@ -7,8 +7,10 @@ let m_arcPipeline = null;
 export function initArcPipeline() {
     const device = getDevice();
     const shaderModule = getInstancedShaderModule();
+    const globalUniformBindGroupLayout = getGlobalUniformBindGroupLayout();
     const uniformBindGroupLayout = getRotationArcUniformBindGroupLayout();
-    const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+
+    const pipelineLayoutDesc = { bindGroupLayouts: [globalUniformBindGroupLayout, uniformBindGroupLayout] };
     const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
     const colorState = {

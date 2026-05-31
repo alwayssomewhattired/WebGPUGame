@@ -23,7 +23,7 @@ export class Entity {
                 
         this.color = color;
 
-        this.modelMatrixLength = 7; 
+        this.modelMatrixLength = 8; 
         this.modelMatrixIdx = modelMatrixIdx;
         this.aabbModelIdx = modelMatrixIdx + 1;
         this.axisArrowsModelIdx = modelMatrixIdx + 2
@@ -31,9 +31,9 @@ export class Entity {
         this.rotationArcModelIdx = modelMatrixIdx + 4;
         this.rotationArcHeadModelIdx = modelMatrixIdx + 5;
         this.modelViewIdx = modelMatrixIdx + 6;
-        
+        this.normalMatrixIdx = modelMatrixIdx + 7;
 
-        this.modelMatrixBufferOffset 
+        this.modelMatrixBufferOffset;
 
         this.isSelected = false;
         this.pipeline = "main";
@@ -105,6 +105,12 @@ export class Entity {
         const modelViewMatrix = glMatrix.mat4.create();
         glMatrix.mat4.multiply(modelViewMatrix, modelMatrix, viewMatrix);
         createAndStoreMatrix(modelViewMatrix);
+
+        const normalMatrix = glMatrix.mat4.create();
+        glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
+        glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+        createAndStoreMatrix(normalMatrix);
+
     }
 
     updateMatrix() {

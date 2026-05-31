@@ -1,14 +1,16 @@
 
 import { getDevice, getAABBShaderModule } from "../webgpu.js";
-import { getAABBUniformBindGroupLayout } from "../uniform.js";
+import { getAABBUniformBindGroupLayout, getGlobalUniformBindGroupLayout } from "../uniform.js";
 
 let m_aabbPipeline = null;
 
 function createAABBPipeline() {
     const device = getDevice();
     const shaderModule = getAABBShaderModule();
+    const globalUniformBindGroupLayout = getGlobalUniformBindGroupLayout();
     const uniformBindGroupLayout = getAABBUniformBindGroupLayout();
-    const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+
+    const pipelineLayoutDesc = { bindGroupLayouts: [globalUniformBindGroupLayout, uniformBindGroupLayout] };
     const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
     const colorState = {

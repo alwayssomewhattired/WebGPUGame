@@ -1,16 +1,17 @@
 
 
 import { getDevice, getInstancedShaderModule } from "../webgpu.js";
-import { getAxisArrowsUniformBindGroupLayout } from "../uniform.js"
+import { getAxisArrowsUniformBindGroupLayout, getGlobalUniformBindGroupLayout } from "../uniform.js"
 
 export let axisArrowsPipeline = null;
 
 export function initAxisArrowsPipeline() {
     const device = getDevice();
     const shaderModule = getInstancedShaderModule();
+    const globalUniformBindGroupLayout = getGlobalUniformBindGroupLayout();
     const uniformBindGroupLayout = getAxisArrowsUniformBindGroupLayout();
     
-    const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+    const pipelineLayoutDesc = { bindGroupLayouts: [globalUniformBindGroupLayout, uniformBindGroupLayout] };
     const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
     const colorState = {

@@ -5,13 +5,14 @@ import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindG
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
-import { getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcHeadVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
+import { getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcHeadVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, getSphereVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
 import { getGlobalRotationArcHeadVerticesCount, getGlobalRotationArcVerticesCount, gizmoPositionsCPUBuffer } from "./transformGizmo.js";
 import { getAABBGizmoPositionsGPUBuffer } from "./aabb.js";
 import { getRayVerticesBuffer } from "./ray.js";
 import { keyboardInput } from "./keyboardListeners.js";
 import { getArcPipeline } from "./pipelines/arcPipeline.js";
 import { getTriangleListPipeline } from "./pipelines/triangleListPipeline.js";
+import { getSphereVertexCount } from "./light.js";
 
 
 export function render() {
@@ -50,7 +51,7 @@ export function render() {
     const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
     passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
 
-    
+
     // | main render
     passEncoder.setBindGroup(0, getGlobalUniformBindGroup());
 
@@ -64,7 +65,7 @@ export function render() {
         const indexBuffer = entity.mesh.vIndicesBuffer;
         const indexBufferSize = entity.mesh.vIndexBufferSize;
         const normalBuffer = entity.mesh.vNormalsBuffer;
-        passEncoder.setBindGroup(1, uniformBindGroup, [offset, textureOffset]);
+        passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, textureOffset]);
         passEncoder.setVertexBuffer(0, vDataBuffer);
         // passEncoder.setIndexBuffer(indexBuffer, 'uint16');
         // passEncoder.drawIndexed(indexBufferSize);
@@ -146,8 +147,11 @@ export function render() {
                 }
             }
         }
-
     }
+
+    passEncoder.setPipeline(triangleListPipeline)
+    passEncoder.setVertexBuffer(0, getSphereVerticesGPUBuffer());
+    passEncoder.draw(getSphereVertexCount());
 
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);

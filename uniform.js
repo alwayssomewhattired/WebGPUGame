@@ -158,23 +158,13 @@ export function createGlobalBindGroup() {
     });
 }
 
-export function createUBO(entity) {
+export function createUBO() {
     const alignedSize = getAlignedSize(64);
-
-    const modelMatrix = getMatrix(entity.modelMatrixIdx);
-    const viewMatrix = getViewMatrix();
-    const modelViewMatrix = getMatrix(entity.modelViewIdx);
-
-    const normalMatrix = glMatrix.mat4.create();
-    glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
-    glMatrix.mat4.transpose(normalMatrix, normalMatrix);
-
-    const normalMatrixUniformBuffer = createGPUBuffer(m_device, normalMatrix, normalMatrix.byteLength, 
-        GPUBufferUsage.UNIFORM);
 
     const textureCount = 2;
     const alignedTextureSize = alignedSize * textureCount;
     const globalTextureIndicesArray = new Uint32Array(m_globalTextureIndices);
+
     const textureIndexUBO = createGPUBuffer(m_device, globalTextureIndicesArray, alignedTextureSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
     m_uniformBindGroupLayout = m_device.createBindGroupLayout({
@@ -189,7 +179,9 @@ export function createUBO(entity) {
             {
                 binding: 1,
                 visibility: GPUShaderStage.VERTEX,
-                buffer: { type: 'uniform'}
+                buffer: { 
+                    hasDynamicOffset: true
+                }
             },
             {
                 binding: 2,
@@ -215,7 +207,9 @@ export function createUBO(entity) {
             {
                 binding: 1,
                 resource: {
-                    buffer: normalMatrixUniformBuffer
+                    buffer: m_megaMatrixUBO,
+                    offset: alignedSize * 8,
+                    size: alignedSize
                 }
             },
             {
@@ -242,17 +236,7 @@ export function createAxisArrowsUBO(entity) {
                 buffer: {
                     hasDynamicOffset: true
                 }
-            },
-            {
-                binding: 1,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
-            {
-                binding: 2,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
+            }
         ]
     });
 
@@ -266,19 +250,7 @@ export function createAxisArrowsUBO(entity) {
                     offset: 0,
                     size: alignedSize
                 }
-            },
-            {
-                binding: 1,
-                resource: {
-                    buffer: m_viewMatrixUBO
-                }
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: m_projectionMatrixUBO
-                }
-            },
+            }
         ]
     });
 }
@@ -297,17 +269,7 @@ export function createRotationArcUBO(entity) {
                 buffer: {
                     hasDynamicOffset: true
                 }
-            },
-            {
-                binding: 1,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
-            {
-                binding: 2,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
+            }
         ]
     });
 7
@@ -321,19 +283,7 @@ export function createRotationArcUBO(entity) {
                     offset: 0,
                     size: alignedSize
                 }
-            },
-            {
-                binding: 1,
-                resource: {
-                    buffer: m_viewMatrixUBO
-                }
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: m_projectionMatrixUBO
-                }
-            },
+            }
         ]
     });
 }
@@ -356,17 +306,7 @@ export function createAABBUBO(entity) {
                 buffer: {
                     hasDynamicOffset: true
                 }
-            },
-            {
-                binding: 2,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
-            {
-                binding: 3,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
+            }
         ]
     });
 
@@ -386,19 +326,7 @@ export function createAABBUBO(entity) {
                     offset: 0,
                     size: alignedSize
                 }
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: m_viewMatrixUBO
-                }
-            },
-            {
-                binding: 3,
-                resource: {
-                    buffer: m_projectionMatrixUBO
-                }
-            },
+            }
         ]
     });
 }
@@ -420,17 +348,7 @@ export function createRayUBO() {
                 buffer: {
                     hasDynamicOffset: true
                 }
-            },
-            {
-                binding: 2,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
-            {
-                binding: 3,
-                visibility: GPUShaderStage.VERTEX,
-                buffer: {}
-            },
+            }
         ]
     });
 
@@ -450,19 +368,7 @@ export function createRayUBO() {
                     offset: 0,
                     size: alignedSize
                 }
-            },
-            {
-                binding: 2,
-                resource: {
-                    buffer: m_viewMatrixUBO
-                }
-            },
-            {
-                binding: 3,
-                resource: {
-                    buffer: m_projectionMatrixUBO
-                }
-            },
+            }
         ]
     });
 }
@@ -510,13 +416,12 @@ export async function initTextures() {
             imgBitmap.close();
 
             entity.textureIdx = count;
-            entity.textureOffset = 16 * count;
-            m_globalTextureIndices.push(count, 0, 0, 0,);
-
+            const arr = new Array(64)
+            arr[0] = count;
+            m_globalTextureIndices.push(...arr);
             count++;
         }
     }
-
 
     m_sampler = m_device.createSampler({
         addressModeU: 'repeat',

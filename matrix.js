@@ -49,6 +49,8 @@ export function updateMatrix(entity) {
     const modelMatrix5 = m_megaMatrixCPUBuffer[entity.rotationArcModelIdx];
     const modelMatrix6 = m_megaMatrixCPUBuffer[entity.rotationArcHeadModelIdx];
     const modelMatrix7 = m_megaMatrixCPUBuffer[entity.modelViewIdx];
+    const modelMatrix8 = m_megaMatrixCPUBuffer[entity.normalMatrixIdx];
+
 
     if (!modelMatrix) throw new Error("model matrix is null!");
     glMatrix.mat4.identity(modelMatrix);
@@ -86,6 +88,13 @@ export function updateMatrix(entity) {
     glMatrix.mat4.rotateY(modelMatrix7, modelMatrix7, entity.rotation[1]);
     glMatrix.mat4.rotateZ(modelMatrix7, modelMatrix7, entity.rotation[2]);
     glMatrix.mat4.scale(modelMatrix7, modelMatrix7, entity.scale);
+
+    glMatrix.mat4.identity(modelMatrix8);
+    glMatrix.mat4.translate(modelMatrix8, modelMatrix8, entity.translation);
+    glMatrix.mat4.rotateX(modelMatrix8, modelMatrix8, entity.rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix8, modelMatrix8, entity.rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix8, modelMatrix8, entity.rotation[2]);
+    glMatrix.mat4.scale(modelMatrix8, modelMatrix8, entity.scale);
 
 }
 

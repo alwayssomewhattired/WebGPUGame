@@ -7,10 +7,12 @@ import { getDevice } from './webgpu.js';
 import { Entity, getEntityModelMatricesCount } from './entity.js';
 import { getMatrix } from './matrix.js';
 import { createRotationArcHeadVertices, createRotationArcVertices } from './transformGizmo.js';
+import { generateUVSphere } from './light.js';
 
 let m_axisArrowsBuffer = null;
 let m_rotationArcVerticesBuffer = null;
 let m_rotationArcHeadVerticesBuffer = null;
+let m_sphereVerticesBuffer = null;
 
 const m_aabbColor = new Float32Array([1.0, 1.0, 0.0]);
 const m_rayColor = new Float32Array([ 0.0, 1.0, 1.0]);
@@ -67,6 +69,16 @@ export function getAxisArrowsVerticesGPUBuffer() {
     }
 
     return m_axisArrowsBuffer;
+}
+
+export function initSphereVerticesGPUBuffer() {
+    const vertices = generateUVSphere(2, 64);
+    m_sphereVerticesBuffer = createGPUBuffer(getDevice(), vertices, vertices.byteLength, GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
+}
+
+export function getSphereVerticesGPUBuffer() {
+    if (!m_sphereVerticesBuffer) throw new Error("Sphere vertex buffer not initialized!!");
+    return m_sphereVerticesBuffer;
 }
 
 export function initRotationArcVerticesGPUBuffer() {
@@ -128,6 +140,7 @@ export function updateDynamicGPUBuffer(entity, buffer) {
         const rotationArcModelMatrix = getMatrix(entity.rotationArcModelIdx);
         const rotationArcHeadModelMatrix = getMatrix(entity.rotationArcHeadModelIdx);
         const modelViewMatrix = getMatrix(entity.modelViewIdx);
+        const normalMatrix = getMatrix(entity.normalMatrixIdx);
 
         const alignedSizeBase = getAlignedSize(64);
 
@@ -146,6 +159,8 @@ export function updateDynamicGPUBuffer(entity, buffer) {
         getDevice().queue.writeBuffer(buffer, offset, rotationArcHeadModelMatrix);
         offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, modelViewMatrix);
+        offset += alignedSizeBase;
+        getDevice().queue.writeBuffer(buffer, offset, normalMatrix);
 
 }
 

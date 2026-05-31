@@ -21,7 +21,7 @@ var<uniform> normalTransform: mat4x4<f32>;
 var<uniform> textureData: TextureData; 
 
 struct TextureData {
-    textureIndex: u32,
+    textureIdx: u32,
 }
 
 struct VertexOutput {
@@ -76,15 +76,20 @@ const specularConstant:f32 = 1.0;
 @fragment
 fn fs_main(in: VertexOutput, @builtin(front_facing) face: bool) ->  @location(0) vec4<f32> {
 
-    // *** LIGHT COLOR ***
-    // var lightDir:vec3<f32> = in.lightDir;
-    // var surfaceNormal:vec3<f32> = normalize(in.surfaceNormal);
-    // var viewDir:vec3<f32> = in.viewDir;
+    var texColor:vec4<f32> = textureSample(t_diffuse, s_diffuse, in.tex_coords, textureData.textureIdx);
 
-    // var radiance:vec3<f32> = ambientColor.rgb * ambientConstant + 
-    // diffuse(lightDir, surfaceNormal, diffuseColor.rgb) * diffuseConstant +
-    // specular(lightDir, viewDir, surfaceNormal, specularColor.rgb, shininess) * specularConstant;
-    // return vec4<f32>(radiance, 1.0);
+    // *** LIGHT COLOR ***
+    var lightDir:vec3<f32> = in.lightDir;
+    var surfaceNormal:vec3<f32> = normalize(in.surfaceNormal);
+    var viewDir:vec3<f32> = in.viewDir;
+
+    var radiance:vec3<f32> = ambientColor.rgb * ambientConstant + 
+    diffuse(lightDir, surfaceNormal, diffuseColor.rgb) * diffuseConstant +
+    specular(lightDir, viewDir, surfaceNormal, specularColor.rgb, shininess) * specularConstant;
+
+    var finalColor:vec3<f32> = radiance * texColor.rgb;
+    
+    return vec4<f32>(finalColor, texColor.a);
 
     // *** FLAT COLOR ***
     // return vec4<f32>(0.0, 0.0, 1.0, 1.0);
@@ -98,7 +103,7 @@ fn fs_main(in: VertexOutput, @builtin(front_facing) face: bool) ->  @location(0)
     // }
 
     // *** TEXTURE COLOR ***
-    // return textureSample(t_diffuse, s_diffuse, in.tex_coords, textureData.textureIndex);
-    return textureSample(t_diffuse, s_diffuse, in.tex_coords, textureData.textureIndex);
+    // return textureSample(t_diffuse, s_diffuse, in.tex_coords, textureData.textureIdx);
+    // return textureSample(t_diffuse, s_diffuse, in.tex_coords, 1);
 
-        }
+}

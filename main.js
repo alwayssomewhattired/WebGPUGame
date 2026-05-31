@@ -12,7 +12,7 @@ import { initMouse } from './camera.js';
 import { initTransformGizmo } from './transformGizmo.js';
 import { initMegaMatrixCPUBuffer } from './matrix.js';
 import { initArcPipeline } from './pipelines/arcPipeline.js';
-import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
+import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, initSphereVerticesGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
 
 
@@ -29,13 +29,12 @@ export async function main() {
     await initTextures();
 
     createGlobalBindGroup();
+    createUBO();
     for (const entity of getScene()) {
-        createUBO(entity);
         createAxisArrowsUBO(entity);
         createAABBUBO(entity);
         createRotationArcUBO(entity);
     }
-
 
     createRayUBO();
 
@@ -47,6 +46,7 @@ export async function main() {
     initRotationArcVerticesGPUBuffer();
     initRotationArcHeadVerticesGPUBuffer();
     initTransformGizmo();
+    initSphereVerticesGPUBuffer();
     
     // const offset = getAlignedSize(64);
     // for (const entity of getScene()) updateDynamicGPUBuffer(offset, entity, getMegaMatrixUBO()); 
