@@ -8,9 +8,11 @@ import { updateMatrix as matrix_updateMatrix ,createAndStoreMatrix, getMatrix } 
 import { getMegaMatrixUBO } from './uniform.js';
 
 export class Entity {
-    constructor(mesh, color, id, modelMatrixIdx, materials, idx) {
+    constructor(mesh, color, id, modelMatrixIdx, materials, idx, fileExt) {
 
         this.idx = idx;
+        this.fileExt = fileExt;
+
         this.textureIdx = null;
         this.textureOffset = null;
 

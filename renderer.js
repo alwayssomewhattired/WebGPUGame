@@ -66,12 +66,17 @@ export function render() {
         const indexBufferSize = entity.mesh.vIndexBufferSize;
         const normalBuffer = entity.mesh.vNormalsBuffer;
         passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, textureOffset]);
-        // console.log(offset);
         passEncoder.setVertexBuffer(0, vDataBuffer);
-        // passEncoder.setIndexBuffer(indexBuffer, 'uint16');
-        // passEncoder.drawIndexed(indexBufferSize);
-        // console.log(entity.mesh.vCount);
-        passEncoder.draw(entity.mesh.vCount, 1);
+        // console.log(entity.mesh);
+        if (entity.fileExt === 'glb') {
+            for (const primitive of entity.mesh.primitives) {
+                // console.log(entity.mesh);
+                passEncoder.setIndexBuffer(indexBuffer, 'uint16');
+                passEncoder.drawIndexed(primitive.size, 1, primitive.offset, primitive.baseVertex);
+            }
+        } else {
+            passEncoder.draw(entity.mesh.vCount, 1);
+        }
 
         offset += alignedSize * (entityMatricesCount + 1);
         textureOffset += alignedSize;

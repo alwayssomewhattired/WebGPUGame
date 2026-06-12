@@ -22,11 +22,11 @@ export class Mesh {
     }
 }
 
-// | holds spot and size in global vertex data
 class Primitive {
-    constructor(offset, size) {
+    constructor(offset, size, baseVertex) {
         this.offset = offset;
         this.size = size;
+        this.baseVertex = baseVertex;
     }
 }
 
@@ -165,25 +165,28 @@ export function createMesh(obj, device) {
 export function createGLBMesh(primitiveAOS, device) {
     
     let vertexData = [];
+    let indexData = [];
+    let primitiveData = [];
 
-    for (const primitive in primitiveAOS) {
+    let vertexCount = 0;
+
+    let aabbMin = glMatrix.vec3.create();
+    let aabbMax = glMatrix.vec3.create();
+
+    for (const primitive of primitiveAOS) {
         const positions = primitive.positions;
         const texCoords = primitive.texCoords;
         const normals = primitive.normals;
         const indices = primitive.indices;
+    
+       console.log(positions.length);
+        console.log(indices.length);
 
-        let aabbMin = glMatrix.vec3.create();
-        let aabbMax = glMatrix.vec3.create();
-
-        let primitiveData = [];
-
-        let vertexCount = 0;
+        const baseVertex = vertexData.length;
         const offset = vertexData.length;
-
         let aabbIdx = 0;
 
         const vertexElementsCount = 8 // 3-pos, 2-uv, 3-norm
-
         const vertexIterationLength = Math.max(positions.length, texCoords.length, normals.length);
         const vertexStride = 3; // 2 is length of uv elements
 
@@ -210,6 +213,7 @@ export function createGLBMesh(primitiveAOS, device) {
                 aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
 
                 vertexData.push(positions[j]);
+                indexData.push(indices[j]);
                 vertexCount++;
             }
 
@@ -227,18 +231,21 @@ export function createGLBMesh(primitiveAOS, device) {
 
         }
         const size = vertexData.length - offset;
-        const primitiveObject = new Primitive(offset, size);
+        const primitiveObject = new Primitive(offset, size, baseVertex);
         primitiveData.push(primitiveObject);
     }
 
     vertexData = new Float32Array(vertexData);
+    indexData = new Float32Array(indexData);
+    // console.log(vertexData.length);
+    // console.log(indexData.length);
+
     const vertexBuffer = createGPUBuffer(device, vertexData, vertexData.byteLength, GPUBufferUsage.VERTEX);
-
-    const indexBuffer = createGPUBuffer(device, indices, indices.byteLength, GPUBufferUsage.INDEX);
-
-    const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indices, indexBuffer, indices.length, 
-        aabbMin, aabbMax, m_aabbPositionsOffset, primitiveData
+    const indexBuffer = createGPUBuffer(device, indexData, indexData.byteLength, GPUBufferUsage.INDEX);
+    const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indexData, indexBuffer, indexData.length, 
+        aabbMin, aabbMax, primitiveData
     );
+
     return mesh;
 }
 

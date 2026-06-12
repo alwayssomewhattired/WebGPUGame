@@ -33,6 +33,7 @@ export async function createEntities() {
         if (extension === "glb") {
             materials = parseMTL(mtlBody, result);
             mesh = await parseGLB(path); 
+            console.log(mesh);
         } else {
         const objResponse = await fetch(path);
         const objBody = await objResponse.text();
@@ -59,7 +60,7 @@ export async function createEntities() {
         const color = glMatrix.vec3.create();
 
         const modelMatrixIdx = getMegaMatrixCPUBufferLength();
-        const entity = new Entity(mesh, color, path, modelMatrixIdx, materials, idx);
+        const entity = new Entity(mesh, color, path, modelMatrixIdx, materials, idx, extension);
         idx++;
         scene.push(entity);
     }
@@ -197,11 +198,9 @@ async function parseGLB(url) {
         offset += chunkLength;
     }
 
-    console.log(json.meshes)
     const mesh = json.meshes[0];
 
     const primitives = []
-
 
     for (let i = 0; i < mesh.primitives.length; i++) {
         
@@ -234,9 +233,6 @@ async function parseGLB(url) {
         vertexElements = getVertexElementsFromGLB(accessor.type);
         verticesCount = vertexElements * accessor.count;
         primitiveStruct.positions = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
-        // const positionsStruct = glMatrix.vec3.create();
-        // const positionsCPUBuffer = getGLArray(positions, positionsStruct, 3);
-        // console.log(positionsCPUBuffer);
 
         // | UV's
         accessorIndex = primitive.attributes.TEXCOORD_0;
@@ -246,7 +242,6 @@ async function parseGLB(url) {
         vertexElements = getVertexElementsFromGLB(accessor.type);
         verticesCount = vertexElements * accessor.count;
         primitiveStruct.texCoords = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
-        // console.log(texCoords);
 
         // | Normals
         accessorIndex = primitive.attributes.NORMAL;
@@ -265,10 +260,8 @@ async function parseGLB(url) {
         vertexElements = getVertexElementsFromGLB(accessor.type);
         verticesCount = vertexElements * accessor.count;
         primitiveStruct.indices = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
-
         primitives.push(primitiveStruct);
     }
-
     return createGLBMesh(primitives, getDevice());
 
 }
