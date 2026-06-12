@@ -137,3 +137,23 @@ export function getViewProjectionMatrix() {
 
     return viewProjectionMatrix;
 }
+
+// export function getGLArray(linearArray, glVertexStruct, stride) {
+//     const cpuBuffer = [];
+//     const basicVertexStruct = [];
+//     for (let i = 0; i < linearArray.length; i += stride) {
+//         // for (let j = i; j < (i + stride); j++) {
+//         //     basicVertexStruct.push(linearArray[j]);
+//         // }
+
+        
+
+//         glVertexStruct.copy(basicVertexStruct);
+//         cpuBuffer.push(glVertexStruct);
+//         console.log(cpuBuffer);
+//         // vertexStruct.length = 0;
+//         basicVertexStruct.length = 0;
+//     }
+
+//     return cpuBuffer;
+// }

@@ -66,12 +66,14 @@ export function render() {
         const indexBufferSize = entity.mesh.vIndexBufferSize;
         const normalBuffer = entity.mesh.vNormalsBuffer;
         passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, textureOffset]);
+        // console.log(offset);
         passEncoder.setVertexBuffer(0, vDataBuffer);
         // passEncoder.setIndexBuffer(indexBuffer, 'uint16');
         // passEncoder.drawIndexed(indexBufferSize);
+        // console.log(entity.mesh.vCount);
         passEncoder.draw(entity.mesh.vCount, 1);
 
-        offset *= (entityMatricesCount + 1);
+        offset += alignedSize * (entityMatricesCount + 1);
         textureOffset += alignedSize;
 
     }
@@ -92,7 +94,7 @@ export function render() {
                 getAxisArrowsUniformBindGroup(), 
                 [offset * entity.axisArrowsModelIdx]
             );
-
+            
             passEncoder.setVertexBuffer(0, getAxisArrowsVerticesGPUBuffer());
             passEncoder.draw(6, 3);
             updateDynamicGPUBuffer(entity, getMegaMatrixUBO()); 
@@ -102,7 +104,7 @@ export function render() {
                 getRotationArcUniformBindGroup(), 
                 [offset * entity.rotationArcModelIdx]
             );
-
+            
             passEncoder.setVertexBuffer(0, getRotationArcVerticesGPUBuffer());
             passEncoder.draw(rotationArcVerticesCount, 1);
 
@@ -149,9 +151,10 @@ export function render() {
         }
     }
 
-    passEncoder.setPipeline(triangleListPipeline)
-    passEncoder.setVertexBuffer(0, getSphereVerticesGPUBuffer());
-    passEncoder.draw(getSphereVertexCount());
+    // passEncoder.setPipeline(triangleListPipeline)
+    // passEncoder.setVertexBuffer(0, getSphereVerticesGPUBuffer());
+    // console.log(getSphereVertexCount());
+    // passEncoder.draw(getSphereVertexCount());
 
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);

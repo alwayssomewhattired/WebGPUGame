@@ -161,7 +161,7 @@ export function createGlobalBindGroup() {
 export function createUBO() {
     const alignedSize = getAlignedSize(64);
 
-    const textureCount = 2;
+    const textureCount = 3;
     const alignedTextureSize = alignedSize * textureCount;
     const globalTextureIndicesArray = new Uint32Array(m_globalTextureIndices);
 
@@ -193,6 +193,9 @@ export function createUBO() {
         ]
     });
 
+    // model matrix
+    // textures
+    // textreIndices
     m_uniformBindGroup = m_device.createBindGroup({
         layout: m_uniformBindGroupLayout,
         entries: [
@@ -378,7 +381,7 @@ export async function initTextures() {
 
     // we assume all textures are 1024 x 1024
     // we also assume we have count of total 2 textures for all entities
-    m_textureCount = 2;
+    m_textureCount = 3;
     const textureDescriptor = {
         size: { width: 1024, height: 1024, depthOrArrayLayers: m_textureCount},
         format: 'rgba8unorm',

@@ -37,17 +37,16 @@ export async function main() {
     }
 
     createRayUBO();
-
+    
     initPipeline();
     initAxisArrowsPipeline();
     initArcPipeline();
     initTriangleListPipeline();
-
+    
     initRotationArcVerticesGPUBuffer();
     initRotationArcHeadVerticesGPUBuffer();
     initTransformGizmo();
     initSphereVerticesGPUBuffer();
-    
     // const offset = getAlignedSize(64);
     // for (const entity of getScene()) updateDynamicGPUBuffer(offset, entity, getMegaMatrixUBO()); 
 

@@ -6,11 +6,12 @@ import { createGPUBuffer } from "./buffer.js";
 import { getDevice } from './webgpu.js';
 
 export class Mesh {
-    constructor(vCount, vData, vDataBuffer, vIndices, vIndicesBuffer, vIndexBufferSize, aabbMin, aabbMax) {
+    constructor(vCount, vData, vDataBuffer, vIndices, vIndicesBuffer, vIndexBufferSize, aabbMin, aabbMax, primitives) {
         // | 3 (x,y,z)
         this.vCount = vCount;
         this.vData = vData;
         this.vDataBuffer = vDataBuffer;
+        this.primitives = primitives
         this.vIndices = vIndices;
         this.vIndicesBuffer = vIndicesBuffer;
         this.vIndexBufferSize = vIndexBufferSize;
@@ -18,6 +19,14 @@ export class Mesh {
         this.aabbMax = aabbMax;
         this.aabbPositionsBuffer = createAABBPositions(this);
         this.aabbPositionsLength = 24;
+    }
+}
+
+// | holds spot and size in global vertex data
+class Primitive {
+    constructor(offset, size) {
+        this.offset = offset;
+        this.size = size;
     }
 }
 
@@ -30,6 +39,9 @@ export function createMesh(obj, device) {
     let vertexData = [];
     let aabbMin = glMatrix.vec3.create();
     let aabbMax = glMatrix.vec3.create();
+
+    const primitiveOffset = vertexData.length;
+    const primitiveData = [];
 
     let faces = object.faces;
     let faceCount = faces.length;
@@ -138,11 +150,95 @@ export function createMesh(obj, device) {
             const vertex = glMatrix.vec3.fromValues(vertexData);
         }
     }
+
+    const primitiveSize = vertexData.length;
+    const primitiveObject = new Primitive(primitiveOffset, primitiveSize);
+    primitiveData.push(primitiveObject);
     
     const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indices, indexBuffer, indexBufferSize, 
-        aabbMin, aabbMax, m_aabbPositionsOffset
+        aabbMin, aabbMax, m_aabbPositionsOffset, primitiveData
     );
 
+    return mesh;
+}
+
+export function createGLBMesh(primitiveAOS, device) {
+    
+    let vertexData = [];
+
+    for (const primitive in primitiveAOS) {
+        const positions = primitive.positions;
+        const texCoords = primitive.texCoords;
+        const normals = primitive.normals;
+        const indices = primitive.indices;
+
+        let aabbMin = glMatrix.vec3.create();
+        let aabbMax = glMatrix.vec3.create();
+
+        let primitiveData = [];
+
+        let vertexCount = 0;
+        const offset = vertexData.length;
+
+        let aabbIdx = 0;
+
+        const vertexElementsCount = 8 // 3-pos, 2-uv, 3-norm
+
+        const vertexIterationLength = Math.max(positions.length, texCoords.length, normals.length);
+        const vertexStride = 3; // 2 is length of uv elements
+
+        let uvIdx = 0;
+        for (let i = 0; i < vertexIterationLength; i += vertexStride) {
+
+            // | Positions
+            for (let j = i; j < (i+3); j++) {
+                const pos = positions[j]
+
+                // | AABB
+                if (aabbIdx === 0) {
+                    aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
+                    aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
+                } else if (aabbIdx === 1) {
+                    aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
+                    aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
+                } else {
+                    aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
+                    aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
+                }
+
+                aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
+                aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
+
+                vertexData.push(positions[j]);
+                vertexCount++;
+            }
+
+            // | UV
+            for (let j = uvIdx; j < (i+2); j++) {
+                vertexData.push(texCoords[j]);
+            }
+
+            uvIdx += 2;
+
+            // | Normals
+            for (let j = i; j < (i+3); j++) {
+                vertexData.push(normals[j]);
+            }
+
+        }
+        const size = vertexData.length - offset;
+        const primitiveObject = new Primitive(offset, size);
+        primitiveData.push(primitiveObject);
+    }
+
+    vertexData = new Float32Array(vertexData);
+    const vertexBuffer = createGPUBuffer(device, vertexData, vertexData.byteLength, GPUBufferUsage.VERTEX);
+
+    const indexBuffer = createGPUBuffer(device, indices, indices.byteLength, GPUBufferUsage.INDEX);
+
+    const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indices, indexBuffer, indices.length, 
+        aabbMin, aabbMax, m_aabbPositionsOffset, primitiveData
+    );
     return mesh;
 }
 

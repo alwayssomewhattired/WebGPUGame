@@ -2,7 +2,7 @@
 import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js';
 import * as glMatrix from 'gl-matrix'
 
-import { createMesh } from './mesh.js';
+import { createGLBMesh, createMesh } from './mesh.js';
 import { Entity } from './entity.js';
 import { getDevice } from './webgpu.js';
 import { getMegaMatrixCPUBufferLength } from './matrix.js';
@@ -21,9 +21,19 @@ export const sceneNameToIndexMap = new Map([
 
 export async function createEntities() {
     let idx = 0;
+    let mesh = null;
+    let materials = null;
+    const device = getDevice();
+
+    let result = null;
+    let mtlBody = null;
+
     for (const path of filePaths) {
         const extension = path.split('.').pop();
-        if (extension === "glb") await parseGLB(path);
+        if (extension === "glb") {
+            materials = parseMTL(mtlBody, result);
+            mesh = await parseGLB(path); 
+        } else {
         const objResponse = await fetch(path);
         const objBody = await objResponse.text();
         const obj = await (async () => {
@@ -37,15 +47,14 @@ export async function createEntities() {
         // | mtl
         const mtlRelativePath = obj.result.materialLibraries[0];
         const lastSlashIdx = path.lastIndexOf('/');
-        const result = lastSlashIdx !== -1 ? path.substring(0, lastSlashIdx) : path;
+        result = lastSlashIdx !== -1 ? path.substring(0, lastSlashIdx) : path;
         const mtlPath = result + '/' + mtlRelativePath;
 
-        const mtlBody = await fetch(mtlPath)
+        mtlBody = await fetch(mtlPath)
             .then(r => r.text());
-        const materials = parseMTL(mtlBody, result);
-
-        const device = getDevice();
-        const mesh = createMesh(obj, device);
+        materials = parseMTL(mtlBody, result);
+        mesh = createMesh(obj, device);
+    }
         const translation = glMatrix.vec3.create();
         const color = glMatrix.vec3.create();
 
@@ -142,7 +151,6 @@ export function updateEntities() {
     scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
     rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
     updateEntity('stop-sign', translation, rotation, scale);
-
 }
 
 async function parseGLB(url) {
@@ -189,26 +197,80 @@ async function parseGLB(url) {
         offset += chunkLength;
     }
 
+    console.log(json.meshes)
     const mesh = json.meshes[0];
-    const primitive = mesh.primitives[0];
 
-    console.log(json);
+    const primitives = []
 
-    const accessorIndex = primitive.attributes.POSITION;
 
-    const accessor = json.accessors[accessorIndex];
+    for (let i = 0; i < mesh.primitives.length; i++) {
+        
+        const primitiveStruct = {
+            positions: null,
+            texCoords: null,
+            normals: null,
+            indices: null
+        };
 
-    const bufferView = json.bufferViews[accessor.bufferView];
+        const primitive = mesh.primitives[i];
 
-    const finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+        let accessorIndex = null;
 
-    const vertexElements = getVertexElementsFromGLB(accessor.type);
+        let accessor = null;
 
-    const verticesCount = vertexElements * accessor.count;
+        let bufferView = null;
 
-    const positions = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+        let finalByteOffset = null;
 
-    console.log(positions);
+        let vertexElements = null;
+
+        let verticesCount = null;
+
+        // | Positions
+        accessorIndex = primitive.attributes.POSITION;
+        accessor = json.accessors[accessorIndex];
+        bufferView = json.bufferViews[accessor.bufferView];
+        finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+        vertexElements = getVertexElementsFromGLB(accessor.type);
+        verticesCount = vertexElements * accessor.count;
+        primitiveStruct.positions = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+        // const positionsStruct = glMatrix.vec3.create();
+        // const positionsCPUBuffer = getGLArray(positions, positionsStruct, 3);
+        // console.log(positionsCPUBuffer);
+
+        // | UV's
+        accessorIndex = primitive.attributes.TEXCOORD_0;
+        accessor = json.accessors[accessorIndex];
+        bufferView = json.bufferViews[accessor.bufferView];
+        finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+        vertexElements = getVertexElementsFromGLB(accessor.type);
+        verticesCount = vertexElements * accessor.count;
+        primitiveStruct.texCoords = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+        // console.log(texCoords);
+
+        // | Normals
+        accessorIndex = primitive.attributes.NORMAL;
+        accessor = json.accessors[accessorIndex];
+        bufferView = json.bufferViews[accessor.bufferView];
+        finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+        vertexElements = getVertexElementsFromGLB(accessor.type);
+        verticesCount = vertexElements * accessor.count;
+        primitiveStruct.normals = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+
+        // | Indices
+        accessorIndex = primitive.indices;
+        accessor = json.accessors[accessorIndex];
+        bufferView = json.bufferViews[accessor.bufferView];
+        finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+        vertexElements = getVertexElementsFromGLB(accessor.type);
+        verticesCount = vertexElements * accessor.count;
+        primitiveStruct.indices = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+
+        primitives.push(primitiveStruct);
+    }
+
+    return createGLBMesh(primitives, getDevice());
+
 }
 
 function getVertexElementsFromGLB(type) {
