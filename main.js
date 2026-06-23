@@ -10,9 +10,9 @@ import { frame } from './frame.js';
 import { render } from './renderer.js';
 import { initMouse } from './camera.js';
 import { initTransformGizmo } from './transformGizmo.js';
-import { initMegaMatrixCPUBuffer } from './matrix.js';
+import { initMegaMatrixCPUBuffer, updateMatrix } from './matrix.js';
 import { initArcPipeline } from './pipelines/arcPipeline.js';
-import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, initSphereVerticesGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
+import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, initSphereVerticesGPUBuffer } from './buffer.js';
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
 
 
@@ -31,9 +31,12 @@ export async function main() {
     createGlobalBindGroup();
     createUBO();
     for (const entity of getScene()) {
-        createAxisArrowsUBO(entity);
-        createAABBUBO(entity);
-        createRotationArcUBO(entity);
+        for (const mesh of entity.meshes) {
+            updateMatrix(mesh);
+            createAxisArrowsUBO(mesh);
+            createAABBUBO(mesh);
+            createRotationArcUBO(mesh);
+        }
     }
 
     createRayUBO();

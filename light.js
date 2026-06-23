@@ -1,5 +1,5 @@
 
-let m_sphereVertexCount = null;
+let m_sphereRawVertexCount = null;
 const m_vertices = [];
 
 export function generateUVSphere(radius, segments) {
@@ -25,10 +25,10 @@ export function generateUVSphere(radius, segments) {
             m_vertices.push(x * radius, y * radius, z * radius, r, g, b);
         }
     }
-    m_sphereVertexCount = m_vertices.length;
+    m_sphereRawVertexCount = m_vertices.length;
     return new Float32Array(m_vertices);
 }
 
-export function getSphereVertexCount() {
-    return m_sphereVertexCount;
+export function getSphereRawVertexCount() {
+    return m_sphereRawVertexCount / 6;
 }

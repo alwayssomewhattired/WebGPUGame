@@ -5,11 +5,15 @@ import * as glMatrix from 'gl-matrix'
 import { createGLBMesh, createMesh } from './mesh.js';
 import { Entity } from './entity.js';
 import { getDevice } from './webgpu.js';
-import { getMegaMatrixCPUBufferLength } from './matrix.js';
+import { getMegaMatrixCPUBufferLength, updateMatrix } from './matrix.js';
+import { createGPUBuffer } from './buffer.js';
 
 const filePaths = [
     './models/psx-rat/source/rat.obj',
     './models/stop-sign-psx/source/stop-sign.obj',
+    // | sadly no pizzeria yet :(
+    // | I think file exported wrong
+    // | Need to check in blender first
     './models/pizzeria.glb'
 ];
 
@@ -21,9 +25,10 @@ export const sceneNameToIndexMap = new Map([
 
 export async function createEntities() {
     let idx = 0;
-    let mesh = null;
+    let meshes = null;
     let materials = null;
     const device = getDevice();
+    let meshIdx = 0;
 
     let result = null;
     let mtlBody = null;
@@ -31,36 +36,52 @@ export async function createEntities() {
     for (const path of filePaths) {
         const extension = path.split('.').pop();
         if (extension === "glb") {
-            materials = parseMTL(mtlBody, result);
-            mesh = await parseGLB(path); 
-            console.log(mesh);
+            meshes = await parseGLB(path); 
         } else {
-        const objResponse = await fetch(path);
-        const objBody = await objResponse.text();
-        const obj = await (async () => {
-            return new Promise((resolve, reject) => {
-                const obj = new OBJFile(objBody);
-                obj.parse();
-                resolve(obj);
-            })
-        })();
+            const objResponse = await fetch(path);
+            const objBody = await objResponse.text();
+            const obj = await (async () => {
+                return new Promise((resolve, reject) => {
+                    const obj = new OBJFile(objBody);
+                    obj.parse();
+                    resolve(obj);
+                })
+            })();
 
-        // | mtl
-        const mtlRelativePath = obj.result.materialLibraries[0];
-        const lastSlashIdx = path.lastIndexOf('/');
-        result = lastSlashIdx !== -1 ? path.substring(0, lastSlashIdx) : path;
-        const mtlPath = result + '/' + mtlRelativePath;
+            // | mtl
+            const mtlRelativePath = obj.result.materialLibraries[0];
+            const lastSlashIdx = path.lastIndexOf('/');
+            result = lastSlashIdx !== -1 ? path.substring(0, lastSlashIdx) : path;
+            const mtlPath = result + '/' + mtlRelativePath;
 
-        mtlBody = await fetch(mtlPath)
-            .then(r => r.text());
-        materials = parseMTL(mtlBody, result);
-        mesh = createMesh(obj, device);
-    }
+            mtlBody = await fetch(mtlPath)
+                .then(r => r.text());
+            materials = parseMTL(mtlBody, result);
+            meshes = [createMesh(obj, device)];
+
+        }
+
         const translation = glMatrix.vec3.create();
         const color = glMatrix.vec3.create();
 
+        const perEntityGlobalVertexData = [];
+        for (const mesh of meshes) {
+            mesh.idx = meshIdx;
+            meshIdx++;
+            for (const e of mesh.vData) {
+                perEntityGlobalVertexData.push(e);
+            }
+        }
+
+        const perEntityGlobalVertexTypedArray = new Float32Array(perEntityGlobalVertexData);
+
+        const perEntityGlobalVertexBuffer = createGPUBuffer(getDevice(), perEntityGlobalVertexTypedArray, 
+            perEntityGlobalVertexTypedArray.byteLength, GPUBufferUsage.VERTEX);
+
         const modelMatrixIdx = getMegaMatrixCPUBufferLength();
-        const entity = new Entity(mesh, color, path, modelMatrixIdx, materials, idx, extension);
+
+
+        const entity = new Entity(meshes, color, path, modelMatrixIdx, materials, idx, extension, perEntityGlobalVertexBuffer);
         idx++;
         scene.push(entity);
     }
@@ -129,11 +150,16 @@ export function getEntity(objectName) {
 
 export function updateEntity(objectName, translation, rotation, scale) {
     const entity = getEntity(objectName);
-
-    glMatrix.vec3.add(entity.translation, entity.translation, translation);
-    glMatrix.vec3.add(entity.rotation, entity.rotation, rotation);
-    entity.scale = scale;
-    entity.updateMatrix();
+    const incrementedTranslation = translation;
+    for (const mesh of entity.meshes) {
+        const translationOut = mesh.getTranslation();
+        const rotationOut = mesh.getRotation();
+        glMatrix.vec3.add(incrementedTranslation, incrementedTranslation, glMatrix.vec3.fromValues(0.001, 0.0, 0.0));
+        mesh.setTranslation(glMatrix.vec3.add(translationOut, translationOut, incrementedTranslation));
+        mesh.setRotation(glMatrix.vec3.add(rotationOut, rotationOut, rotation));
+        mesh.setScale(scale);
+        updateMatrix(mesh);
+    }
 }
 
 // | our hardcoded entity updates
@@ -152,6 +178,12 @@ export function updateEntities() {
     scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
     rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
     updateEntity('stop-sign', translation, rotation, scale);
+
+    // translation = glMatrix.vec3.fromValues(2, 2, 5);
+    // scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
+    // rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
+    // updateEntity('pizzeria', translation, rotation, scale);
+
 }
 
 async function parseGLB(url) {
@@ -197,73 +229,78 @@ async function parseGLB(url) {
 
         offset += chunkLength;
     }
+    
+    const meshes = [];
+    
+    for (const mesh of json.meshes) {
+        const primitives =  [];
 
-    const mesh = json.meshes[0];
+        for (let i = 0; i < mesh.primitives.length; i++) {
 
-    const primitives = []
+            const primitiveStruct = {
+                positions: null,
+                texCoords: null,
+                normals: null,
+                indices: null
+            };
 
-    for (let i = 0; i < mesh.primitives.length; i++) {
-        
-        const primitiveStruct = {
-            positions: null,
-            texCoords: null,
-            normals: null,
-            indices: null
-        };
+            const primitive = mesh.primitives[i];
 
-        const primitive = mesh.primitives[i];
+            let accessorIndex = null;
 
-        let accessorIndex = null;
+            let accessor = null;
 
-        let accessor = null;
+            let bufferView = null;
 
-        let bufferView = null;
+            let finalByteOffset = null;
 
-        let finalByteOffset = null;
+            let vertexElements = null;
 
-        let vertexElements = null;
+            let verticesCount = null;
 
-        let verticesCount = null;
+            // | Positions
+            accessorIndex = primitive.attributes.POSITION;
+            accessor = json.accessors[accessorIndex];
+            bufferView = json.bufferViews[accessor.bufferView];
+            finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+            vertexElements = getVertexElementsFromGLB(accessor.type);
+            verticesCount = vertexElements * accessor.count;
+            primitiveStruct.positions = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
 
-        // | Positions
-        accessorIndex = primitive.attributes.POSITION;
-        accessor = json.accessors[accessorIndex];
-        bufferView = json.bufferViews[accessor.bufferView];
-        finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
-        vertexElements = getVertexElementsFromGLB(accessor.type);
-        verticesCount = vertexElements * accessor.count;
-        primitiveStruct.positions = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            // | UV's
+            accessorIndex = primitive.attributes.TEXCOORD_0;
+            accessor = json.accessors[accessorIndex];
+            bufferView = json.bufferViews[accessor.bufferView];
+            finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+            vertexElements = getVertexElementsFromGLB(accessor.type);
+            verticesCount = vertexElements * accessor.count;
+            primitiveStruct.texCoords = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
 
-        // | UV's
-        accessorIndex = primitive.attributes.TEXCOORD_0;
-        accessor = json.accessors[accessorIndex];
-        bufferView = json.bufferViews[accessor.bufferView];
-        finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
-        vertexElements = getVertexElementsFromGLB(accessor.type);
-        verticesCount = vertexElements * accessor.count;
-        primitiveStruct.texCoords = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            // | Normals
+            accessorIndex = primitive.attributes.NORMAL;
+            accessor = json.accessors[accessorIndex];
+            bufferView = json.bufferViews[accessor.bufferView];
+            finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+            vertexElements = getVertexElementsFromGLB(accessor.type);
+            verticesCount = vertexElements * accessor.count;
+            primitiveStruct.normals = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
 
-        // | Normals
-        accessorIndex = primitive.attributes.NORMAL;
-        accessor = json.accessors[accessorIndex];
-        bufferView = json.bufferViews[accessor.bufferView];
-        finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
-        vertexElements = getVertexElementsFromGLB(accessor.type);
-        verticesCount = vertexElements * accessor.count;
-        primitiveStruct.normals = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            // | Indices
+            accessorIndex = primitive.indices;
+            accessor = json.accessors[accessorIndex];
+            bufferView = json.bufferViews[accessor.bufferView];
+            finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+            vertexElements = getVertexElementsFromGLB(accessor.type);
+            verticesCount = vertexElements * accessor.count;
+            primitiveStruct.indices = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            primitives.push(primitiveStruct);
+        }
 
-        // | Indices
-        accessorIndex = primitive.indices;
-        accessor = json.accessors[accessorIndex];
-        bufferView = json.bufferViews[accessor.bufferView];
-        finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
-        vertexElements = getVertexElementsFromGLB(accessor.type);
-        verticesCount = vertexElements * accessor.count;
-        primitiveStruct.indices = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
-        primitives.push(primitiveStruct);
+        meshes.push(createGLBMesh(primitives, getDevice()));
+
     }
-    return createGLBMesh(primitives, getDevice());
-
+    
+    return meshes;
 }
 
 function getVertexElementsFromGLB(type) {

@@ -1,7 +1,7 @@
 import { getPipeline  } from "./pipelines/pipeline.js";
 import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup } from "./uniform.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup, getRayUniformBindGroupLayout } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
@@ -12,7 +12,7 @@ import { getRayVerticesBuffer } from "./ray.js";
 import { keyboardInput } from "./keyboardListeners.js";
 import { getArcPipeline } from "./pipelines/arcPipeline.js";
 import { getTriangleListPipeline } from "./pipelines/triangleListPipeline.js";
-import { getSphereVertexCount } from "./light.js";
+import { getSphereRawVertexCount } from "./light.js";
 
 
 export function render() {
@@ -61,26 +61,53 @@ export function render() {
     passEncoder.setPipeline(pipeline);
     for (const entity of scene) {
         const entityMatricesCount = entity.modelMatrixLength;
-        const vDataBuffer = entity.mesh.vDataBuffer;
-        const indexBuffer = entity.mesh.vIndicesBuffer;
-        const indexBufferSize = entity.mesh.vIndexBufferSize;
-        const normalBuffer = entity.mesh.vNormalsBuffer;
-        passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, textureOffset]);
-        passEncoder.setVertexBuffer(0, vDataBuffer);
-        // console.log(entity.mesh);
-        if (entity.fileExt === 'glb') {
-            for (const primitive of entity.mesh.primitives) {
-                // console.log(entity.mesh);
-                passEncoder.setIndexBuffer(indexBuffer, 'uint16');
-                passEncoder.drawIndexed(primitive.size, 1, primitive.offset, primitive.baseVertex);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        for (const mesh of entity.meshes) {
+        // const mesh = entity.meshes[0]
+            const indexBuffer = mesh.vIndicesBuffer;
+
+            passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, textureOffset]);
+
+            if (entity.fileExt === 'glb') {
+                const vDataBuffer = entity.perEntityGlobalVertexBuffer;
+                // const vDataBuffer = entity.perEntityGlobalVertexBuffer;
+                passEncoder.setVertexBuffer(0, vDataBuffer);
+                for (const primitive of mesh.primitives) {
+                    if (primitive.idxType === 'Uint32Array') {
+                        passEncoder.setIndexBuffer(indexBuffer, 'uint32', primitive.idxOffsetBytes, primitive.idxSizeBytes);
+                    }
+                    else if (primitive.idxType === 'Uint16Array') {
+                        passEncoder.setIndexBuffer(indexBuffer, 'uint16', primitive.idxOffsetBytes, primitive.idxSizeBytes);
+                    }
+                    passEncoder.drawIndexed(primitive.idxSize, 1, 0, primitive.vertexOffset);
+                    // console.log(primitive.baseVertex)
+                    // passEncoder.draw(primitive.vertexCount, 1, primitive.vertexOffset);
+                }
+            } else {
+                const vDataBuffer = mesh.vDataBuffer;
+                passEncoder.setVertexBuffer(0, vDataBuffer);
+                passEncoder.draw(mesh.vCount, 1);
             }
-        } else {
-            passEncoder.draw(entity.mesh.vCount, 1);
+            // - we add 1 because we have a default model matrix
+            offset += alignedSize * (entityMatricesCount + 1);
+            
         }
-
-        offset += alignedSize * (entityMatricesCount + 1);
+        
         textureOffset += alignedSize;
-
     }
 
     const rotationArcVerticesCount = getGlobalRotationArcVerticesCount();
@@ -136,7 +163,7 @@ export function render() {
                 
                 passEncoder.draw(gizmoPositionsCPUBuffer.length / 3, 1);
                 
-                passEncoder.setVertexBuffer(0, entity.mesh.aabbPositionsBuffer);    
+                passEncoder.setVertexBuffer(0, entity.meshes[0].aabbPositionsBuffer);    
                 passEncoder.setBindGroup(
                     1, 
                     getAABBUniformBindGroup(), 
@@ -145,7 +172,7 @@ export function render() {
 
                 const aabbModelMatrixOffset = aabbMatrixUBO.length;         
 
-                passEncoder.draw(entity.mesh.aabbPositionsLength, 1);
+                passEncoder.draw(entity.meshes[0].aabbPositionsLength, 1);
 
                 passEncoder.setBindGroup(1, getRayUniformBindGroup(), [0]);
                 for (const rayBuffer of getRayVerticesBuffer()) {
@@ -156,12 +183,52 @@ export function render() {
         }
     }
 
-    // passEncoder.setPipeline(triangleListPipeline)
-    // passEncoder.setVertexBuffer(0, getSphereVerticesGPUBuffer());
+    passEncoder.setPipeline(triangleListPipeline)
+    passEncoder.setBindGroup(1, getRotationArcUniformBindGroup(), [0]);
+    passEncoder.setVertexBuffer(0, getSphereVerticesGPUBuffer());
     // console.log(getSphereVertexCount());
-    // passEncoder.draw(getSphereVertexCount());
+    passEncoder.draw(getSphereRawVertexCount());
 
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            // for (const primitive of entity.mesh.primitives) {
+            //     passEncoder.setVertexBuffer(0, vDataBuffer, primitive.offset, primitive.size);
+            //     passEncoder.setIndexBuffer(indexBuffer, 'uint16', primitive.idxOffsetBytes, primitive.idxSizeBytes);
+            //     passEncoder.drawIndexed(primitive.idxSize, 1, primitive.idxOffset, 0);
+            // }
+
+
+
+
+
+
+
+
+
+
+
+
+

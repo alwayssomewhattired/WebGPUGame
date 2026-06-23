@@ -10,8 +10,10 @@ var t_diffuse: texture_2d_array<f32>;
 var s_diffuse: sampler;
 @group(0) @binding(4)
 var<uniform> lightDirection: vec3<f32>;
+// @group(0) @binding(5)
+// var<uniform> viewDirection: vec3<f32>;
 @group(0) @binding(5)
-var<uniform> viewDirection: vec3<f32>;
+var<uniform> cameraPos: vec3<f32>;
 
 @group(1) @binding(0)
 var<uniform> model: mat4x4<f32>;
@@ -29,19 +31,9 @@ struct VertexOutput {
     @location(1) tex_coords: vec2<f32>,
     @location(2) surfaceNormal: vec3<f32>,
     @location(3) viewDir: vec3<f32>,
-    @location(4) lightDir: vec3<f32>
+    @location(4) lightDir: vec3<f32>,
+    @location(5) cameraPos: vec3<f32>
 };
-
-fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>, specularColor:vec3<f32>, shininess:f32)
--> vec3<f32> {
-    var reflectDir:vec3<f32> = reflect(-lightDir, normal);
-    var specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
-    return pow(specDot, shininess) * specularColor;
-}
-
-fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>, diffuseColor:vec3<f32>) -> vec3<f32> {
-    return max(dot(lightDir, normal), 0.0) * diffuseColor;
-}
 
 
 // *** VERTEX ***
@@ -60,7 +52,7 @@ fn vs_main(
     out.clip_position = projection * view * model * vec4<f32>(inPos, 1.0);
     out.tex_coords = inTexCoords;
     out.surfaceNormal = surfaceNormal;
-    out.viewDir = viewDir;
+    out.cameraPos = cameraPos;
     out.lightDir = lightDir;
     return out;
 }
@@ -72,6 +64,17 @@ const shininess:f32 = 20.0;
 const ambientConstant:f32 = 1.0;
 const diffuseConstant:f32 = 1.0;
 const specularConstant:f32 = 1.0;
+
+fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>, specularColor:vec3<f32>, shininess:f32)
+-> vec3<f32> {
+    var reflectDir:vec3<f32> = reflect(-lightDir, normal);
+    var specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
+    return pow(specDot, shininess) * specularColor;
+}
+
+fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>, diffuseColor:vec3<f32>) -> vec3<f32> {
+    return max(dot(lightDir, normal), 0.0) * diffuseColor;
+}
 
 @fragment
 fn fs_main(in: VertexOutput, @builtin(front_facing) face: bool) ->  @location(0) vec4<f32> {

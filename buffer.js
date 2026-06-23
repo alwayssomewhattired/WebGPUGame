@@ -132,19 +132,21 @@ export function getAABBVerticesLength() {
     return m_aabbVerticesLength;
 }
 
-export function updateDynamicGPUBuffer(entity, buffer) {
-        const modelMatrix = getMatrix(entity.modelMatrixIdx)
-        const aabbModelMatrix = getMatrix(entity.aabbModelIdx);
-        const axisArrowsModelMatrix = getMatrix(entity.axisArrowsModelIdx);
-        const axisArrowsAABBModelMatrix = getMatrix(entity.axisArrowsAABBModelIdx);
-        const rotationArcModelMatrix = getMatrix(entity.rotationArcModelIdx);
-        const rotationArcHeadModelMatrix = getMatrix(entity.rotationArcHeadModelIdx);
-        const modelViewMatrix = getMatrix(entity.modelViewIdx);
-        const normalMatrix = getMatrix(entity.normalMatrixIdx);
+export function updateDynamicGPUBuffer(mesh, buffer) {
+    // if (mesh.isDirty) {
 
+        const modelMatrix = getMatrix(mesh.modelMatrixIdx)
+        const aabbModelMatrix = getMatrix(mesh.aabbModelIdx);
+        const axisArrowsModelMatrix = getMatrix(mesh.axisArrowsModelIdx);
+        const axisArrowsAABBModelMatrix = getMatrix(mesh.axisArrowsAABBModelIdx);
+        const rotationArcModelMatrix = getMatrix(mesh.rotationArcModelIdx);
+        const rotationArcHeadModelMatrix = getMatrix(mesh.rotationArcHeadModelIdx);
+        const modelViewMatrix = getMatrix(mesh.modelViewIdx);
+        const normalMatrix = getMatrix(mesh.normalMatrixIdx);
+        
         const alignedSizeBase = getAlignedSize(64);
-
-        let offset = alignedSizeBase * ((entity.idx * getEntityModelMatricesCount()) + 1);
+        
+        let offset = alignedSizeBase * ((mesh.idx * getEntityModelMatricesCount()) + 1);
         
         getDevice().queue.writeBuffer(buffer, offset, modelMatrix);
         offset += alignedSizeBase;
@@ -161,6 +163,11 @@ export function updateDynamicGPUBuffer(entity, buffer) {
         getDevice().queue.writeBuffer(buffer, offset, modelViewMatrix);
         offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, normalMatrix);
+        mesh.isDirty = false;
+    
+    // } else {
+    //     console.log("fuck");
+    // }
 
 }
 

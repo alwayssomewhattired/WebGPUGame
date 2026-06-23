@@ -11,6 +11,10 @@ const camera = {
     sensitivity: 0.002
 };
 
+export function getCameraPosition() {
+    return camera.position;
+}
+
 function getForward() {
     const x = Math.cos(camera.pitch) * Math.cos(camera.yaw);
     const y = Math.sin(camera.pitch);

@@ -2,11 +2,26 @@
 import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js';
 import * as glMatrix from 'gl-matrix'
 
-import { createGPUBuffer } from "./buffer.js";
+import { createGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
 import { getDevice } from './webgpu.js';
+import { updateMatrix as matrix_updateMatrix, createAndStoreMatrix, getMatrix, getMegaMatrixCPUBufferLength, getViewMatrix } from './matrix.js';
+import { getMegaMatrixUBO } from './uniform.js';
 
 export class Mesh {
-    constructor(vCount, vData, vDataBuffer, vIndices, vIndicesBuffer, vIndexBufferSize, aabbMin, aabbMax, primitives) {
+    #translation;
+    #rotation;
+    #scale;
+
+    constructor(vCount, vData, vDataBuffer, vIndices, vIndicesBuffer, vIndexBufferSize, aabbMin, aabbMax, primitives
+    ) {
+
+        this.#translation = glMatrix.vec3.fromValues(0.0, 0.0, -10.0);
+        this.#rotation = glMatrix.vec3.fromValues(0, 0, 0);
+        this.#scale = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
+
+        this.idx = null;
+        this.isDirty = false;
+        
         // | 3 (x,y,z)
         this.vCount = vCount;
         this.vData = vData;
@@ -19,14 +34,158 @@ export class Mesh {
         this.aabbMax = aabbMax;
         this.aabbPositionsBuffer = createAABBPositions(this);
         this.aabbPositionsLength = 24;
+
+        // ####### matrix indices are internally set
+        // DO NOT TOUCH
+        // #######
+        this.modelMatrixLength = 8; 
+        this.modelMatrixIdx = null;
+        this.aabbModelIdx = null;
+        this.axisArrowsModelIdx = null;
+        this.axisArrowsAABBModelIdx = null;
+        this.rotationArcModelIdx = null;
+        this.rotationArcHeadModelIdx = null;
+        this.modelViewIdx = null;
+        this.normalMatrixIdx = null;
+
+        this.modelMatrixBufferOffset;
+        // this.initMatrixIndices();
+        this.initModelMatrix();
+
+
     }
+
+    setTranslation(translation) {
+        this.#translation = translation;
+        this.isDirty = true;
+    }
+    setRotation(rotation) {
+        this.#rotation = rotation;
+        this.isDirty = true;
+    }
+    setScale(scale) {
+        this.#scale = scale;
+        this.isDirty = true;
+    }
+
+    getTranslation() {
+        return this.#translation;
+    }
+    getRotation() {
+        return this.#rotation;
+    }
+    getScale() {
+        return this.#scale;
+    }
+
+//    initMatrixIndices() {
+//         let matrixCount = getMegaMatrixCPUBufferLength();
+//         for (const mesh of this.meshes) {
+//             mesh.modelMatrixIdx = matrixCount;
+//             matrixCount += this.modelMatrixLength;
+//         }
+//     }
+
+    initModelMatrix() {
+        const mesh = this;
+            const translation = mesh.getTranslation();
+            const rotation = mesh.getRotation();
+            const scale = mesh.getScale()
+            const modelMatrix = glMatrix.mat4.create();
+            glMatrix.mat4.identity(modelMatrix);
+            glMatrix.mat4.translate(modelMatrix, modelMatrix, mesh.getTranslation());
+            glMatrix.mat4.rotateX(modelMatrix, modelMatrix, rotation[0]);
+            glMatrix.mat4.rotateY(modelMatrix, modelMatrix, rotation[1]);
+            glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, rotation[2]);
+            glMatrix.mat4.scale(modelMatrix, modelMatrix, scale);
+            mesh.modelMatrixIdx = createAndStoreMatrix(modelMatrix);
+
+            const aabbModelMatrix = glMatrix.mat4.create();
+            glMatrix.mat4.identity(aabbModelMatrix);
+            glMatrix.mat4.translate(aabbModelMatrix, aabbModelMatrix, translation);
+            glMatrix.mat4.rotateX(aabbModelMatrix, aabbModelMatrix, rotation[0]);
+            glMatrix.mat4.rotateY(aabbModelMatrix, aabbModelMatrix, rotation[1]);
+            glMatrix.mat4.rotateZ(aabbModelMatrix, aabbModelMatrix, rotation[2]);
+            glMatrix.mat4.scale(aabbModelMatrix, aabbModelMatrix, scale);
+            mesh.aabbModelIdx = createAndStoreMatrix(aabbModelMatrix);
+
+            const axisArrowsModelMatrix = glMatrix.mat4.create();
+            const axisArrowsScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
+            glMatrix.mat4.identity(axisArrowsModelMatrix);
+            glMatrix.mat4.translate(axisArrowsModelMatrix, axisArrowsModelMatrix, translation);
+            glMatrix.mat4.rotateX(axisArrowsModelMatrix, axisArrowsModelMatrix, rotation[0]);
+            glMatrix.mat4.rotateY(axisArrowsModelMatrix, axisArrowsModelMatrix, rotation[1]);
+            glMatrix.mat4.rotateZ(axisArrowsModelMatrix, axisArrowsModelMatrix, rotation[2]);
+            glMatrix.mat4.scale(axisArrowsModelMatrix, axisArrowsModelMatrix, axisArrowsScale);
+            mesh.axisArrowsModelIdx = createAndStoreMatrix(axisArrowsModelMatrix);
+
+            const axisArrowsAABBModelMatrix = glMatrix.mat4.create();
+            const axisArrowsAABBScale = glMatrix.vec3.fromValues(1.0, 1.0, 1.0);
+            glMatrix.mat4.identity(axisArrowsAABBModelMatrix);
+            glMatrix.mat4.translate(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, translation);
+            glMatrix.mat4.rotateX(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, rotation[0]);
+            glMatrix.mat4.rotateY(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, rotation[1]);
+            glMatrix.mat4.rotateZ(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, rotation[2]);
+            glMatrix.mat4.scale(axisArrowsAABBModelMatrix, axisArrowsAABBModelMatrix, axisArrowsAABBScale);
+            mesh.axisArrowsAABBModelIdx = createAndStoreMatrix(axisArrowsAABBModelMatrix);
+
+            const rotationArcModelMatrix = glMatrix.mat4.create();
+            glMatrix.mat4.identity(rotationArcModelMatrix);
+            glMatrix.mat4.translate(rotationArcModelMatrix, rotationArcModelMatrix, translation);
+            glMatrix.mat4.rotateX(rotationArcModelMatrix, rotationArcModelMatrix, rotation[0]);
+            glMatrix.mat4.rotateY(rotationArcModelMatrix, rotationArcModelMatrix, rotation[1]);
+            glMatrix.mat4.rotateZ(rotationArcModelMatrix, rotationArcModelMatrix, rotation[2]);
+            mesh.rotationArcModelIdx = createAndStoreMatrix(rotationArcModelMatrix);
+
+            const rotationArcHeadModelMatrix = glMatrix.mat4.create();
+            const rotationArcHeadScale = glMatrix.vec3.fromValues(0.1, 0.1, 0.1);
+            glMatrix.mat4.identity(rotationArcHeadModelMatrix);
+            glMatrix.mat4.translate(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, translation);
+            glMatrix.mat4.translate(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, [1.0, 0, 0]);
+            glMatrix.mat4.rotateX(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, rotation[0]);
+            glMatrix.mat4.rotateY(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, rotation[1]);
+            glMatrix.mat4.rotateZ(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, rotation[2]);
+            glMatrix.mat4.scale(rotationArcHeadModelMatrix, rotationArcHeadModelMatrix, rotationArcHeadScale);
+            mesh.rotationArcHeadModelIdx = createAndStoreMatrix(rotationArcHeadModelMatrix);
+
+            const viewMatrix = getViewMatrix();
+            const modelViewMatrix = glMatrix.mat4.create();
+            glMatrix.mat4.multiply(modelViewMatrix, modelMatrix, viewMatrix);
+            mesh.modelViewIdx = createAndStoreMatrix(modelViewMatrix);
+
+            const normalMatrix = glMatrix.mat4.create();
+            glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
+            glMatrix.mat4.transpose(normalMatrix, normalMatrix);
+            mesh.normalMatrixIdx = createAndStoreMatrix(normalMatrix);
+            // console.log(mesh.normalMatrixIdx);
+            
+            // mesh.updateMatrix();
+    }
+
+//    updateMatrix() {
+//         matrix_updateMatrix(this);
+//         updateDynamicGPUBuffer(this, getMegaMatrixUBO());
+//     }
 }
 
 class Primitive {
-    constructor(offset, size, baseVertex) {
-        this.offset = offset;
-        this.size = size;
-        this.baseVertex = baseVertex;
+    constructor(vertexOffsetBytes, vertexSizeBytes, vertexOffset, idxOffset, idxSize, idxOffsetBytes, idxSizeBytes,
+        vertexStrideBytes, idxType, vertexSize, vertexCount
+    ) {
+
+        this.vertexOffsetBytes =  vertexOffsetBytes;
+        this.vertexSizeBytes =   vertexSizeBytes;
+        this.vertexOffset =        vertexOffset;
+        this.vertexSize = vertexSize;
+        this.vertexCount = vertexCount;
+        this.vertexStrideBytes = vertexStrideBytes;
+
+        this.idxOffset =    idxOffset;
+        this.idxSize =      idxSize;
+        this.idxType = idxType;
+
+        this.idxOffsetBytes =    idxOffsetBytes;
+        this.idxSizeBytes =      idxSizeBytes;
     }
 }
 
@@ -67,7 +226,7 @@ export function createMesh(obj, device) {
                 pos.y,
                 pos.z,
                 uv.u,
-                uv.v, // - possibly flip this
+                uv.v,
                 normal.x,
                 normal.y,
                 normal.z
@@ -154,9 +313,11 @@ export function createMesh(obj, device) {
     const primitiveSize = vertexData.length;
     const primitiveObject = new Primitive(primitiveOffset, primitiveSize);
     primitiveData.push(primitiveObject);
+
+    // const modelMatrixIdx = getMegaMatrixCPUBufferLength();
     
     const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indices, indexBuffer, indexBufferSize, 
-        aabbMin, aabbMax, m_aabbPositionsOffset, primitiveData
+        aabbMin, aabbMax, primitiveData
     );
 
     return mesh;
@@ -168,30 +329,39 @@ export function createGLBMesh(primitiveAOS, device) {
     let indexData = [];
     let primitiveData = [];
 
-    let vertexCount = 0;
+    // let vertexCount = 0;
 
     let aabbMin = glMatrix.vec3.create();
     let aabbMax = glMatrix.vec3.create();
+
+    const f32SizeBytes      = 4;
+    let indexTypeSizeBytes   = null;
+    let idxType = null;
+
+    const vertexElementsCount = 8 // 3-pos, 2-uv, 3-norm
+    const vertexStrideBytes = vertexElementsCount * f32SizeBytes;
 
     for (const primitive of primitiveAOS) {
         const positions = primitive.positions;
         const texCoords = primitive.texCoords;
         const normals = primitive.normals;
+        // indices are way too fucking huge fucking fix it fuuuuuuuuuuuuuuuccccccckkkkkkkkk
         const indices = primitive.indices;
-    
-       console.log(positions.length);
-        console.log(indices.length);
-
-        const baseVertex = vertexData.length;
-        const offset = vertexData.length;
+        idxType = primitive.indices.constructor.name;
+        if (idxType === 'Uint32Array') indexTypeSizeBytes = 4;
+        else if (idxType === 'Uint16Array') indexTypeSizeBytes = 2;
+        
+        const idxOffset = indexData.length;
+        const idxOffsetBytes = idxOffset * indexTypeSizeBytes;
+        let vertexOffset = vertexData.length;
+        const vertexOffsetBytes = vertexData.length * f32SizeBytes;
         let aabbIdx = 0;
 
-        const vertexElementsCount = 8 // 3-pos, 2-uv, 3-norm
         const vertexIterationLength = Math.max(positions.length, texCoords.length, normals.length);
-        const vertexStride = 3; // 2 is length of uv elements
+        const vertexIterationStride = 3; 
 
         let uvIdx = 0;
-        for (let i = 0; i < vertexIterationLength; i += vertexStride) {
+        for (let i = 0; i < vertexIterationLength; i += vertexIterationStride) {
 
             // | Positions
             for (let j = i; j < (i+3); j++) {
@@ -212,13 +382,15 @@ export function createGLBMesh(primitiveAOS, device) {
                 aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
                 aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
 
+                // if (positions[j] === undefined) console.log("nan position");
                 vertexData.push(positions[j]);
                 indexData.push(indices[j]);
-                vertexCount++;
+                // vertexCount++;
             }
 
             // | UV
             for (let j = uvIdx; j < (i+2); j++) {
+                // if (texCoords[j] === undefined) console.log("texCoord is nan")
                 vertexData.push(texCoords[j]);
             }
 
@@ -226,22 +398,30 @@ export function createGLBMesh(primitiveAOS, device) {
 
             // | Normals
             for (let j = i; j < (i+3); j++) {
+                // if (normals[j] === undefined) console.log("normal is nan");
                 vertexData.push(normals[j]);
             }
+        }   
 
-        }
-        const size = vertexData.length - offset;
-        const primitiveObject = new Primitive(offset, size, baseVertex);
+        const idxSize = indexData.length - idxOffset;
+        const idxSizeBytes = idxSize * indexTypeSizeBytes;
+        const vertexSizeBytes = (vertexData.length * f32SizeBytes) - vertexOffsetBytes;
+        const vertexSize = vertexData.length - vertexOffset;
+        const vertexCount = vertexSize / vertexElementsCount;
+        const primitiveObject = new Primitive(vertexOffsetBytes, vertexSizeBytes, vertexOffset, idxOffset, idxSize,
+             idxOffsetBytes, idxSizeBytes, vertexStrideBytes, idxType, vertexSize, vertexCount);
         primitiveData.push(primitiveObject);
     }
 
+    const vertexCount = vertexData.length / vertexElementsCount;
     vertexData = new Float32Array(vertexData);
-    indexData = new Float32Array(indexData);
-    // console.log(vertexData.length);
-    // console.log(indexData.length);
-
+    if (idxType === "Uint32Array") indexData = new Uint32Array(indexData);
+    if (idxType === "Uint16Array") indexData = new Uint16Array(indexData);
+    // console.log(vertexData);
+    // console.log(indexData);
     const vertexBuffer = createGPUBuffer(device, vertexData, vertexData.byteLength, GPUBufferUsage.VERTEX);
     const indexBuffer = createGPUBuffer(device, indexData, indexData.byteLength, GPUBufferUsage.INDEX);
+
     const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indexData, indexBuffer, indexData.length, 
         aabbMin, aabbMax, primitiveData
     );

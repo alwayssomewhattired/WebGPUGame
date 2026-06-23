@@ -7,6 +7,7 @@ import { createGPUBuffer, getAxisArrowsVerticesGPUBuffer, getAABBColorGPUBuffer,
 import { getDevice } from './webgpu.js'
 import { getScene } from './fileParser.js';
 import { getMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
+import { getCameraPosition } from './camera.js';
 
 let m_rayModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
@@ -15,6 +16,7 @@ let m_aabbMatrixUBO = null;
 let m_dynamicModelMatrixUBO = null;
 let m_dynamicModelViewMatrixUBO = null;
 let m_megaMatrixUBO = null;
+let m_cameraPositionUBO = null;
 
 let m_globalTextureUBO = null;
 let m_textureCount = null;
@@ -50,16 +52,26 @@ export function initUniformConstructor() {
 export function createMegaMatrixUBO(scene) {
     const alignedSize = getAlignedSize(64);
     const modelMatrix = glMatrix.mat4.create();
+
+    let meshCount = 0;
+    for (const entity of scene) {
+        meshCount += entity.meshes.length;
+    }
+
     const modelMatricesSize = scene[0].modelMatrixLength;
-    const modelMatrixByteLength = (
+    const modelMatrixByteLength = 
+    (
         (modelMatrix.byteLength * modelMatricesSize) 
-        * scene.length * modelMatricesSize) 
-        + alignedSize;
+        * meshCount * modelMatricesSize
+    ) + alignedSize;
+
     m_megaMatrixUBO = createGPUBuffer(m_device, modelMatrix, modelMatrixByteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-    for (const entity of scene) {
-        updateDynamicGPUBuffer(entity, m_megaMatrixUBO);
-    }
+    // for (const entity of scene) {
+    //     for (const mesh of entity.meshes) {
+    //         updateDynamicGPUBuffer(entity, m_megaMatrixUBO);
+    //     }
+    // }
 }
 
 export function createGlobalBindGroup() {
@@ -73,13 +85,17 @@ export function createGlobalBindGroup() {
     m_projectionMatrixUBO = createGPUBuffer(m_device, projectionMatrix, projectionMatrix.byteLength, GPUBufferUsage.UNIFORM);
        
     const textureUBO = m_globalTextureUBO;
-    
+    // how tf to get light origin????
     const lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
     const lightDirectionUBO = createGPUBuffer(m_device, lightDirectionBuffer, lightDirectionBuffer.byteLength, 
         GPUBufferUsage.UNIFORM);
-    const viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
-    const viewDirectionUBO = createGPUBuffer(m_device, viewDirectionBuffer, viewDirectionBuffer.byteLength, 
-        GPUBufferUsage.UNIFORM);
+    // const viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
+    // const viewDirectionUBO = createGPUBuffer(m_device, viewDirectionBuffer, viewDirectionBuffer.byteLength, 
+    //     GPUBufferUsage.UNIFORM);
+
+    m_cameraPositionUBO = createGPUBuffer(m_device, getCameraPosition(), cameraPosBuffer.byteLength,
+        GPUBufferUsage.UNIFORM
+    );
 
     m_globalUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
@@ -148,10 +164,16 @@ export function createGlobalBindGroup() {
                     buffer: lightDirectionUBO
                 }
             },
+            // {
+            //     binding: 5,
+            //     resource: {
+            //         buffer: viewDirectionUBO
+            //     }
+            // }
             {
                 binding: 5,
                 resource: {
-                    buffer: viewDirectionUBO
+                    buffer: m_cameraPositionUBO
                 }
             }
         ]
@@ -227,8 +249,8 @@ export function createUBO() {
     });
 }
 
-export function createAxisArrowsUBO(entity) {
-    const model = getMatrix(entity.axisArrowsModelIdx);
+export function createAxisArrowsUBO(mesh) {
+    const model = getMatrix(mesh.axisArrowsModelIdx);
     const alignedSize = getAlignedSize(64);
     const axisArrowsUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_axisArrowsUniformBindGroupLayout = m_device.createBindGroupLayout({
@@ -260,8 +282,8 @@ export function createAxisArrowsUBO(entity) {
 
 // | - rotation arc
 // | - rotation arc head
-export function createRotationArcUBO(entity) {
-    const model = getMatrix(entity.rotationArcModelIdx);
+export function createRotationArcUBO(mesh) {
+    const model = getMatrix(mesh.rotationArcModelIdx);
     const alignedSize = getAlignedSize(64);
     const rotationArcUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
     m_rotationArcUniformBindGroupLayout = m_device.createBindGroupLayout({
@@ -291,10 +313,10 @@ export function createRotationArcUBO(entity) {
     });
 }
 
-export function createAABBUBO(entity) {
+export function createAABBUBO(mesh) {
     const objectDataSize = 64 // 16 floats for model matrix
     const alignedSize = getAlignedSize(objectDataSize);
-    const bufferAllocationSize = alignedSize * entity.modelMatrixLength;
+    const bufferAllocationSize = alignedSize * mesh.modelMatrixLength;
 
     m_aabbUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
@@ -375,6 +397,53 @@ export function createRayUBO() {
         ]
     });
 }
+
+// export function create() {
+//     const model = glMatrix.mat4.create();
+//     const alignedSize = getAlignedSize(64);
+ 
+//     m_rayUniformBindGroupLayout = m_device.createBindGroupLayout({
+//         entries: [
+//             {
+//                 binding: 0,
+//                 visibility: GPUShaderStage.FRAGMENT,
+//                 buffer: {}
+//             },
+//             {
+//                 binding: 1,
+//                 visibility: GPUShaderStage.VERTEX,
+//                 buffer: {
+//                     hasDynamicOffset: true
+//                 }
+//             }
+//         ]
+//     });
+
+//     m_rayUniformBindGroup = m_device.createBindGroup({
+//         layout: m_aabbUniformBindGroupLayout,
+//         entries: [
+//             {
+//                 binding: 0,
+//                 resource: {
+//                     buffer: getRayColorGPUBuffer()
+//                 }
+//             },
+//             {
+//                 binding: 1,
+//                 resource: {
+//                     buffer: m_megaMatrixUBO,
+//                     offset: 0,
+//                     size: alignedSize
+//                 }
+//             }
+//         ]
+//     });
+// }
+
+
+
+///////////////////////////////////////
+
 
 
 export async function initTextures() {

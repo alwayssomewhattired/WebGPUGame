@@ -1,7 +1,8 @@
 
 import * as glMatrix from 'gl-matrix'
-import { createGPUBuffer } from './buffer.js';
+import { createGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
+import { getMegaMatrixUBO } from './uniform.js';
 
 // 0: default-empty
 // PER-ENTITY
@@ -22,6 +23,7 @@ let m_normalMatrix = null;
 // | pushes a default-empty model matrix 
 export function initMegaMatrixCPUBuffer() {
     const modelMatrix = glMatrix.mat4.create();
+    const lightPositionMatrix = 
     m_megaMatrixCPUBuffer.push(modelMatrix);
 }
 
@@ -36,65 +38,74 @@ export function getMegaMatrixCPUBufferLength() {
     return m_megaMatrixCPUBuffer.length;
 }
 
+// returns current index
 export function createAndStoreMatrix(modelMatrix) {
     m_megaMatrixCPUBuffer.push(modelMatrix);
-    return modelMatrix;
+    return m_megaMatrixCPUBuffer.length - 1; // subtract 1 because of debug matrix at index 0
 }
 
-export function updateMatrix(entity) {
-    const modelMatrix = m_megaMatrixCPUBuffer[entity.modelMatrixIdx];
-    const modelMatrix2 = m_megaMatrixCPUBuffer[entity.aabbModelIdx];
-    const modelMatrix3 = m_megaMatrixCPUBuffer[entity.axisArrowsModelIdx];
-    const modelMatrix4 = m_megaMatrixCPUBuffer[entity.axisArrowsAABBModelIdx];
-    const modelMatrix5 = m_megaMatrixCPUBuffer[entity.rotationArcModelIdx];
-    const modelMatrix6 = m_megaMatrixCPUBuffer[entity.rotationArcHeadModelIdx];
-    const modelMatrix7 = m_megaMatrixCPUBuffer[entity.modelViewIdx];
-    const modelMatrix8 = m_megaMatrixCPUBuffer[entity.normalMatrixIdx];
+export function updateMatrix(mesh) {
 
+    const translation = mesh.getTranslation();
+    const rotation = mesh.getRotation();
+    const scale = mesh.getScale();
+
+    const modelMatrix = m_megaMatrixCPUBuffer[mesh.modelMatrixIdx];
+    const modelMatrix2 = m_megaMatrixCPUBuffer[mesh.aabbModelIdx];
+    const modelMatrix3 = m_megaMatrixCPUBuffer[mesh.axisArrowsModelIdx];
+    const modelMatrix4 = m_megaMatrixCPUBuffer[mesh.axisArrowsAABBModelIdx];
+    const modelMatrix5 = m_megaMatrixCPUBuffer[mesh.rotationArcModelIdx];
+    const modelMatrix6 = m_megaMatrixCPUBuffer[mesh.rotationArcHeadModelIdx];
+    const modelMatrix7 = m_megaMatrixCPUBuffer[mesh.modelViewIdx];
+    const modelMatrix8 = m_megaMatrixCPUBuffer[mesh.normalMatrixIdx];
+    // console.log(m_megaMatrixCPUBuffer.length);
+    // console.log()
 
     if (!modelMatrix) throw new Error("model matrix is null!");
     glMatrix.mat4.identity(modelMatrix);
-    glMatrix.mat4.translate(modelMatrix, modelMatrix, entity.translation);
-    glMatrix.mat4.rotateX(modelMatrix, modelMatrix, entity.rotation[0]);
-    glMatrix.mat4.rotateY(modelMatrix, modelMatrix, entity.rotation[1]);
-    glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, entity.rotation[2]);
-    glMatrix.mat4.scale(modelMatrix, modelMatrix, entity.scale);
+    glMatrix.mat4.translate(modelMatrix, modelMatrix, translation);
+    glMatrix.mat4.rotateX(modelMatrix, modelMatrix, rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix, modelMatrix, rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, rotation[2]);
+    glMatrix.mat4.scale(modelMatrix, modelMatrix, scale);
 
     glMatrix.mat4.identity(modelMatrix2);
-    glMatrix.mat4.translate(modelMatrix2, modelMatrix2, entity.translation);
-    glMatrix.mat4.rotateX(modelMatrix2, modelMatrix2, entity.rotation[0]);
-    glMatrix.mat4.rotateY(modelMatrix2, modelMatrix2, entity.rotation[1]);
-    glMatrix.mat4.rotateZ(modelMatrix2, modelMatrix2, entity.rotation[2]);
-    glMatrix.mat4.scale(modelMatrix2, modelMatrix2, entity.scale);
+    glMatrix.mat4.translate(modelMatrix2, modelMatrix2, translation);
+    glMatrix.mat4.rotateX(modelMatrix2, modelMatrix2, rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix2, modelMatrix2, rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix2, modelMatrix2, rotation[2]);
+    glMatrix.mat4.scale(modelMatrix2, modelMatrix2, scale);
 
     glMatrix.mat4.identity(modelMatrix3);
-    glMatrix.mat4.translate(modelMatrix3, modelMatrix3, entity.translation);
+    glMatrix.mat4.translate(modelMatrix3, modelMatrix3, translation);
 
     glMatrix.mat4.identity(modelMatrix4);
-    glMatrix.mat4.translate(modelMatrix4, modelMatrix4, entity.translation);
-    glMatrix.mat4.rotateX(modelMatrix4, modelMatrix4, entity.rotation[0]);
-    glMatrix.mat4.rotateY(modelMatrix4, modelMatrix4, entity.rotation[1]);
-    glMatrix.mat4.rotateZ(modelMatrix4, modelMatrix4, entity.rotation[2]);
+    glMatrix.mat4.translate(modelMatrix4, modelMatrix4, translation);
+    glMatrix.mat4.rotateX(modelMatrix4, modelMatrix4, rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix4, modelMatrix4, rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix4, modelMatrix4, rotation[2]);
 
     glMatrix.mat4.identity(modelMatrix5);
-    glMatrix.mat4.translate(modelMatrix5, modelMatrix5, entity.translation);
+    glMatrix.mat4.translate(modelMatrix5, modelMatrix5, translation);
 
     glMatrix.mat4.identity(modelMatrix6);
-    glMatrix.mat4.translate(modelMatrix6, modelMatrix6, entity.translation);
+    glMatrix.mat4.translate(modelMatrix6, modelMatrix6, translation);
 
     glMatrix.mat4.identity(modelMatrix7);
-    glMatrix.mat4.translate(modelMatrix7, modelMatrix7, entity.translation);
-    glMatrix.mat4.rotateX(modelMatrix7, modelMatrix7, entity.rotation[0]);
-    glMatrix.mat4.rotateY(modelMatrix7, modelMatrix7, entity.rotation[1]);
-    glMatrix.mat4.rotateZ(modelMatrix7, modelMatrix7, entity.rotation[2]);
-    glMatrix.mat4.scale(modelMatrix7, modelMatrix7, entity.scale);
+    glMatrix.mat4.translate(modelMatrix7, modelMatrix7, translation);
+    glMatrix.mat4.rotateX(modelMatrix7, modelMatrix7, rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix7, modelMatrix7, rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix7, modelMatrix7, rotation[2]);
+    glMatrix.mat4.scale(modelMatrix7, modelMatrix7, scale);
 
     glMatrix.mat4.identity(modelMatrix8);
-    glMatrix.mat4.translate(modelMatrix8, modelMatrix8, entity.translation);
-    glMatrix.mat4.rotateX(modelMatrix8, modelMatrix8, entity.rotation[0]);
-    glMatrix.mat4.rotateY(modelMatrix8, modelMatrix8, entity.rotation[1]);
-    glMatrix.mat4.rotateZ(modelMatrix8, modelMatrix8, entity.rotation[2]);
-    glMatrix.mat4.scale(modelMatrix8, modelMatrix8, entity.scale);
+    glMatrix.mat4.translate(modelMatrix8, modelMatrix8, translation);
+    glMatrix.mat4.rotateX(modelMatrix8, modelMatrix8, rotation[0]);
+    glMatrix.mat4.rotateY(modelMatrix8, modelMatrix8, rotation[1]);
+    glMatrix.mat4.rotateZ(modelMatrix8, modelMatrix8, rotation[2]);
+    glMatrix.mat4.scale(modelMatrix8, modelMatrix8, scale);
+
+    updateDynamicGPUBuffer(mesh, getMegaMatrixUBO())
 
 }
 
