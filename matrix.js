@@ -3,6 +3,7 @@ import * as glMatrix from 'gl-matrix'
 import { createGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
 import { getDevice } from './webgpu.js';
 import { getMegaMatrixUBO } from './uniform.js';
+import { setCameraPos } from './camera.js';
 
 // 0: default-empty
 // PER-ENTITY
@@ -124,7 +125,11 @@ export function getViewMatrix() {
 }
 
 export function setViewMatrix(viewMatrix) {
-    m_viewMatrix = viewMatrix
+    m_viewMatrix = viewMatrix;
+    const invView = glMatrix.mat4.create();
+    glMatrix.mat4.invert(invView, viewMatrix);
+    const invViewPos = glMatrix.vec3.create();
+    setCameraPos(glMatrix.vec3.transformMat4(invViewPos, invViewPos, invView));
 }
 
 export function getProjectionMatrix() {

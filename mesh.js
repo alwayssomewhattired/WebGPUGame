@@ -12,7 +12,8 @@ export class Mesh {
     #rotation;
     #scale;
 
-    constructor(vCount, vData, vDataBuffer, vIndices, vIndicesBuffer, vIndexBufferSize, aabbMin, aabbMax, primitives
+    constructor(vCount, vData, vDataBuffer, vIndices, vIndicesBuffer, vIndexBufferSize, aabbMin, aabbMax, primitives,
+        debugVertexBuffer, debugVertexCount
     ) {
 
         this.#translation = glMatrix.vec3.fromValues(0.0, 0.0, -10.0);
@@ -22,7 +23,6 @@ export class Mesh {
         this.idx = null;
         this.isDirty = false;
         
-        // | 3 (x,y,z)
         this.vCount = vCount;
         this.vData = vData;
         this.vDataBuffer = vDataBuffer;
@@ -34,6 +34,10 @@ export class Mesh {
         this.aabbMax = aabbMax;
         this.aabbPositionsBuffer = createAABBPositions(this);
         this.aabbPositionsLength = 24;
+
+        // debugVertexBuffer dimensions: normalX,normalY,normalZ,normalEndX,normalEndY,normalEndZ
+        this.debugVertexBuffer = debugVertexBuffer;
+        this.debugVertexCount = debugVertexCount;
 
         // ####### matrix indices are internally set
         // DO NOT TOUCH
@@ -196,6 +200,10 @@ let m_aabbPositionsOffset = 0;
 export function createMesh(obj, device) {
     const object = obj.result.models[0];
     let vertexData = [];
+
+    let debugVertexData = [];
+    let normalLength = 2.0;
+
     let aabbMin = glMatrix.vec3.create();
     let aabbMax = glMatrix.vec3.create();
 
@@ -232,6 +240,15 @@ export function createMesh(obj, device) {
                 normal.z
             );
 
+            debugVertexData.push(
+                pos.x,
+                pos.y,
+                pos.z,
+                (pos.x + normal.x) * normalLength,
+                (pos.y + normal.y) * normalLength,
+                (pos.z + normal.z) * normalLength
+            );
+
             vertexCount++;
 
         }
@@ -239,6 +256,9 @@ export function createMesh(obj, device) {
 
     vertexData = new Float32Array(vertexData);
     const vertexBuffer = createGPUBuffer(device, vertexData, vertexData.byteLength, GPUBufferUsage.VERTEX);
+    const debugVertexCount = (debugVertexData.length / 3); // normal start, normal end
+    debugVertexData = new Float32Array(debugVertexData);
+    const debugVertexBuffer = createGPUBuffer(device, debugVertexData, debugVertexData.byteLength, GPUBufferUsage.VERTEX);
 
     let indices = [];
     let normals = Array(vertexCount * 3).fill(0);
@@ -315,10 +335,11 @@ export function createMesh(obj, device) {
     primitiveData.push(primitiveObject);
 
     // const modelMatrixIdx = getMegaMatrixCPUBufferLength();
-    
     const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indices, indexBuffer, indexBufferSize, 
-        aabbMin, aabbMax, primitiveData
+        aabbMin, aabbMax, primitiveData, debugVertexBuffer, debugVertexCount
     );
+
+
 
     return mesh;
 }

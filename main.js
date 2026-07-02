@@ -1,9 +1,9 @@
 
 import { initWebGPU } from './webgpu.js';
-import { initUniformConstructor, createRayUBO, initTextures, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO, createGlobalBindGroup } from './uniform.js';
+import { initUniformConstructor, createRayUBO, initTextures, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO, createGlobalBindGroup, createColorUBO } from './uniform.js';
 import { getDevice } from './webgpu.js';
 import { initPipeline} from './pipelines/pipeline.js'
-import { initAxisArrowsPipeline } from './pipelines/axisArrowsPipeline.js';
+import { initLineListPipeline } from './pipelines/lineListPipeline.js';
 import { initDepthStencil } from './depth_stencil.js';
 import { createEntities, getScene, updateEntities } from './fileParser.js';
 import { frame } from './frame.js';
@@ -14,6 +14,8 @@ import { initMegaMatrixCPUBuffer, updateMatrix } from './matrix.js';
 import { initArcPipeline } from './pipelines/arcPipeline.js';
 import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, initSphereVerticesGPUBuffer } from './buffer.js';
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
+import { initDepthLineListPipeline } from './pipelines/depthLineListPipeline.js';
+import { initPointLights } from './light.js';
 
 
 export async function main() {
@@ -27,6 +29,7 @@ export async function main() {
     createMegaMatrixUBO(scene);
     updateEntities();   
     await initTextures();
+    initPointLights();
 
     createGlobalBindGroup();
     createUBO();
@@ -36,15 +39,18 @@ export async function main() {
             createAxisArrowsUBO(mesh);
             createAABBUBO(mesh);
             createRotationArcUBO(mesh);
+            createColorUBO(mesh);
         }
     }
 
     createRayUBO();
     
     initPipeline();
-    initAxisArrowsPipeline();
+    initLineListPipeline();
+    initDepthLineListPipeline();
     initArcPipeline();
     initTriangleListPipeline();
+
     
     initRotationArcVerticesGPUBuffer();
     initRotationArcHeadVerticesGPUBuffer();

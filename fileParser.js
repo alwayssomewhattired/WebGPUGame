@@ -4,23 +4,23 @@ import * as glMatrix from 'gl-matrix'
 
 import { createGLBMesh, createMesh } from './mesh.js';
 import { Entity } from './entity.js';
-import { getDevice } from './webgpu.js';
+import { getDevice, ZACH_GAME_PATH } from './webgpu.js';
 import { getMegaMatrixCPUBufferLength, updateMatrix } from './matrix.js';
 import { createGPUBuffer } from './buffer.js';
 
 const filePaths = [
-    './models/psx-rat/source/rat.obj',
-    './models/stop-sign-psx/source/stop-sign.obj',
+    ZACH_GAME_PATH + '/models/psx-rat/source/rat.obj',
+    ZACH_GAME_PATH + '/models/stop-sign-psx/source/stop-sign.obj',
     // | sadly no pizzeria yet :(
     // | I think file exported wrong
     // | Need to check in blender first
-    './models/pizzeria.glb'
+    // './models/pizzeria.glb'
 ];
 
 export const sceneNameToIndexMap = new Map([
     ["rat", 0],
     ['stop-sign', 1],
-    ['pizzeria', 2]
+    // ['pizzeria', 2]
 ]);
 
 export async function createEntities() {
@@ -174,7 +174,7 @@ export function updateEntities() {
     rotation = glMatrix.vec3.fromValues(0, 0, 0);
     updateEntity('rat', translation, rotation, scale);
 
-    translation = glMatrix.vec3.fromValues(2, 2, 5);
+    translation = glMatrix.vec3.fromValues(-2, 2, 5);
     scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
     rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
     updateEntity('stop-sign', translation, rotation, scale);

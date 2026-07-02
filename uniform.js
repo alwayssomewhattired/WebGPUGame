@@ -4,10 +4,12 @@ import * as glMatrix from 'gl-matrix';
 import { createGPUBuffer, getAxisArrowsVerticesGPUBuffer, getAABBColorGPUBuffer, 
     getRayColorGPUBuffer, getAlignedSize,
     updateDynamicGPUBuffer} from './buffer.js'
-import { getDevice } from './webgpu.js'
+import { getDevice, ZACH_GAME_PATH } from './webgpu.js'
 import { getScene } from './fileParser.js';
 import { getMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
 import { getCameraPosition } from './camera.js';
+import { directionLightBuffer, pointLightsData, createDirectionLightBuffer, pointLightBuffer, createPointLightBuffer, createDebugLightBuffer, debugLightBuffer } from './light.js';
+import { toggleDirectionLight } from './keyboardListeners.js';
 
 let m_rayModelMatrixUBO = null;
 let m_viewMatrixUBO = null;
@@ -17,6 +19,7 @@ let m_dynamicModelMatrixUBO = null;
 let m_dynamicModelViewMatrixUBO = null;
 let m_megaMatrixUBO = null;
 let m_cameraPositionUBO = null;
+let m_pointLightUBO = null;
 
 let m_globalTextureUBO = null;
 let m_textureCount = null;
@@ -34,6 +37,10 @@ let m_aabbUniformBindGroup = null;
 let m_aabbUniformBindGroupLayout = null;
 let m_rayUniformBindGroup = null;
 let m_rayUniformBindGroupLayout = null;
+let m_colorUniformBindGroup = null;
+let m_colorUniformBindGroupLayout = null;
+
+
 let m_texture = null;
 let m_sampler = null
 
@@ -83,19 +90,16 @@ export function createGlobalBindGroup() {
 
     m_viewMatrixUBO = createGPUBuffer(m_device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     m_projectionMatrixUBO = createGPUBuffer(m_device, projectionMatrix, projectionMatrix.byteLength, GPUBufferUsage.UNIFORM);
-       
-    const textureUBO = m_globalTextureUBO;
-    // how tf to get light origin????
-    const lightDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
-    const lightDirectionUBO = createGPUBuffer(m_device, lightDirectionBuffer, lightDirectionBuffer.byteLength, 
-        GPUBufferUsage.UNIFORM);
-    // const viewDirectionBuffer = new Float32Array([-1.0, -1.0, -1.0]);
-    // const viewDirectionUBO = createGPUBuffer(m_device, viewDirectionBuffer, viewDirectionBuffer.byteLength, 
-    //     GPUBufferUsage.UNIFORM);
 
-    m_cameraPositionUBO = createGPUBuffer(m_device, getCameraPosition(), cameraPosBuffer.byteLength,
-        GPUBufferUsage.UNIFORM
+    const textureUBO = m_globalTextureUBO;
+    createDirectionLightBuffer(new Float32Array([-1.0, -1.0, -1.0, 0.0]));
+    createPointLightBuffer();
+    
+    m_cameraPositionUBO = createGPUBuffer(m_device, getCameraPosition(), getCameraPosition().byteLength,
+        GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
     );
+
+    createDebugLightBuffer();
 
     m_globalUniformBindGroupLayout = m_device.createBindGroupLayout({
         entries: [
@@ -131,7 +135,17 @@ export function createGlobalBindGroup() {
                 binding: 5,
                 visibility: GPUShaderStage.VERTEX,
                 buffer: {}
-            }
+            },
+            {
+                binding: 6,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: {}
+            },
+            {
+                binding: 7,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: {}
+            },
         ]
     });
 
@@ -161,19 +175,25 @@ export function createGlobalBindGroup() {
             {
                 binding: 4,
                 resource: {
-                    buffer: lightDirectionUBO
+                    buffer: directionLightBuffer
                 }
             },
-            // {
-            //     binding: 5,
-            //     resource: {
-            //         buffer: viewDirectionUBO
-            //     }
-            // }
             {
                 binding: 5,
                 resource: {
                     buffer: m_cameraPositionUBO
+                }
+            },
+           {
+                binding: 6,
+                resource: {
+                    buffer: pointLightBuffer
+                }
+            },
+           {
+                binding: 7,
+                resource: {
+                    buffer: debugLightBuffer
                 }
             }
         ]
@@ -270,6 +290,63 @@ export function createAxisArrowsUBO(mesh) {
         entries: [
              {
                 binding: 0,
+                resource: {
+                    buffer: m_megaMatrixUBO,
+                    offset: 0,
+                    size: alignedSize
+                }
+            }
+        ]
+    });
+}
+
+export function createColorUBO(mesh) {
+    const model = getMatrix(mesh.modelMatrixIdx);
+    const alignedSize = getAlignedSize(64);
+    const axisArrowsUBO = createGPUBuffer(m_device, model, model.byteLength, GPUBufferUsage.UNIFORM);
+    const color = glMatrix.vec4.fromValues(0.25, 0.5, 1.0, 0.0);
+    const colorUBO = createGPUBuffer(m_device, color, color.byteLength, GPUBufferUsage.UNIFORM);
+    m_colorUniformBindGroupLayout = m_device.createBindGroupLayout({
+        entries: [
+            {
+                binding: 0,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {
+                    hasDynamicOffset: true
+                }
+            },
+            {
+                binding: 1,
+                visibility: GPUShaderStage.FRAGMENT,
+                buffer: {}
+            },
+           {
+                binding: 2,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {
+                    hasDynamicOffset: true
+                }
+            }
+        ]
+    });
+
+    m_colorUniformBindGroup = m_device.createBindGroup({
+        layout: m_colorUniformBindGroupLayout,
+        entries: [
+             {
+                binding: 0,
+                resource: {
+                    buffer: m_megaMatrixUBO,
+                    offset: 0,
+                    size: alignedSize
+                }
+            },
+            {
+                binding: 1,
+                resource: colorUBO
+            },
+             {
+                binding: 2,
                 resource: {
                     buffer: m_megaMatrixUBO,
                     offset: 0,
@@ -444,7 +521,9 @@ export function createRayUBO() {
 
 ///////////////////////////////////////
 
-
+export function updateCameraPosUBO(cameraPos) {
+    getDevice().queue.writeBuffer(m_cameraPositionUBO, 0, cameraPos);
+};
 
 export async function initTextures() {
 
@@ -465,7 +544,7 @@ export async function initTextures() {
     for (let i = 0; i < scene.length; i++) {
         const entity = scene[i];
         for (const [name, path] of entity.materials) {
-            response = await fetch(path);
+            response = await fetch(ZACH_GAME_PATH + '/' + path);
         
             const blob = await response.blob();
             const imgBitmap = await createImageBitmap(blob);
@@ -583,6 +662,22 @@ export function getRayUniformBindGroupLayout() {
     }
 
     return m_rayUniformBindGroupLayout;
+}
+
+export function getColorUniformBindGroup() {
+    if (!m_colorUniformBindGroup) {
+        throw new Error("colorUniformBindGroup not initialized!");
+    }
+
+    return m_colorUniformBindGroup;
+}
+
+export function getColorUniformBindGroupLayout() {
+    if (!m_colorUniformBindGroupLayout) {
+        throw new Error("colorUniformBindGroupLayout not initialized!");
+    }
+
+    return m_colorUniformBindGroupLayout;
 }
 
 export function getRotationArcUniformBindGroup() {

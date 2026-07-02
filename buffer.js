@@ -164,10 +164,6 @@ export function updateDynamicGPUBuffer(mesh, buffer) {
         offset += alignedSizeBase;
         getDevice().queue.writeBuffer(buffer, offset, normalMatrix);
         mesh.isDirty = false;
-    
-    // } else {
-    //     console.log("fuck");
-    // }
 
 }
 

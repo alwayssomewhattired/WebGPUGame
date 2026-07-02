@@ -1,7 +1,7 @@
 import { getPipeline  } from "./pipelines/pipeline.js";
-import { axisArrowsPipeline } from "./pipelines/axisArrowsPipeline.js";
+import { lineListPipeline } from "./pipelines/lineListPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup, getRayUniformBindGroupLayout } from "./uniform.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup, getRayUniformBindGroupLayout, getColorUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
 import { getScene } from "./fileParser.js";
@@ -9,10 +9,11 @@ import { getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcHeadVerti
 import { getGlobalRotationArcHeadVerticesCount, getGlobalRotationArcVerticesCount, gizmoPositionsCPUBuffer } from "./transformGizmo.js";
 import { getAABBGizmoPositionsGPUBuffer } from "./aabb.js";
 import { getRayVerticesBuffer } from "./ray.js";
-import { keyboardInput } from "./keyboardListeners.js";
+import { keyboardInput, toggleDebugNormals } from "./keyboardListeners.js";
 import { getArcPipeline } from "./pipelines/arcPipeline.js";
 import { getTriangleListPipeline } from "./pipelines/triangleListPipeline.js";
 import { getSphereRawVertexCount } from "./light.js";
+import { getDepthLineListPipeline } from "./pipelines/depthLineListPipeline.js";
 
 
 export function render() {
@@ -22,6 +23,7 @@ export function render() {
     const pipeline = getPipeline();
     const arcPipeline = getArcPipeline();
     const triangleListPipeline = getTriangleListPipeline();
+    const depthLineListPipeline = getDepthLineListPipeline();
     const uniformBindGroup = getUniformBindGroup();
     const depthAttachment = getDepthAttachment();
     const alignedSize = getAlignedSize(64); // mat4x4
@@ -62,29 +64,13 @@ export function render() {
     for (const entity of scene) {
         const entityMatricesCount = entity.modelMatrixLength;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         for (const mesh of entity.meshes) {
-        // const mesh = entity.meshes[0]
             const indexBuffer = mesh.vIndicesBuffer;
 
             passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, textureOffset]);
 
             if (entity.fileExt === 'glb') {
                 const vDataBuffer = entity.perEntityGlobalVertexBuffer;
-                // const vDataBuffer = entity.perEntityGlobalVertexBuffer;
                 passEncoder.setVertexBuffer(0, vDataBuffer);
                 for (const primitive of mesh.primitives) {
                     if (primitive.idxType === 'Uint32Array') {
@@ -94,8 +80,6 @@ export function render() {
                         passEncoder.setIndexBuffer(indexBuffer, 'uint16', primitive.idxOffsetBytes, primitive.idxSizeBytes);
                     }
                     passEncoder.drawIndexed(primitive.idxSize, 1, 0, primitive.vertexOffset);
-                    // console.log(primitive.baseVertex)
-                    // passEncoder.draw(primitive.vertexCount, 1, primitive.vertexOffset);
                 }
             } else {
                 const vDataBuffer = mesh.vDataBuffer;
@@ -108,6 +92,24 @@ export function render() {
         }
         
         textureOffset += alignedSize;
+    }
+
+    // ||| normals debug render
+    if (toggleDebugNormals) {
+        passEncoder.setPipeline(depthLineListPipeline);
+        for (const entity of scene) {
+            for (const mesh of entity.meshes) {
+                passEncoder.setBindGroup(1, getColorUniformBindGroup(), [
+                    alignedSize * mesh.modelMatrixIdx, 
+                    alignedSize * mesh.normalMatrixIdx
+                ]);
+                const vDataBuffer = mesh.debugVertexBuffer;
+                // only pass positions in vertex buffer
+                // pass single color as ubo
+                passEncoder.setVertexBuffer(0, vDataBuffer);
+                passEncoder.draw(mesh.debugVertexCount, 1);
+            }
+        }
     }
 
     const rotationArcVerticesCount = getGlobalRotationArcVerticesCount();

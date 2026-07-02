@@ -2,9 +2,10 @@
 import * as glMatrix from 'gl-matrix'
 import { toggleFPSMode } from './keyboardListeners.js';
 import { setViewMatrix } from './matrix.js';
+import { updateCameraPosUBO } from './uniform.js';
 
 const camera = {
-    position: [0, 1.6, 5],
+    position: glMatrix.vec3.fromValues(0, 1.6, 5),
     yaw: -Math.PI / 2,
     pitch: 0,
     speed: 10.0,
@@ -13,6 +14,13 @@ const camera = {
 
 export function getCameraPosition() {
     return camera.position;
+}
+
+export function setCameraPos(cameraPos) {
+    // console.log(camera.position);
+    // console.log(cameraPos);
+    camera.position = cameraPos;
+    updateCameraPosUBO(cameraPos);
 }
 
 function getForward() {
