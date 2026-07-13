@@ -1,6 +1,6 @@
 
 import * as glMatrix from 'gl-matrix'
-import { getMatrix, getViewProjectionMatrix } from './matrix.js';
+import { getMatrix, getViewProjectionMatrix, updateMatrix } from './matrix.js';
 import { getScene } from "./fileParser.js"
 import { getDevice } from './webgpu.js';
 import { getWorldSpaceRayFromMouse, createRayVerticesGPUBuffer, getRayVerticesBuffer, getSelectedObject } from './ray.js';
@@ -53,16 +53,24 @@ export function initTransformGizmo() {
             if (!moveDist) {
                 return;
             }
+            for (const mesh of m_currentEntity.meshes) {
+                console.log(mesh)
+                let tempTranslation = mesh.getMeshTranslation();
+                if (m_activeAxis === 'x' && !m_isRingSelected) tempTranslation[0] += moveDist;
+                if (m_activeAxis === 'y' && !m_isRingSelected) tempTranslation[1] += moveDist;
+                if (m_activeAxis === 'z' && !m_isRingSelected) tempTranslation[2] += moveDist;
+                
+                let tempRotation = mesh.getRotation();
+                if (m_activeAxis === 'x' && m_isRingSelected) tempRotation[0] += moveDist;
+                if (m_activeAxis === 'y' && m_isRingSelected) tempRotation[1] += moveDist;
+                if (m_activeAxis === 'z' && m_isRingSelected) tempRotation[2] += moveDist;
 
-            if (m_activeAxis === 'x' && !m_isRingSelected) m_currentEntity.translation[0] += moveDist;
-            if (m_activeAxis === 'y' && !m_isRingSelected) m_currentEntity.translation[1] += moveDist;
-            if (m_activeAxis === 'z' && !m_isRingSelected) m_currentEntity.translation[2] += moveDist;
+                mesh.setTranslation(tempTranslation);
+                mesh.setRotation(tempRotation);
+                console.log(mesh)
+                updateMatrix(mesh);
 
-            if (m_activeAxis === 'x' && m_isRingSelected) m_currentEntity.rotation[0] += moveDist;
-            if (m_activeAxis === 'y' && m_isRingSelected) m_currentEntity.rotation[1] += moveDist;
-            if (m_activeAxis === 'z' && m_isRingSelected) m_currentEntity.rotation[2] += moveDist;
-
-            m_currentEntity.updateMatrix();
+            }
         }
     })
 
@@ -111,26 +119,29 @@ function intersectRayPlane(ray, planeNormal, planePoint) {
 
 function calculateWorldDelta(event, axis, ray) {
     const planeNormal = getBestPlaneNormal(axis, ray.direction);
-    const modelMatrix = getMatrix(m_currentEntity.axisArrowsModelIdx);
-    const planePoint = glMatrix.vec3.create();
-    glMatrix.mat4.getTranslation(planePoint, modelMatrix);
-
-    const currentHit = intersectRayPlane(ray, planeNormal, planePoint);
-
+    let delta = null;
     let axisIndex = null;
-    const axisBox = Object.keys(axesBoxes);
-    for (let i = 0; i < axisBox.length; i++) {
-        if (axisBox[i] === axis) axisIndex = i;
-    }
+    for (const mesh of m_currentEntity.meshes) {
+        const modelMatrix = getMatrix(mesh.axisArrowsModelIdx);
+        const planePoint = glMatrix.vec3.create();
+        glMatrix.mat4.getTranslation(planePoint, modelMatrix);
 
-    if (!m_lastHitPoint) {
+        const currentHit = intersectRayPlane(ray, planeNormal, planePoint);
+
+        const axisBox = Object.keys(axesBoxes);
+        for (let i = 0; i < axisBox.length; i++) {
+            if (axisBox[i] === axis) axisIndex = i;
+        }
+
+        if (!m_lastHitPoint) {
+            m_lastHitPoint = currentHit;
+            return 0;
+        }
+    
+        const currentDelta = currentHit[axisIndex] - m_lastHitPoint[axisIndex]
+        if (currentDelta) delta = currentHit[axisIndex] - m_lastHitPoint[axisIndex];
         m_lastHitPoint = currentHit;
-        return 0;
     }
- 
-    const delta = currentHit[axisIndex] - m_lastHitPoint[axisIndex];
-    m_lastHitPoint = currentHit;
-
     return delta;
 }
 
@@ -293,7 +304,7 @@ let m_pastAngle = 0;
 let m_isRingSelected = false;
 
 export function checkRotationRingHit() {
-    const modelMatrix = getMatrix(m_currentEntity.axisArrowsModelIdx);
+    const modelMatrix = getMatrix(m_currentEntity.meshes[0].axisArrowsModelIdx);
 
     const planePoint = glMatrix.vec3.fromValues(
         modelMatrix[12],

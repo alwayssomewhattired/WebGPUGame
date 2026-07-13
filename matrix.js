@@ -47,7 +47,7 @@ export function createAndStoreMatrix(modelMatrix) {
 
 export function updateMatrix(mesh) {
 
-    const translation = mesh.getTranslation();
+    const translation = mesh.getMeshTranslation();
     const rotation = mesh.getRotation();
     const scale = mesh.getScale();
 

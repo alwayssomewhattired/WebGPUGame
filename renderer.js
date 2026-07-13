@@ -1,5 +1,5 @@
 import { getPipeline  } from "./pipelines/pipeline.js";
-import { lineListPipeline } from "./pipelines/lineListPipeline.js";
+import { getLineListPipeline, lineListPipeline } from "./pipelines/lineListPipeline.js";
 import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
 import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup, getRayUniformBindGroupLayout, getColorUniformBindGroup } from "./uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
@@ -24,6 +24,7 @@ export function render() {
     const arcPipeline = getArcPipeline();
     const triangleListPipeline = getTriangleListPipeline();
     const depthLineListPipeline = getDepthLineListPipeline();
+    const lineListPipeline = getLineListPipeline();
     const uniformBindGroup = getUniformBindGroup();
     const depthAttachment = getDepthAttachment();
     const alignedSize = getAlignedSize(64); // mat4x4
@@ -63,16 +64,15 @@ export function render() {
     passEncoder.setPipeline(pipeline);
     for (const entity of scene) {
         const entityMatricesCount = entity.modelMatrixLength;
-
+        
         for (const mesh of entity.meshes) {
             const indexBuffer = mesh.vIndicesBuffer;
-
             passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, textureOffset]);
-
+            
             if (entity.fileExt === 'glb') {
-                const vDataBuffer = entity.perEntityGlobalVertexBuffer;
-                passEncoder.setVertexBuffer(0, vDataBuffer);
+                const vDataBuffer = mesh.vDataBuffer;
                 for (const primitive of mesh.primitives) {
+                    passEncoder.setVertexBuffer(0, vDataBuffer, primitive.vertexOffsetBytes, primitive.vertexSizeBytes);
                     if (primitive.idxType === 'Uint32Array') {
                         passEncoder.setIndexBuffer(indexBuffer, 'uint32', primitive.idxOffsetBytes, primitive.idxSizeBytes);
                     }
@@ -94,20 +94,23 @@ export function render() {
         textureOffset += alignedSize;
     }
 
+    offset = alignedSize;
     // ||| normals debug render
     if (toggleDebugNormals) {
         passEncoder.setPipeline(depthLineListPipeline);
         for (const entity of scene) {
             for (const mesh of entity.meshes) {
                 passEncoder.setBindGroup(1, getColorUniformBindGroup(), [
-                    alignedSize * mesh.modelMatrixIdx, 
-                    alignedSize * mesh.normalMatrixIdx
+                    alignedSize * (mesh.modelMatrixIdx + 1), 
+                    alignedSize * (mesh.normalMatrixIdx + 1)
                 ]);
                 const vDataBuffer = mesh.debugVertexBuffer;
                 // only pass positions in vertex buffer
                 // pass single color as ubo
                 passEncoder.setVertexBuffer(0, vDataBuffer);
                 passEncoder.draw(mesh.debugVertexCount, 1);
+
+                offset += alignedSize * (entity.modelMatrixLength + 1);
             }
         }
     }
@@ -122,21 +125,20 @@ export function render() {
         let entityMatricesCountOffset = entityMatricesCount * entity.idx;
         if (entity.isSelected) {
             // | renders axisArrows vertices
-            passEncoder.setPipeline(axisArrowsPipeline);
+            passEncoder.setPipeline(lineListPipeline);
             passEncoder.setBindGroup(
                 1, 
                 getAxisArrowsUniformBindGroup(), 
-                [offset * entity.axisArrowsModelIdx]
+                [offset * entity.meshes[0].axisArrowsModelIdx]
             );
             
             passEncoder.setVertexBuffer(0, getAxisArrowsVerticesGPUBuffer());
             passEncoder.draw(6, 3);
-            updateDynamicGPUBuffer(entity, getMegaMatrixUBO()); 
             passEncoder.setPipeline(arcPipeline);
             passEncoder.setBindGroup(
                 1, 
                 getRotationArcUniformBindGroup(), 
-                [offset * entity.rotationArcModelIdx]
+                [offset * entity.meshes[0].rotationArcModelIdx]
             );
             
             passEncoder.setVertexBuffer(0, getRotationArcVerticesGPUBuffer());
@@ -146,7 +148,7 @@ export function render() {
             passEncoder.setBindGroup(
                 1, 
                 getRotationArcUniformBindGroup(), 
-                [offset * entity.rotationArcHeadModelIdx]
+                [offset * entity.meshes[0].rotationArcHeadModelIdx]
             );
             passEncoder.setVertexBuffer(0, getRotationArcHeadVerticesGPUBuffer());
             passEncoder.draw(rotationArcHeadVerticesCount, 1);
@@ -158,7 +160,7 @@ export function render() {
                 passEncoder.setBindGroup(
                     1, 
                     getAABBUniformBindGroup(), 
-                    [offset * entity.axisArrowsAABBModelIdx]
+                    [offset * entity.meshes[0].axisArrowsAABBModelIdx]
                 );
                 passEncoder.setVertexBuffer(0, getAABBGizmoPositionsGPUBuffer());
                 const aabbMatrixUBO = getMegaMatrixUBO();
@@ -169,7 +171,7 @@ export function render() {
                 passEncoder.setBindGroup(
                     1, 
                     getAABBUniformBindGroup(), 
-                    [offset * entity.aabbModelIdx]
+                    [offset * entity.meshes[0].aabbModelIdx]
                 );
 
                 const aabbModelMatrixOffset = aabbMatrixUBO.length;         

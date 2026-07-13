@@ -8,13 +8,19 @@ import { updateMatrix as matrix_updateMatrix, createAndStoreMatrix, getMatrix } 
 import { getMegaMatrixUBO } from './uniform.js';
 
 export class Entity {
-    constructor(meshes, color, id, modelMatrixIdx, materials, idx, fileExt, perEntityGlobalVertexBuffer) {
+    constructor(meshes, color, id, modelMatrixIdx, materials, idx, fileExt, perEntityGlobalVertexBuffer,
+        json, binBuffer, textureIdx
+    ) {
 
         this.idx = idx;
-        this.fileExt = fileExt;
+        this.fileExt = fileExt; // 'glb, obj'
+    
+        // only for glb
+        // will be null after texture initialization
+        this.json = json;
+        this.binBuffer = binBuffer
 
-        this.textureIdx = null;
-        this.textureOffset = null;
+        this.textureIdx = textureIdx;
 
         this.meshes = meshes;
         this.perEntityGlobalVertexBuffer = perEntityGlobalVertexBuffer;

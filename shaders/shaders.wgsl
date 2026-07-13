@@ -10,8 +10,6 @@ var t_diffuse: texture_2d_array<f32>;
 var s_diffuse: sampler;
 @group(0) @binding(4)
 var<uniform> lightDirectionData: LightDirectionData;
-// @group(0) @binding(5)
-// var<uniform> viewDirection: vec3<f32>;
 @group(0) @binding(5)
 var<uniform> cameraPosition: vec3<f32>;
 @group(0) @binding(6)
@@ -109,21 +107,19 @@ fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>, diffuseColor:vec3<f32>) -> vec3
 fn fs_main(in: VertexOutput, @builtin(front_facing) face: bool) ->  @location(0) vec4<f32> {
 
     var texColor:vec4<f32> = textureSample(t_diffuse, s_diffuse, in.tex_coords, textureData.textureIdx);
-
-    if (debugTogglesData.regularColorToggle > 0) {
-        // *** TEXTURE COLOR ***
-        return textureSample(t_diffuse, s_diffuse, in.tex_coords, textureData.textureIdx);
-        // return textureSample(t_diffuse, s_diffuse, in.tex_coords, 1);
-    }
+    // var normal:vec3<f32> = normalize(in.surfaceNormal);     
+    // return vec4<f32>(normal, 1.0);
 
     if (debugTogglesData.normalsColorToggle > 0) {
         // *** NORMALS COLOR ***
-        if (face) {
-            var normal:vec3<f32> = normalize(in.surfaceNormal);
-            return vec4<f32>(normal, 1.0);
-        } else {
-            return vec4<f32>(0.0, 1.0, 0.0, 1.0);
-        }
+        var normal:vec3<f32> = normalize(in.surfaceNormal);
+        return vec4<f32>(normal, 1.0);
+    }
+
+    
+    if (debugTogglesData.regularColorToggle > 0) {
+        // *** TEXTURE COLOR ***
+        return texColor;
     }
 
     // *** LIGHT COLOR ***

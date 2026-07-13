@@ -6,6 +6,7 @@ import { createGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
 import { getDevice } from './webgpu.js';
 import { updateMatrix as matrix_updateMatrix, createAndStoreMatrix, getMatrix, getMegaMatrixCPUBufferLength, getViewMatrix } from './matrix.js';
 import { getMegaMatrixUBO } from './uniform.js';
+import { textureCount } from './texture.js';
 
 export class Mesh {
     #translation;
@@ -53,7 +54,6 @@ export class Mesh {
         this.normalMatrixIdx = null;
 
         this.modelMatrixBufferOffset;
-        // this.initMatrixIndices();
         this.initModelMatrix();
 
 
@@ -72,7 +72,7 @@ export class Mesh {
         this.isDirty = true;
     }
 
-    getTranslation() {
+    getMeshTranslation() {
         return this.#translation;
     }
     getRotation() {
@@ -82,22 +82,14 @@ export class Mesh {
         return this.#scale;
     }
 
-//    initMatrixIndices() {
-//         let matrixCount = getMegaMatrixCPUBufferLength();
-//         for (const mesh of this.meshes) {
-//             mesh.modelMatrixIdx = matrixCount;
-//             matrixCount += this.modelMatrixLength;
-//         }
-//     }
-
     initModelMatrix() {
         const mesh = this;
-            const translation = mesh.getTranslation();
+            const translation = mesh.getMeshTranslation();
             const rotation = mesh.getRotation();
             const scale = mesh.getScale()
             const modelMatrix = glMatrix.mat4.create();
             glMatrix.mat4.identity(modelMatrix);
-            glMatrix.mat4.translate(modelMatrix, modelMatrix, mesh.getTranslation());
+            glMatrix.mat4.translate(modelMatrix, modelMatrix, translation);
             glMatrix.mat4.rotateX(modelMatrix, modelMatrix, rotation[0]);
             glMatrix.mat4.rotateY(modelMatrix, modelMatrix, rotation[1]);
             glMatrix.mat4.rotateZ(modelMatrix, modelMatrix, rotation[2]);
@@ -161,21 +153,14 @@ export class Mesh {
             glMatrix.mat4.invert(normalMatrix, modelViewMatrix);
             glMatrix.mat4.transpose(normalMatrix, normalMatrix);
             mesh.normalMatrixIdx = createAndStoreMatrix(normalMatrix);
-            // console.log(mesh.normalMatrixIdx);
-            
-            // mesh.updateMatrix();
     }
-
-//    updateMatrix() {
-//         matrix_updateMatrix(this);
-//         updateDynamicGPUBuffer(this, getMegaMatrixUBO());
-//     }
 }
 
 class Primitive {
     constructor(vertexOffsetBytes, vertexSizeBytes, vertexOffset, idxOffset, idxSize, idxOffsetBytes, idxSizeBytes,
-        vertexStrideBytes, idxType, vertexSize, vertexCount
+        vertexStrideBytes, idxType, vertexSize, vertexCount, materialIdx
     ) {
+        this.materialIdx = materialIdx;
 
         this.vertexOffsetBytes =  vertexOffsetBytes;
         this.vertexSizeBytes =   vertexSizeBytes;
@@ -334,23 +319,23 @@ export function createMesh(obj, device) {
     const primitiveObject = new Primitive(primitiveOffset, primitiveSize);
     primitiveData.push(primitiveObject);
 
-    // const modelMatrixIdx = getMegaMatrixCPUBufferLength();
     const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indices, indexBuffer, indexBufferSize, 
-        aabbMin, aabbMax, primitiveData, debugVertexBuffer, debugVertexCount
+        aabbMin, aabbMax, primitiveData, debugVertexBuffer, debugVertexCount, null, null
     );
-
 
 
     return mesh;
 }
 
-export function createGLBMesh(primitiveAOS, device) {
+// | runs once per mesh
+export function createGLBMesh(primitiveAOS, device, json, binBuffer) {
     
     let vertexData = [];
     let indexData = [];
     let primitiveData = [];
 
-    // let vertexCount = 0;
+    let debugVertexData = [];
+    let normalLength = 2.0;
 
     let aabbMin = glMatrix.vec3.create();
     let aabbMax = glMatrix.vec3.create();
@@ -366,7 +351,6 @@ export function createGLBMesh(primitiveAOS, device) {
         const positions = primitive.positions;
         const texCoords = primitive.texCoords;
         const normals = primitive.normals;
-        // indices are way too fucking huge fucking fix it fuuuuuuuuuuuuuuuccccccckkkkkkkkk
         const indices = primitive.indices;
         idxType = primitive.indices.constructor.name;
         if (idxType === 'Uint32Array') indexTypeSizeBytes = 4;
@@ -374,44 +358,31 @@ export function createGLBMesh(primitiveAOS, device) {
         
         const idxOffset = indexData.length;
         const idxOffsetBytes = idxOffset * indexTypeSizeBytes;
-        let vertexOffset = vertexData.length;
+        const vertexOffset = vertexData.length;
         const vertexOffsetBytes = vertexData.length * f32SizeBytes;
-        let aabbIdx = 0;
-
+        
         const vertexIterationLength = Math.max(positions.length, texCoords.length, normals.length);
         const vertexIterationStride = 3; 
-
         let uvIdx = 0;
         for (let i = 0; i < vertexIterationLength; i += vertexIterationStride) {
-
+            
+            let aabbIdx = 0;
             // | Positions
             for (let j = i; j < (i+3); j++) {
                 const pos = positions[j]
-
                 // | AABB
-                if (aabbIdx === 0) {
-                    aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
-                    aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
-                } else if (aabbIdx === 1) {
-                    aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
-                    aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
-                } else {
-                    aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
-                    aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
-                }
-
                 aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
                 aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
+                aabbIdx++;
 
-                // if (positions[j] === undefined) console.log("nan position");
-                vertexData.push(positions[j]);
+                vertexData.push(pos);
                 indexData.push(indices[j]);
-                // vertexCount++;
+
+                debugVertexData.push(positions[j]);
             }
 
             // | UV
-            for (let j = uvIdx; j < (i+2); j++) {
-                // if (texCoords[j] === undefined) console.log("texCoord is nan")
+            for (let j = uvIdx; j < (uvIdx+2); j++) {
                 vertexData.push(texCoords[j]);
             }
 
@@ -419,34 +390,37 @@ export function createGLBMesh(primitiveAOS, device) {
 
             // | Normals
             for (let j = i; j < (i+3); j++) {
-                // if (normals[j] === undefined) console.log("normal is nan");
                 vertexData.push(normals[j]);
+
+                debugVertexData.push((positions[j] + normals[j]) * normalLength);
             }
         }   
-
+        const globalTexturesOffset = textureCount + primitive.materialIdx;
         const idxSize = indexData.length - idxOffset;
         const idxSizeBytes = idxSize * indexTypeSizeBytes;
         const vertexSizeBytes = (vertexData.length * f32SizeBytes) - vertexOffsetBytes;
         const vertexSize = vertexData.length - vertexOffset;
         const vertexCount = vertexSize / vertexElementsCount;
         const primitiveObject = new Primitive(vertexOffsetBytes, vertexSizeBytes, vertexOffset, idxOffset, idxSize,
-             idxOffsetBytes, idxSizeBytes, vertexStrideBytes, idxType, vertexSize, vertexCount);
+             idxOffsetBytes, idxSizeBytes, vertexStrideBytes, idxType, vertexSize, vertexCount, globalTexturesOffset);
         primitiveData.push(primitiveObject);
+        
     }
 
     const vertexCount = vertexData.length / vertexElementsCount;
     vertexData = new Float32Array(vertexData);
     if (idxType === "Uint32Array") indexData = new Uint32Array(indexData);
     if (idxType === "Uint16Array") indexData = new Uint16Array(indexData);
-    // console.log(vertexData);
-    // console.log(indexData);
     const vertexBuffer = createGPUBuffer(device, vertexData, vertexData.byteLength, GPUBufferUsage.VERTEX);
     const indexBuffer = createGPUBuffer(device, indexData, indexData.byteLength, GPUBufferUsage.INDEX);
 
-    const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indexData, indexBuffer, indexData.length, 
-        aabbMin, aabbMax, primitiveData
-    );
+    const debugVertexCount = (debugVertexData.length / 3); // normal start, normal end
+    debugVertexData = new Float32Array(debugVertexData);
+    const debugVertexBuffer = createGPUBuffer(device, debugVertexData, debugVertexData.byteLength, GPUBufferUsage.VERTEX);
 
+    const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indexData, indexBuffer, indexData.length, 
+        aabbMin, aabbMax, primitiveData, debugVertexBuffer, debugVertexCount
+    );
     return mesh;
 }
 

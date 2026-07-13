@@ -55,7 +55,7 @@ export function intersectAABB(ray, box) {
 
 export function findAxis(mouseRay, entity) {
     // - broken line needs fixed!!!!!!!!! vvvvv
-    const gizmoMatrix_ws = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), entity.meshes[0].translation);
+    const gizmoMatrix_ws = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), entity.meshes[0].getMeshTranslation());
     
     const invGizmoMatrix_ws = glMatrix.mat4.invert(glMatrix.mat4.create(), gizmoMatrix_ws);
     const invModel3x3 = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), invGizmoMatrix_ws);

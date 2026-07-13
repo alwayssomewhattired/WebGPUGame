@@ -8,12 +8,26 @@ import { keyboardInput } from "./keyboardListeners.js";
 import { render } from './renderer.js';
 import { getViewMatrix } from './matrix.js';
 import { getAlignedSize } from './buffer.js';
+import { updateMeter } from '../ZachAudio/GainMeter.js';
 
 
 let m_lastTime = 0;
 let m_angle = 0;
 
 export function frame(time) {
+
+    // webaudioapi
+
+    updateMeter();
+
+
+
+
+
+
+
+    // webgpu
+
     const modelMatrix = glMatrix.mat4.create();
     const viewMatrix = glMatrix.mat4.create();
     const device = getDevice();

@@ -7,25 +7,30 @@ import { Entity } from './entity.js';
 import { getDevice, ZACH_GAME_PATH } from './webgpu.js';
 import { getMegaMatrixCPUBufferLength, updateMatrix } from './matrix.js';
 import { createGPUBuffer } from './buffer.js';
+import { globalTextureCountIncrement, parseTexturesFromGLB, textureCount } from './texture.js';
 
-const filePaths = [
+export const filePaths = [
     ZACH_GAME_PATH + '/models/psx-rat/source/rat.obj',
     ZACH_GAME_PATH + '/models/stop-sign-psx/source/stop-sign.obj',
     // | sadly no pizzeria yet :(
     // | I think file exported wrong
     // | Need to check in blender first
-    // './models/pizzeria.glb'
+    ZACH_GAME_PATH + '/models/psx_japanese_warehouse.glb'
+    // ZACH_GAME_PATH + '/models/pizzeria.glb'
 ];
 
 export const sceneNameToIndexMap = new Map([
     ["rat", 0],
     ['stop-sign', 1],
-    // ['pizzeria', 2]
+    ['jap-warehouse', 2],
+    // ['pizzeria', 3]
 ]);
 
 export async function createEntities() {
     let idx = 0;
     let meshes = null;
+    let json = null;
+    let binBuffer = null;
     let materials = null;
     const device = getDevice();
     let meshIdx = 0;
@@ -34,9 +39,17 @@ export async function createEntities() {
     let mtlBody = null;
 
     for (const path of filePaths) {
+        const globalTextureOffset = textureCount;
+        json = null;
+        binBuffer = null;
+
         const extension = path.split('.').pop();
         if (extension === "glb") {
-            meshes = await parseGLB(path); 
+            const glbReturn = await parseGLB(path); 
+            meshes = glbReturn.meshes;
+            json = glbReturn.json;
+            binBuffer = glbReturn.binBuffer;
+            globalTextureCountIncrement(json.textures.length);
         } else {
             const objResponse = await fetch(path);
             const objBody = await objResponse.text();
@@ -58,6 +71,7 @@ export async function createEntities() {
                 .then(r => r.text());
             materials = parseMTL(mtlBody, result);
             meshes = [createMesh(obj, device)];
+            globalTextureCountIncrement(1); // | currently only supports one texture for obj files
 
         }
 
@@ -81,7 +95,8 @@ export async function createEntities() {
         const modelMatrixIdx = getMegaMatrixCPUBufferLength();
 
 
-        const entity = new Entity(meshes, color, path, modelMatrixIdx, materials, idx, extension, perEntityGlobalVertexBuffer);
+        const entity = new Entity(meshes, color, path, modelMatrixIdx, materials, idx, extension, 
+            perEntityGlobalVertexBuffer, json, binBuffer, globalTextureOffset);
         idx++;
         scene.push(entity);
     }
@@ -133,6 +148,7 @@ function parseMTL(mtlText, path) {
 
 // 1: rat
 // 2: stop-sign
+// 3: jap-warehouse
 const scene = [];
 
 export function getScene() {
@@ -150,12 +166,10 @@ export function getEntity(objectName) {
 
 export function updateEntity(objectName, translation, rotation, scale) {
     const entity = getEntity(objectName);
-    const incrementedTranslation = translation;
     for (const mesh of entity.meshes) {
-        const translationOut = mesh.getTranslation();
+        const translationOut = mesh.getMeshTranslation();
         const rotationOut = mesh.getRotation();
-        glMatrix.vec3.add(incrementedTranslation, incrementedTranslation, glMatrix.vec3.fromValues(0.001, 0.0, 0.0));
-        mesh.setTranslation(glMatrix.vec3.add(translationOut, translationOut, incrementedTranslation));
+        mesh.setTranslation(glMatrix.vec3.add(translationOut, translationOut, translation));
         mesh.setRotation(glMatrix.vec3.add(rotationOut, rotationOut, rotation));
         mesh.setScale(scale);
         updateMatrix(mesh);
@@ -179,6 +193,11 @@ export function updateEntities() {
     rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
     updateEntity('stop-sign', translation, rotation, scale);
 
+    translation = glMatrix.vec3.fromValues(-15, 0, -25);
+    scale = glMatrix.vec3.fromValues(5.0, 5.0, 5.0);
+    rotation = glMatrix.vec3.fromValues(4.75, 0.0, 0);
+    updateEntity('jap-warehouse', translation, rotation, scale);
+    
     // translation = glMatrix.vec3.fromValues(2, 2, 5);
     // scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
     // rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
@@ -202,11 +221,11 @@ async function parseGLB(url) {
     const version = view.getUint32(4, true);
     const length = view.getUint32(8, true);
 
-
     let offset = 12;
 
     let json = null;
     let binBuffer = null;
+    let binOffset = null;
 
     while (offset < length) {
         const chunkLength = view.getUint32(offset, true);
@@ -224,7 +243,8 @@ async function parseGLB(url) {
 
         // BIN chunk
         if (chunkType === 0x004E4942) {
-            binBuffer = chunkBytes.buffer;
+            // binBuffer = chunkBytes.buffer;
+            binBuffer = arrayBuffer.slice(offset, offset + chunkLength);
         }
 
         offset += chunkLength;
@@ -241,7 +261,8 @@ async function parseGLB(url) {
                 positions: null,
                 texCoords: null,
                 normals: null,
-                indices: null
+                indices: null,
+                materialIdx: null
             };
 
             const primitive = mesh.primitives[i];
@@ -293,14 +314,36 @@ async function parseGLB(url) {
             vertexElements = getVertexElementsFromGLB(accessor.type);
             verticesCount = vertexElements * accessor.count;
             primitiveStruct.indices = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            // console.log(primitiveStruct);
+            // console.log(accessor);
+            // console.log(bufferView);
+            // console.log({
+            //     componentType: accessor.componentType,
+            //     count: accessor.count,
+            //     accessorByteOffset: accessor.byteOffset,
+            //     bufferViewByteOffset: bufferView.byteOffset,
+            //     finalByteOffset
+            // });
+            // console.log(bufferView.byteLength);
+            // console.log(primitiveStruct)
+            // console.log(primitiveStruct.indices.length * 4);
+            // console.log(json.bufferViews);
+
+            primitiveStruct.materialIndex = primitive.material;
+
             primitives.push(primitiveStruct);
         }
 
         meshes.push(createGLBMesh(primitives, getDevice()));
+        // console.log(meshes);
 
     }
-    
-    return meshes;
+
+    return {
+        meshes: meshes,
+        json:   json,
+        binBuffer: binBuffer
+    };
 }
 
 function getVertexElementsFromGLB(type) {

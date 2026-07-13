@@ -6,7 +6,9 @@ export let toggleFPSMode = false;
 export let toggleDebugNormals = false;
 export let togglePointLights = false;
 export let toggleDirectionLight = false;
-export let toggleRegularColor = true;
+
+let toggleCount = 0;
+export let toggleRegularColor = false;
 export let toggleNormalColor = false;
 
 export const keyboardInput = {
@@ -20,7 +22,7 @@ export const keyboardInput = {
     n: false,
     p: false,
     l: false,
-    c: true,
+    c: false,
 };
 
 window.addEventListener("keydown", (event) => {
@@ -69,7 +71,18 @@ window.addEventListener("keydown", (event) => {
         }
         case "KeyC": {
             keyboardInput.c = !keyboardInput.c;
-            toggleRegularColor = keyboardInput.c;
+            toggleCount++;
+            toggleCount %= 3;
+            if (toggleCount == 0) {
+                toggleRegularColor = 0;
+                toggleNormalColor = 0;
+            } else if (toggleCount == 1) {
+                toggleRegularColor = 1;
+                toggleNormalColor = 0;
+            } else {
+                toggleRegularColor = 0;
+                toggleNormalColor = 1;
+            }
             updateDebugLightBuffer(new Float32Array([toggleNormalColor, toggleRegularColor]));
         }
 

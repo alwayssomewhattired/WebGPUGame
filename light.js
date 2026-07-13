@@ -47,6 +47,7 @@ export function createDebugLightBuffer() {
     debugLightBuffer = createGPUBuffer(getDevice(), buffer, buffer.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 };
 export function updateDebugLightBuffer(buffer) {
+    console.log(buffer);
     getDevice().queue.writeBuffer(debugLightBuffer, 0, buffer);
 }
 

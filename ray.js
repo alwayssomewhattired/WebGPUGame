@@ -77,37 +77,39 @@ export function getSelectedObject(worldSpaceRay, scene) {
 
     for (const entity of scene) {
         if (entity.isSelected) entity.isSelected = false;
-        glMatrix.mat4.invert(invModelMatrix, getMatrix(entity.modelMatrixIdx));
+        for (const mesh of entity.meshes) {
+            glMatrix.mat4.invert(invModelMatrix, getMatrix(mesh.modelMatrixIdx));
 
-        // | translation bypass (w = 0)
-        const dir4 = glMatrix.vec4.fromValues(
-            worldSpaceRay.direction[0],
-            worldSpaceRay.direction[1],
-            worldSpaceRay.direction[2],
-            0.0
-        )
-        glMatrix.vec4.transformMat4(dir4, dir4, invModelMatrix);
-        const localDir = glMatrix.vec3.fromValues(dir4[0], dir4[1], dir4[2]);
-        glMatrix.vec3.normalize(localDir, localDir);
+            // | translation bypass (w = 0)
+            const dir4 = glMatrix.vec4.fromValues(
+                worldSpaceRay.direction[0],
+                worldSpaceRay.direction[1],
+                worldSpaceRay.direction[2],
+                0.0
+            )
+            glMatrix.vec4.transformMat4(dir4, dir4, invModelMatrix);
+            const localDir = glMatrix.vec3.fromValues(dir4[0], dir4[1], dir4[2]);
+            glMatrix.vec3.normalize(localDir, localDir);
 
-        const ray_ls = {
+            const ray_ls = {
 
-            origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.origin, invModelMatrix),
-            direction: localDir
+                origin: glMatrix.vec3.transformMat4(glMatrix.vec3.create(), worldSpaceRay.origin, invModelMatrix),
+                direction: localDir
 
-        };
+            };
 
-        const aabbMin = entity.mesh.aabbMin;
-        const aabbMax = entity.mesh.aabbMax;
- 
-        const distance = intersectAABB(ray_ls, { aabbMin, aabbMax});
+            const aabbMin = mesh.aabbMin;
+            const aabbMax = mesh.aabbMax;
+            const distance = intersectAABB(ray_ls, { aabbMin, aabbMax});
 
-        if (distance !== null && distance < closestDist) {
-            closestDist = distance;
-            selected = entity;
+            if (distance !== null && distance < closestDist) {
+                closestDist = distance;
+                selected = entity;
+            }
         }
     }
 
     if (selected) selected.isSelected = true;
+    console.log(selected);
     return selected;
 }

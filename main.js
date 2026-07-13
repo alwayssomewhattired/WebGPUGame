@@ -16,6 +16,7 @@ import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVe
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
 import { initDepthLineListPipeline } from './pipelines/depthLineListPipeline.js';
 import { initPointLights } from './light.js';
+import { initTextureCount } from './texture.js';
 
 
 export async function main() {
@@ -24,6 +25,7 @@ export async function main() {
     initUniformConstructor();
     initDepthStencil();
     initMegaMatrixCPUBuffer();
+    // initTextureCount();
     await createEntities();
     const scene = getScene();
     createMegaMatrixUBO(scene);

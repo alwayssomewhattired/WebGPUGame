@@ -145,8 +145,8 @@ export function updateDynamicGPUBuffer(mesh, buffer) {
         const normalMatrix = getMatrix(mesh.normalMatrixIdx);
         
         const alignedSizeBase = getAlignedSize(64);
-        
-        let offset = alignedSizeBase * ((mesh.idx * getEntityModelMatricesCount()) + 1);
+        // console.log(mesh.idx)
+        let offset = alignedSizeBase * ((mesh.idx * getEntityModelMatricesCount()) + (mesh.idx || 1));
         
         getDevice().queue.writeBuffer(buffer, offset, modelMatrix);
         offset += alignedSizeBase;
