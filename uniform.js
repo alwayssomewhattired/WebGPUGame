@@ -10,7 +10,7 @@ import { getMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
 import { getCameraPosition } from './camera.js';
 import { directionLightBuffer, pointLightsData, createDirectionLightBuffer, pointLightBuffer, createPointLightBuffer, createDebugLightBuffer, debugLightBuffer } from './light.js';
 import { toggleDirectionLight } from './keyboardListeners.js';
-import { parseTexturesFromGLB, textureCount } from './texture.js';
+import { parseTexturesFromOBJ, sampler, textureCount } from './texture.js';
 import {textureCount as ext_textureCount } from './texture.js'
 
 let m_rayModelMatrixUBO = null;
@@ -23,9 +23,21 @@ let m_megaMatrixUBO = null;
 let m_cameraPositionUBO = null;
 let m_pointLightUBO = null;
 
-let m_globalTextureUBO = null;
+export let globalTextureUBO = null;
+export function setGlobalTextureUBO(textureDescriptor) {
+    globalTextureUBO = m_device.createTexture(textureDescriptor);
+};
+
 let m_textureCount = null;
-let m_globalTextureIndices = [];
+
+export let globalTextureIndices = [];
+let globalTextureIndicesOffset = 0;
+export function appendGlobalTextureIndices() {
+    const arr = new Array(64);
+    arr[0] = globalTextureIndicesOffset;
+    globalTextureIndices.push(...arr);
+    globalTextureIndicesOffset++;
+}
 
 let m_globalUniformBindGroup = null;
 let m_globalUniformBindGroupLayout = null;
@@ -44,7 +56,6 @@ let m_colorUniformBindGroupLayout = null;
 
 
 let m_texture = null;
-let m_sampler = null
 
 let m_device = null;
 
@@ -85,14 +96,13 @@ export function createMegaMatrixUBO(scene) {
 
 export function createGlobalBindGroup() {
 
-    const sampler = m_sampler;
     const viewMatrix = getViewMatrix();
     const projectionMatrix = getProjectionMatrix();
 
     m_viewMatrixUBO = createGPUBuffer(m_device, viewMatrix, viewMatrix.byteLength, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
     m_projectionMatrixUBO = createGPUBuffer(m_device, projectionMatrix, projectionMatrix.byteLength, GPUBufferUsage.UNIFORM);
 
-    const textureUBO = m_globalTextureUBO;
+    const textureUBO = globalTextureUBO;
     createDirectionLightBuffer(new Float32Array([-1.0, -1.0, -1.0, 0.0]));
     createPointLightBuffer();
     
@@ -167,7 +177,7 @@ export function createGlobalBindGroup() {
             },
             {
                 binding: 2,
-                resource: m_globalTextureUBO.createView({ dimension: '2d-array'})
+                resource: globalTextureUBO.createView({ dimension: '2d-array'})
             },
             {
                 binding: 3,
@@ -205,7 +215,8 @@ export function createUBO() {
     const alignedSize = getAlignedSize(64);
 
     const alignedTextureSize = alignedSize * ext_textureCount;
-    const globalTextureIndicesArray = new Uint32Array(m_globalTextureIndices);
+    const globalTextureIndicesArray = new Uint32Array(globalTextureIndices);
+
 
     const textureIndexUBO = createGPUBuffer(m_device, globalTextureIndicesArray, alignedTextureSize, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
@@ -483,52 +494,6 @@ export function updateCameraPosUBO(cameraPos) {
     getDevice().queue.writeBuffer(m_cameraPositionUBO, 0, cameraPos);
 };
 
-export async function initTextures() {
-    
-    const textureDescriptor = {
-        size: { width: 1024, height: 1024, depthOrArrayLayers: textureCount},
-        format: 'rgba8unorm',
-        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
-    };
-
-    m_globalTextureUBO = m_device.createTexture(textureDescriptor);
-
-    let response = null;
-    const scene = getScene();
-    let count = 0;
-    for (let i = 0; i < scene.length; i++) {
-        const entity = scene[i];
-        if (entity.fileExt === 'glb') {
-            parseTexturesFromGLB(entity.json, entity.binBuffer, m_globalTextureUBO, textureDescriptor, count);
-        } else if (entity.fileExt === 'obj') {
-        for (const [name, path] of entity.materials) {
-            response = await fetch(ZACH_GAME_PATH + '/' + path);
-        
-            const blob = await response.blob();
-            const imgBitmap = await createImageBitmap(blob);
-
-            updateGlobalTextureUBO(imgBitmap, count, textureDescriptor)
-
-            imgBitmap.close();
-        }
-    }
-       for (const mesh of entity.meshes) {
-            const arr = new Array(64)
-            arr[0] = count;
-            m_globalTextureIndices.push(...arr);
-            count++;
-       }
-    }
-
-    m_sampler = m_device.createSampler({
-        addressModeU: 'repeat',
-        addressModeV: 'repeat',
-        magFilter: 'linear',
-        minFilter: 'linear',
-        minmapFilter: 'linear',
-    });
-
-}
 
 export function updateGlobalTextureUBO(imgBitMap, count, textureDescriptor) {
     let imgBitMapCopy = imgBitMap;
@@ -541,7 +506,7 @@ export function updateGlobalTextureUBO(imgBitMap, count, textureDescriptor) {
     }
     m_device.queue.copyExternalImageToTexture(
         { source: imgBitMapCopy }, 
-        { texture: m_globalTextureUBO,
+        { texture: globalTextureUBO,
           origin: {
                 x: 0,
                 y: 0,
@@ -553,7 +518,6 @@ export function updateGlobalTextureUBO(imgBitMap, count, textureDescriptor) {
             height: textureDescriptor.size.height
         }
     );
-
 }
 
 export function getGlobalUniformBindGroup() {

@@ -7,7 +7,7 @@ import { Entity } from './entity.js';
 import { getDevice, ZACH_GAME_PATH } from './webgpu.js';
 import { getMegaMatrixCPUBufferLength, updateMatrix } from './matrix.js';
 import { createGPUBuffer } from './buffer.js';
-import { globalTextureCountIncrement, parseTexturesFromGLB, textureCount } from './texture.js';
+import { globalTextureOffset, globalTextureOffsetIncrement, parseTexturesFromGLB, textureCount, globalTextureCountIncrement } from './texture.js';
 
 export const filePaths = [
     ZACH_GAME_PATH + '/models/psx-rat/source/rat.obj',
@@ -15,8 +15,9 @@ export const filePaths = [
     // | sadly no pizzeria yet :(
     // | I think file exported wrong
     // | Need to check in blender first
-    ZACH_GAME_PATH + '/models/psx_japanese_warehouse.glb'
+    ZACH_GAME_PATH + '/models/psx_japanese_warehouse.glb',
     // ZACH_GAME_PATH + '/models/pizzeria.glb'
+    ZACH_GAME_PATH + '/models/pyramid_head.glb'
 ];
 
 export const sceneNameToIndexMap = new Map([
@@ -24,6 +25,7 @@ export const sceneNameToIndexMap = new Map([
     ['stop-sign', 1],
     ['jap-warehouse', 2],
     // ['pizzeria', 3]
+    ['pyramid-head', 3]
 ]);
 
 export async function createEntities() {
@@ -37,12 +39,11 @@ export async function createEntities() {
 
     let result = null;
     let mtlBody = null;
+    let textureStart = null;
 
     for (const path of filePaths) {
-        const globalTextureOffset = textureCount;
         json = null;
         binBuffer = null;
-
         const extension = path.split('.').pop();
         if (extension === "glb") {
             const glbReturn = await parseGLB(path); 
@@ -50,6 +51,7 @@ export async function createEntities() {
             json = glbReturn.json;
             binBuffer = glbReturn.binBuffer;
             globalTextureCountIncrement(json.textures.length);
+
         } else {
             const objResponse = await fetch(path);
             const objBody = await objResponse.text();
@@ -64,6 +66,7 @@ export async function createEntities() {
             // | mtl
             const mtlRelativePath = obj.result.materialLibraries[0];
             const lastSlashIdx = path.lastIndexOf('/');
+            
             result = lastSlashIdx !== -1 ? path.substring(0, lastSlashIdx) : path;
             const mtlPath = result + '/' + mtlRelativePath;
 
@@ -72,7 +75,7 @@ export async function createEntities() {
             materials = parseMTL(mtlBody, result);
             meshes = [createMesh(obj, device)];
             globalTextureCountIncrement(1); // | currently only supports one texture for obj files
-
+            
         }
 
         const translation = glMatrix.vec3.create();
@@ -94,9 +97,17 @@ export async function createEntities() {
 
         const modelMatrixIdx = getMegaMatrixCPUBufferLength();
 
+        const name = path.split('/')[3];
 
         const entity = new Entity(meshes, color, path, modelMatrixIdx, materials, idx, extension, 
-            perEntityGlobalVertexBuffer, json, binBuffer, globalTextureOffset);
+            perEntityGlobalVertexBuffer, json, binBuffer, globalTextureOffset, name
+        );
+        if (json) {    
+            globalTextureOffsetIncrement(json.images.length);
+        } else {
+            globalTextureOffsetIncrement(1);
+        }
+
         idx++;
         scene.push(entity);
     }
@@ -203,6 +214,11 @@ export function updateEntities() {
     // rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
     // updateEntity('pizzeria', translation, rotation, scale);
 
+    translation = glMatrix.vec3.fromValues(8, 0, -10);
+    scale = glMatrix.vec3.fromValues(5.0, 5.0, 5.0);
+    rotation = glMatrix.vec3.fromValues(0, 0, 0);
+    updateEntity('pyramid-head', translation, rotation, scale);
+
 }
 
 async function parseGLB(url) {
@@ -251,6 +267,8 @@ async function parseGLB(url) {
     }
     
     const meshes = [];
+
+    const textureCount = json.images.length;
     
     for (const mesh of json.meshes) {
         const primitives =  [];
@@ -262,7 +280,8 @@ async function parseGLB(url) {
                 texCoords: null,
                 normals: null,
                 indices: null,
-                materialIdx: null
+                materialIdx: null,
+                indicesCount: null
             };
 
             const primitive = mesh.primitives[i];
@@ -312,8 +331,14 @@ async function parseGLB(url) {
             bufferView = json.bufferViews[accessor.bufferView];
             finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
             vertexElements = getVertexElementsFromGLB(accessor.type);
-            verticesCount = vertexElements * accessor.count;
+            verticesCount = accessor.count;
+            primitiveStruct.indicesCount = accessor.count;
+
             primitiveStruct.indices = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+
+            // console.log(accessor.componentType)
+            // console.log({binBuffer, finalByteOffset, verticesCount })
+            // console.log(primitiveStruct.positions);
             // console.log(primitiveStruct);
             // console.log(accessor);
             // console.log(bufferView);
@@ -328,8 +353,8 @@ async function parseGLB(url) {
             // console.log(primitiveStruct)
             // console.log(primitiveStruct.indices.length * 4);
             // console.log(json.bufferViews);
-
-            primitiveStruct.materialIndex = primitive.material;
+            primitiveStruct.materialIdx = primitive.material;
+            // console.log(json)
 
             primitives.push(primitiveStruct);
         }
@@ -342,7 +367,8 @@ async function parseGLB(url) {
     return {
         meshes: meshes,
         json:   json,
-        binBuffer: binBuffer
+        binBuffer: binBuffer,
+        textureCount: textureCount
     };
 }
 

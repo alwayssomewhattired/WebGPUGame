@@ -67,11 +67,11 @@ export function render() {
         
         for (const mesh of entity.meshes) {
             const indexBuffer = mesh.vIndicesBuffer;
-            passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, textureOffset]);
             
             if (entity.fileExt === 'glb') {
                 const vDataBuffer = mesh.vDataBuffer;
                 for (const primitive of mesh.primitives) {
+                    passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, alignedSize * primitive.globalMaterialIdx]);
                     passEncoder.setVertexBuffer(0, vDataBuffer, primitive.vertexOffsetBytes, primitive.vertexSizeBytes);
                     if (primitive.idxType === 'Uint32Array') {
                         passEncoder.setIndexBuffer(indexBuffer, 'uint32', primitive.idxOffsetBytes, primitive.idxSizeBytes);
@@ -82,9 +82,13 @@ export function render() {
                     passEncoder.drawIndexed(primitive.idxSize, 1, 0, primitive.vertexOffset);
                 }
             } else {
+                for (const primitive of mesh.primitives) {
+                passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, alignedSize * entity.globalTextureOffset]);
+
                 const vDataBuffer = mesh.vDataBuffer;
                 passEncoder.setVertexBuffer(0, vDataBuffer);
                 passEncoder.draw(mesh.vCount, 1);
+                }
             }
             // - we add 1 because we have a default model matrix
             offset += alignedSize * (entityMatricesCount + 1);

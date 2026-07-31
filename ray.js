@@ -109,7 +109,29 @@ export function getSelectedObject(worldSpaceRay, scene) {
         }
     }
 
-    if (selected) selected.isSelected = true;
-    console.log(selected);
+    const scrollContainer = document.getElementById("scroll_container");
+    const scrollList = document.getElementById("scroll_list");
+
+    if (selected) {
+        selected.isSelected = true;
+        document.getElementById("model_button").textContent = selected.name;
+        document.getElementById("model_button").style.display = "block";
+        // document.getElementById("scroll_container").style.display = "block";
+        // document.getElementById("scroll_list").style.display = "block";
+
+
+        const list = document.getElementById("scroll_list");
+        for (const mesh of selected.meshes) {
+            for (const primitive of mesh.primitives) {
+                const newElement = document.createElement('li');
+                newElement.textContent = primitive.globalMaterialIdx;
+                list.appendChild(newElement);
+            }
+        }
+    } else {        
+        document.getElementById("model_button").style.display = "none";
+        scrollContainer.style.display = "none";
+        scrollList.style.display = "none";
+    }
     return selected;
 }

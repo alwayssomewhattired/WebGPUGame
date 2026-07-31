@@ -9,9 +9,11 @@ import { getMegaMatrixUBO } from './uniform.js';
 
 export class Entity {
     constructor(meshes, color, id, modelMatrixIdx, materials, idx, fileExt, perEntityGlobalVertexBuffer,
-        json, binBuffer, textureIdx
+        json, binBuffer, textureIdx, name
     ) {
 
+        this.globalTextureOffset = textureIdx;
+        this.name = name;
         this.idx = idx;
         this.fileExt = fileExt; // 'glb, obj'
     
@@ -20,12 +22,10 @@ export class Entity {
         this.json = json;
         this.binBuffer = binBuffer
 
-        this.textureIdx = textureIdx;
-
         this.meshes = meshes;
         this.perEntityGlobalVertexBuffer = perEntityGlobalVertexBuffer;
 
-        this.materials = materials;
+        this.materials = materials; // -currently only support for obj while null for glb
 
         this.color = color;
 

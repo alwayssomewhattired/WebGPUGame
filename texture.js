@@ -1,12 +1,18 @@
-import { filePaths, sceneNameToIndexMap } from "./fileParser.js";
+import { filePaths, getScene, sceneNameToIndexMap } from "./fileParser.js";
 import { getAddressMode, getMagFilter, getMinFilter } from "./openglEnums.js";
-import { updateGlobalTextureUBO } from "./uniform.js";
-import { getDevice } from "./webgpu.js";
+import { appendGlobalTextureIndices, globalTextureUBO, setGlobalTextureUBO, updateGlobalTextureUBO } from "./uniform.js";
+import { getDevice, ZACH_GAME_PATH } from "./webgpu.js";
 
 export let textureCount = 0;
-
+// initializes global texture in a single pass
 export function globalTextureCountIncrement(inc) {
     textureCount += inc;
+}
+
+export let globalTextureOffset = 0;
+// steps through all textures of an entity at a time
+export function globalTextureOffsetIncrement(inc) {
+    globalTextureOffset += inc;
 }
 
 // initialize texture count before we create entities
@@ -56,16 +62,14 @@ export async function initTextureCount() {
                 }
 
                 offset += chunkLength;
-            }
-
-            textureCount += json.textures.length;
-        
+            }        
         }
     }
 }
 
-
-export async function parseTexturesFromGLB(json, binBuffer, globalTextureBuffer, textureDescriptor, count) {
+export async function parseTexturesFromGLB(json, binBuffer, globalTextureBuffer, textureDescriptor, 
+    globalTextureOffset
+) {
     const device = getDevice();
     const materials = json.materials;
     const textures = json.textures;
@@ -90,10 +94,9 @@ export async function parseTexturesFromGLB(json, binBuffer, globalTextureBuffer,
             { type: image.mimeType }
         );
         const bitMap = await createImageBitmap(blob);
-
-        updateGlobalTextureUBO(bitMap, count, textureDescriptor)
-
-        bitMap.close();
+        updateGlobalTextureUBO(bitMap, globalTextureOffset + textureIndex, textureDescriptor)
+        
+        bitMap.close();        
         
         // const textureView = gpuTexture.createView();
         
@@ -102,14 +105,70 @@ export async function parseTexturesFromGLB(json, binBuffer, globalTextureBuffer,
         // const min = getMinFilter(sampler.minFilter);
         
         // const gpuSampler = device.createSampler({
-        //     magFilter: getMagFilter(sampler.magFilter),
-        //     minFilter: min.minFilter,
-        //     minmapFilter: min.mipmapFilter,
-        //     addressModeU: getAddressMode(sampler.wrapS),
-        //     addressModeV: getAddressMode(sampler.wrapT),
+            //     magFilter: getMagFilter(sampler.magFilter),
+            //     minFilter: min.minFilter,
+            //     minmapFilter: min.mipmapFilter,
+            //     addressModeU: getAddressMode(sampler.wrapS),
+            //     addressModeV: getAddressMode(sampler.wrapT),
             
-        //     addressModeW: "repeat"
-        // });
-    }
+            //     addressModeW: "repeat"
+            // });
+        }
 
 }
+
+export async function parseTexturesFromOBJ(materials, textureDescriptor, globalTextureOffset) {
+
+    for (const [name, path] of materials) {
+        const response = await fetch(ZACH_GAME_PATH + '/' + path);
+    
+        const blob = await response.blob();
+        const imgBitmap = await createImageBitmap(blob);
+
+        updateGlobalTextureUBO(imgBitmap, globalTextureOffset, textureDescriptor)
+
+        imgBitmap.close();
+
+    }
+}
+
+export let sampler = null;
+
+function createSampler() {
+    sampler = getDevice().createSampler({
+        addressModeU: 'repeat',
+        addressModeV: 'repeat',
+        magFilter: 'linear',
+        minFilter: 'linear',
+        minmapFilter: 'linear',
+    });
+}
+
+export async function initTextures() {
+
+    createSampler();
+    
+    const textureDescriptor = {
+        size: { width: 1024, height: 1024, depthOrArrayLayers: textureCount},
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT 
+    };
+
+   setGlobalTextureUBO(textureDescriptor);
+
+    const scene = getScene();
+    let count = 0;
+    for (let i = 0; i < scene.length; i++) {
+        const entity = scene[i];
+        if (entity.fileExt === 'glb') {
+            parseTexturesFromGLB(entity.json, entity.binBuffer, globalTextureUBO, textureDescriptor, 
+                entity.globalTextureOffset);
+        } else if (entity.fileExt === 'obj') {
+            parseTexturesFromOBJ(entity.materials, textureDescriptor, entity.globalTextureOffset);
+        }
+        for (const mesh of entity.meshes) {
+            appendGlobalTextureIndices();
+        }
+    }
+
+} 

@@ -1,6 +1,6 @@
 
 import { initWebGPU } from './webgpu.js';
-import { initUniformConstructor, createRayUBO, initTextures, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO, createGlobalBindGroup, createColorUBO } from './uniform.js';
+import { initUniformConstructor, createRayUBO, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO, createGlobalBindGroup, createColorUBO } from './uniform.js';
 import { getDevice } from './webgpu.js';
 import { initPipeline} from './pipelines/pipeline.js'
 import { initLineListPipeline } from './pipelines/lineListPipeline.js';
@@ -16,11 +16,13 @@ import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVe
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
 import { initDepthLineListPipeline } from './pipelines/depthLineListPipeline.js';
 import { initPointLights } from './light.js';
-import { initTextureCount } from './texture.js';
+import { initTextureCount, initTextures } from './texture.js';
+import { initHTMLCallbacks } from './GameHTMLCallbacks.js';
 
 
 export async function main() {
     await initWebGPU();
+    initHTMLCallbacks(document);
     await initMouse();
     initUniformConstructor();
     initDepthStencil();

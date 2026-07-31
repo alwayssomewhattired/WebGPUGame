@@ -6,7 +6,7 @@ import { createGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
 import { getDevice } from './webgpu.js';
 import { updateMatrix as matrix_updateMatrix, createAndStoreMatrix, getMatrix, getMegaMatrixCPUBufferLength, getViewMatrix } from './matrix.js';
 import { getMegaMatrixUBO } from './uniform.js';
-import { textureCount } from './texture.js';
+import { globalTextureOffset, textureCount } from './texture.js';
 
 export class Mesh {
     #translation;
@@ -16,18 +16,19 @@ export class Mesh {
     constructor(vCount, vData, vDataBuffer, vIndices, vIndicesBuffer, vIndexBufferSize, aabbMin, aabbMax, primitives,
         debugVertexBuffer, debugVertexCount
     ) {
-
+        
         this.#translation = glMatrix.vec3.fromValues(0.0, 0.0, -10.0);
         this.#rotation = glMatrix.vec3.fromValues(0, 0, 0);
         this.#scale = glMatrix.vec3.fromValues(0.2, 0.2, 0.2);
-
+        
         this.idx = null;
         this.isDirty = false;
+        
+        this.primitives = primitives
         
         this.vCount = vCount;
         this.vData = vData;
         this.vDataBuffer = vDataBuffer;
-        this.primitives = primitives
         this.vIndices = vIndices;
         this.vIndicesBuffer = vIndicesBuffer;
         this.vIndexBufferSize = vIndexBufferSize;
@@ -35,11 +36,11 @@ export class Mesh {
         this.aabbMax = aabbMax;
         this.aabbPositionsBuffer = createAABBPositions(this);
         this.aabbPositionsLength = 24;
-
+        
         // debugVertexBuffer dimensions: normalX,normalY,normalZ,normalEndX,normalEndY,normalEndZ
         this.debugVertexBuffer = debugVertexBuffer;
         this.debugVertexCount = debugVertexCount;
-
+        
         // ####### matrix indices are internally set
         // DO NOT TOUCH
         // #######
@@ -52,11 +53,11 @@ export class Mesh {
         this.rotationArcHeadModelIdx = null;
         this.modelViewIdx = null;
         this.normalMatrixIdx = null;
-
+        
         this.modelMatrixBufferOffset;
         this.initModelMatrix();
-
-
+        
+        
     }
 
     setTranslation(translation) {
@@ -160,7 +161,7 @@ class Primitive {
     constructor(vertexOffsetBytes, vertexSizeBytes, vertexOffset, idxOffset, idxSize, idxOffsetBytes, idxSizeBytes,
         vertexStrideBytes, idxType, vertexSize, vertexCount, materialIdx
     ) {
-        this.materialIdx = materialIdx;
+        this.globalMaterialIdx = materialIdx;
 
         this.vertexOffsetBytes =  vertexOffsetBytes;
         this.vertexSizeBytes =   vertexSizeBytes;
@@ -328,7 +329,7 @@ export function createMesh(obj, device) {
 }
 
 // | runs once per mesh
-export function createGLBMesh(primitiveAOS, device, json, binBuffer) {
+export function createGLBMesh(primitiveAOS, device, binBuffer) {
     
     let vertexData = [];
     let indexData = [];
@@ -342,7 +343,7 @@ export function createGLBMesh(primitiveAOS, device, json, binBuffer) {
 
     const f32SizeBytes      = 4;
     let indexTypeSizeBytes   = null;
-    let idxType = null;
+    let idxType = null; 
 
     const vertexElementsCount = 8 // 3-pos, 2-uv, 3-norm
     const vertexStrideBytes = vertexElementsCount * f32SizeBytes;
@@ -376,7 +377,7 @@ export function createGLBMesh(primitiveAOS, device, json, binBuffer) {
                 aabbIdx++;
 
                 vertexData.push(pos);
-                indexData.push(indices[j]);
+                // indexData.push(indices[j]);
 
                 debugVertexData.push(positions[j]);
             }
@@ -395,8 +396,13 @@ export function createGLBMesh(primitiveAOS, device, json, binBuffer) {
                 debugVertexData.push((positions[j] + normals[j]) * normalLength);
             }
         }   
-        const globalTexturesOffset = textureCount + primitive.materialIdx;
-        const idxSize = indexData.length - idxOffset;
+        const globalTexturesOffset = globalTextureOffset + primitive.materialIdx;
+        const customIdxSize = indexData.length - idxOffset;
+        for (const index of indices) {
+            indexData.push(index);
+        }
+        
+        const idxSize = primitive.indicesCount;
         const idxSizeBytes = idxSize * indexTypeSizeBytes;
         const vertexSizeBytes = (vertexData.length * f32SizeBytes) - vertexOffsetBytes;
         const vertexSize = vertexData.length - vertexOffset;
