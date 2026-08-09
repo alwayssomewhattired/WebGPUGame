@@ -1,13 +1,13 @@
 
-import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js';
+// import OBJFile from 'obj-file-parser';
 import * as glMatrix from 'gl-matrix';
 
-import { Mesh } from "./mesh.js";
+import { Mesh } from "../SceneLogic/mesh.js";
 import { getDevice } from './webgpu.js';
-import { Entity, getEntityModelMatricesCount } from './entity.js';
-import { getMatrix } from './matrix.js';
-import { createRotationArcHeadVertices, createRotationArcVertices } from './transformGizmo.js';
-import { generateUVSphere } from './light.js';
+import { Entity, getEntityModelMatricesCount } from '../SceneLogic/entity.js';
+import { getMatrix } from '../SceneLogic/matrix.js';
+import { createRotationArcHeadVertices, createRotationArcVertices } from '../SceneLogic/transformGizmo.js';
+import { generateUVSphere } from '../SceneLogic/light.js';
 
 let m_axisArrowsBuffer = null;
 let m_rotationArcVerticesBuffer = null;

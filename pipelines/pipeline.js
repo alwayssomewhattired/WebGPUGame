@@ -1,7 +1,7 @@
 
-import { getDevice } from "../webgpu.js"
-import { getShaderModule} from '../webgpu.js'
-import { getGlobalUniformBindGroupLayout, getUniformBindGroupLayout } from "../uniform.js";
+import { getDevice } from "../Renderer/webgpu.js"
+import { getShaderModule} from '../Renderer/webgpu.js'
+import { getGlobalUniformBindGroupLayout, getUniformBindGroupLayout } from "../Renderer/uniform.js";
 
 let m_pipeline = null;
 let m_texCoordsBuffer = null

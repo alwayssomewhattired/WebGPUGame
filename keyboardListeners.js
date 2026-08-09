@@ -1,6 +1,6 @@
 
-import { updateDebugLightBuffer, updateDirectionLightBuffer, updatePointLightBuffer } from "./light.js";
-import { getRayVerticesBuffer } from "./ray.js";
+import { updateDebugLightBuffer, updateDirectionLightBuffer, updatePointLightBuffer } from "./SceneLogic/light.js";
+import { getRayVerticesBuffer } from "./SceneLogic/ray.js";
 
 export let toggleFPSMode = false;
 export let toggleDebugNormals = false;

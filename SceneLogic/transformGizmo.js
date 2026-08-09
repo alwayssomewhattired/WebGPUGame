@@ -1,12 +1,12 @@
 
 import * as glMatrix from 'gl-matrix'
 import { getMatrix, getViewProjectionMatrix, updateMatrix } from './matrix.js';
-import { getScene } from "./fileParser.js"
-import { getDevice } from './webgpu.js';
+import { getDevice } from '../Renderer/webgpu.js';
 import { getWorldSpaceRayFromMouse, createRayVerticesGPUBuffer, getRayVerticesBuffer, getSelectedObject } from './ray.js';
-import { keyboardInput } from './keyboardListeners.js';
+import { keyboardInput } from '../keyboardListeners.js';
 import { axesBoxes, intersectAABB } from './aabb.js';
 import { findAxis } from './aabb.js';
+import { getScene } from './scene.js';
 
 let m_activeAxis = null;
 let m_aabbPositionsOffset;

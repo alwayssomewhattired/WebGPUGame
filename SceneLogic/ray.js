@@ -2,8 +2,8 @@
 import * as glMatrix from "gl-matrix"
 
 import { getViewProjectionMatrix, getMatrix } from "./matrix.js";
-import { getDevice } from "./webgpu.js";
-import { createGPUBuffer } from "./buffer.js";
+import { getDevice } from "../Renderer/webgpu.js";
+import { createGPUBuffer } from "../Renderer/buffer.js";
 import { intersectAABB } from "./aabb.js";
 
 const m_rayVerticesBuffer = [];

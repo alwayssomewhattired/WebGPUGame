@@ -1,8 +1,8 @@
 
 import * as glMatrix from 'gl-matrix'
 
-import { getDevice } from "./webgpu.js";
-import { createGPUBuffer } from "./buffer.js";
+import { getDevice } from "../Renderer/webgpu.js";
+import { createGPUBuffer } from "../Renderer/buffer.js";
 import { gizmoPositionsCPUBuffer } from "./transformGizmo.js";
 
 let m_aabbGizmoPositionsGPUBuffer = null;

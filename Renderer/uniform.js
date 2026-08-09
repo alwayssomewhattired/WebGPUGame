@@ -3,15 +3,15 @@ import * as glMatrix from 'gl-matrix';
 
 import { createGPUBuffer, getAxisArrowsVerticesGPUBuffer, getAABBColorGPUBuffer, 
     getRayColorGPUBuffer, getAlignedSize,
-    updateDynamicGPUBuffer} from './buffer.js'
-import { getDevice, ZACH_GAME_PATH } from './webgpu.js'
-import { getScene } from './fileParser.js';
-import { getMatrix, getViewMatrix, getProjectionMatrix } from './matrix.js';
-import { getCameraPosition } from './camera.js';
-import { directionLightBuffer, pointLightsData, createDirectionLightBuffer, pointLightBuffer, createPointLightBuffer, createDebugLightBuffer, debugLightBuffer } from './light.js';
-import { toggleDirectionLight } from './keyboardListeners.js';
-import { parseTexturesFromOBJ, sampler, textureCount } from './texture.js';
-import {textureCount as ext_textureCount } from './texture.js'
+    updateDynamicGPUBuffer} from '../Renderer/buffer.js'
+import { getDevice, ZACH_GAME_PATH } from '../Renderer/webgpu.js'
+import { getScene } from '../SceneLogic/scene.js';
+import { getMatrix, getViewMatrix, getProjectionMatrix } from '../SceneLogic/matrix.js';
+import { getCameraPosition } from '../SceneLogic/camera.js';
+import { directionLightBuffer, pointLightsData, createDirectionLightBuffer, pointLightBuffer, createPointLightBuffer, createDebugLightBuffer, debugLightBuffer } from '../SceneLogic/light.js';
+import { toggleDirectionLight } from '../keyboardListeners.js';
+import { parseTexturesFromOBJ, sampler, textureCount } from '../Asset_Manager/texture.js';
+import {textureCount as ext_textureCount } from '../Asset_Manager/texture.js'
 
 let m_rayModelMatrixUBO = null;
 let m_viewMatrixUBO = null;

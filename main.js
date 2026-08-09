@@ -1,23 +1,26 @@
 
-import { initWebGPU } from './webgpu.js';
-import { initUniformConstructor, createRayUBO, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO, createGlobalBindGroup, createColorUBO } from './uniform.js';
-import { getDevice } from './webgpu.js';
+import { initWebGPU } from './Renderer/webgpu.js';
+import { initUniformConstructor, createRayUBO, createUBO, createAxisArrowsUBO, createAABBUBO, createMegaMatrixUBO, createRotationArcUBO, getMegaMatrixUBO, createGlobalBindGroup, createColorUBO } from './Renderer/uniform.js';
+import { getDevice } from './Renderer/webgpu.js';
 import { initPipeline} from './pipelines/pipeline.js'
 import { initLineListPipeline } from './pipelines/lineListPipeline.js';
-import { initDepthStencil } from './depth_stencil.js';
-import { createEntities, getScene, updateEntities } from './fileParser.js';
+import { initDepthStencil } from './Renderer/depth_stencil.js';
+import { createEntity, filePaths } from './Asset_Manager/fileParser.js';
+import { updateEntities } from './SceneLogic/entity.js';
 import { frame } from './frame.js';
-import { render } from './renderer.js';
-import { initMouse } from './camera.js';
-import { initTransformGizmo } from './transformGizmo.js';
-import { initMegaMatrixCPUBuffer, updateMatrix } from './matrix.js';
+import { render } from './Renderer/renderer.js';
+import { initMouse } from './SceneLogic/camera.js';
+import { initTransformGizmo } from './SceneLogic/transformGizmo.js';
+import { initMegaMatrixCPUBuffer, updateMatrix } from './SceneLogic/matrix.js';
 import { initArcPipeline } from './pipelines/arcPipeline.js';
-import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, initSphereVerticesGPUBuffer } from './buffer.js';
+import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, initSphereVerticesGPUBuffer } from './Renderer/buffer.js';
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
 import { initDepthLineListPipeline } from './pipelines/depthLineListPipeline.js';
-import { initPointLights } from './light.js';
-import { initTextureCount, initTextures } from './texture.js';
+import { initPointLights } from './SceneLogic/light.js';
+import { initTextureCount, initTextures } from './Asset_Manager/texture.js';
 import { initHTMLCallbacks } from './GameHTMLCallbacks.js';
+import { createEntitySceneLogic } from './SceneLogic/scene.js';
+import { getScene } from './SceneLogic/scene.js';
 
 
 export async function main() {
@@ -28,10 +31,20 @@ export async function main() {
     initDepthStencil();
     initMegaMatrixCPUBuffer();
     // initTextureCount();
-    await createEntities();
+    for (const path of filePaths) {
+        const extension = path.split(".").pop();
+        if (extension === "obj") {
+        const arrayBuffer = await fetch(path);
+        await createEntity(arrayBuffer, path);
+        } else {
+        const arrayBuffer = await fetch(path).then(r => r.arrayBuffer());
+        await createEntity(arrayBuffer, path);
+        }
+    }
     const scene = getScene();
     createMegaMatrixUBO(scene);
-    updateEntities();   
+    createEntitySceneLogic();
+    // updateEntities();   
     await initTextures();
     initPointLights();
 

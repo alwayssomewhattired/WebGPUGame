@@ -1,6 +1,6 @@
 
-import { getDevice, getAABBShaderModule } from "../webgpu.js";
-import { getAABBUniformBindGroupLayout, getGlobalUniformBindGroupLayout } from "../uniform.js";
+import { getDevice, getAABBShaderModule } from "../Renderer/webgpu.js";
+import { getAABBUniformBindGroupLayout, getGlobalUniformBindGroupLayout } from "../Renderer/uniform.js";
 
 let m_aabbPipeline = null;
 

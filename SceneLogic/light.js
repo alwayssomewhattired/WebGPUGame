@@ -1,5 +1,5 @@
-import { createGPUBuffer } from "./buffer.js";
-import { getDevice } from "./webgpu.js";
+import { createGPUBuffer } from "../Renderer/buffer.js";
+import { getDevice } from "../Renderer/webgpu.js";
 
 
 export let directionLightBuffer = null;

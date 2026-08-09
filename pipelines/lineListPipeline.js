@@ -1,7 +1,7 @@
 
 
-import { getDevice, getInstancedShaderModule } from "../webgpu.js";
-import { getAxisArrowsUniformBindGroupLayout, getGlobalUniformBindGroupLayout } from "../uniform.js"
+import { getDevice, getInstancedShaderModule } from "../Renderer/webgpu.js";
+import { getAxisArrowsUniformBindGroupLayout, getGlobalUniformBindGroupLayout } from "../Renderer/uniform.js"
 
 export let lineListPipeline = null;
 

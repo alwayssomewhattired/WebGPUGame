@@ -1,7 +1,8 @@
-import { filePaths, getScene, sceneNameToIndexMap } from "./fileParser.js";
-import { getAddressMode, getMagFilter, getMinFilter } from "./openglEnums.js";
-import { appendGlobalTextureIndices, globalTextureUBO, setGlobalTextureUBO, updateGlobalTextureUBO } from "./uniform.js";
-import { getDevice, ZACH_GAME_PATH } from "./webgpu.js";
+import { filePaths, sceneNameToIndexMap } from "./fileParser.js";
+import { getAddressMode, getMagFilter, getMinFilter } from "../Tools/openglEnums.js";
+import { appendGlobalTextureIndices, globalTextureUBO, setGlobalTextureUBO, updateGlobalTextureUBO } from "../Renderer/uniform.js";
+import { getDevice, ZACH_GAME_PATH } from "../Renderer/webgpu.js";
+import { getScene } from "../SceneLogic/scene.js";
 
 export let textureCount = 0;
 // initializes global texture in a single pass

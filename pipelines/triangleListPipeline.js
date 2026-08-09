@@ -1,8 +1,8 @@
 
 
 
-import { getGlobalUniformBindGroupLayout, getRotationArcUniformBindGroupLayout } from "../uniform.js";
-import { getDevice, getInstancedShaderModule } from "../webgpu.js";
+import { getGlobalUniformBindGroupLayout, getRotationArcUniformBindGroupLayout } from "../Renderer/uniform.js";
+import { getDevice, getInstancedShaderModule } from "../Renderer/webgpu.js";
 
 let m_triangleListPipeline = null;
 

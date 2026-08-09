@@ -1,19 +1,19 @@
-import { getPipeline  } from "./pipelines/pipeline.js";
-import { getLineListPipeline, lineListPipeline } from "./pipelines/lineListPipeline.js";
-import { getAABBPipeline } from "./pipelines/AABBPipeline.js";
-import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup, getRayUniformBindGroupLayout, getColorUniformBindGroup } from "./uniform.js";
+import { getPipeline  } from "../pipelines/pipeline.js";
+import { getLineListPipeline, lineListPipeline } from "../pipelines/lineListPipeline.js";
+import { getAABBPipeline } from "../pipelines/AABBPipeline.js";
+import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup, getRayUniformBindGroupLayout, getColorUniformBindGroup } from "../Renderer/uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
-import { getScene } from "./fileParser.js";
 import { getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcHeadVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, getSphereVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
-import { getGlobalRotationArcHeadVerticesCount, getGlobalRotationArcVerticesCount, gizmoPositionsCPUBuffer } from "./transformGizmo.js";
-import { getAABBGizmoPositionsGPUBuffer } from "./aabb.js";
-import { getRayVerticesBuffer } from "./ray.js";
-import { keyboardInput, toggleDebugNormals } from "./keyboardListeners.js";
-import { getArcPipeline } from "./pipelines/arcPipeline.js";
-import { getTriangleListPipeline } from "./pipelines/triangleListPipeline.js";
-import { getSphereRawVertexCount } from "./light.js";
-import { getDepthLineListPipeline } from "./pipelines/depthLineListPipeline.js";
+import { getGlobalRotationArcHeadVerticesCount, getGlobalRotationArcVerticesCount, gizmoPositionsCPUBuffer } from "../SceneLogic/transformGizmo.js";
+import { getAABBGizmoPositionsGPUBuffer } from "../SceneLogic/aabb.js";
+import { getRayVerticesBuffer } from "../SceneLogic/ray.js";
+import { keyboardInput, toggleDebugNormals } from "../keyboardListeners.js";
+import { getArcPipeline } from "../pipelines/arcPipeline.js";
+import { getTriangleListPipeline } from "../pipelines/triangleListPipeline.js";
+import { getSphereRawVertexCount } from "../SceneLogic/light.js";
+import { getDepthLineListPipeline } from "../pipelines/depthLineListPipeline.js";
+import { getScene } from "../SceneLogic/scene.js";
 
 
 export function render() {

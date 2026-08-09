@@ -1,6 +1,6 @@
 
-import { getDebugShaderModule, getDevice } from "../webgpu.js";
-import { getColorUniformBindGroupLayout, getGlobalUniformBindGroupLayout } from "../uniform.js"
+import { getDebugShaderModule, getDevice } from "../Renderer/webgpu.js";
+import { getColorUniformBindGroupLayout, getGlobalUniformBindGroupLayout } from "../Renderer/uniform.js"
 
 export let depthLineListPipeline = null;
 

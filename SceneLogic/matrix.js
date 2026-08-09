@@ -1,8 +1,8 @@
 
 import * as glMatrix from 'gl-matrix'
-import { createGPUBuffer, updateDynamicGPUBuffer } from './buffer.js';
-import { getDevice } from './webgpu.js';
-import { getMegaMatrixUBO } from './uniform.js';
+import { createGPUBuffer, updateDynamicGPUBuffer } from '../Renderer/buffer.js';
+import { getDevice } from '../Renderer/webgpu.js';
+import { getMegaMatrixUBO } from '../Renderer/uniform.js';
 import { setCameraPos } from './camera.js';
 
 // 0: default-empty

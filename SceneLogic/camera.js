@@ -1,8 +1,8 @@
 
 import * as glMatrix from 'gl-matrix'
-import { toggleFPSMode } from './keyboardListeners.js';
+import { toggleFPSMode } from '../keyboardListeners.js';
 import { setViewMatrix } from './matrix.js';
-import { updateCameraPosUBO } from './uniform.js';
+import { updateCameraPosUBO } from '../Renderer/uniform.js';
 
 const camera = {
     position: glMatrix.vec3.fromValues(0, 1.6, 5),

@@ -1,12 +1,13 @@
 
-import OBJFile from './node_modules/obj-file-parser/dist/OBJFile.js';
+// import OBJFile from 'obj-file-parser';
 import * as glMatrix from 'gl-matrix'
 
-import { createGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
-import { getDevice } from './webgpu.js';
+import { createGPUBuffer, updateDynamicGPUBuffer } from "../Renderer/buffer.js";
+import { getDevice } from '../Renderer/webgpu.js';
 import { updateMatrix as matrix_updateMatrix, createAndStoreMatrix, getMatrix, getMegaMatrixCPUBufferLength, getViewMatrix } from './matrix.js';
-import { getMegaMatrixUBO } from './uniform.js';
-import { globalTextureOffset, textureCount } from './texture.js';
+import { getMegaMatrixUBO } from '../Renderer/uniform.js';
+import { globalTextureOffset, textureCount } from '../Asset_Manager/texture.js';
+import { Primitive } from './primitive.js';
 
 export class Mesh {
     #translation;
@@ -157,35 +158,40 @@ export class Mesh {
     }
 }
 
-class Primitive {
-    constructor(vertexOffsetBytes, vertexSizeBytes, vertexOffset, idxOffset, idxSize, idxOffsetBytes, idxSizeBytes,
-        vertexStrideBytes, idxType, vertexSize, vertexCount, materialIdx
-    ) {
-        this.globalMaterialIdx = materialIdx;
+// class Primitive {
+//     constructor(vertexOffsetBytes, vertexSizeBytes, vertexOffset, idxOffset, idxSize, idxOffsetBytes, idxSizeBytes,
+//         vertexStrideBytes, idxType, vertexSize, vertexCount, materialIdx
+//     ) {
+//         this.globalMaterialIdx = materialIdx;
 
-        this.vertexOffsetBytes =  vertexOffsetBytes;
-        this.vertexSizeBytes =   vertexSizeBytes;
-        this.vertexOffset =        vertexOffset;
-        this.vertexSize = vertexSize;
-        this.vertexCount = vertexCount;
-        this.vertexStrideBytes = vertexStrideBytes;
+//         this.vertexOffsetBytes =  vertexOffsetBytes;
+//         this.vertexSizeBytes =   vertexSizeBytes;
+//         this.vertexOffset =        vertexOffset;
+//         this.vertexSize = vertexSize;
+//         this.vertexCount = vertexCount;
+//         this.vertexStrideBytes = vertexStrideBytes;
 
-        this.idxOffset =    idxOffset;
-        this.idxSize =      idxSize;
-        this.idxType = idxType;
+//         this.idxOffset =    idxOffset;
+//         this.idxSize =      idxSize;
+//         this.idxType = idxType;
 
-        this.idxOffsetBytes =    idxOffsetBytes;
-        this.idxSizeBytes =      idxSizeBytes;
-    }
-}
+//         this.idxOffsetBytes =    idxOffsetBytes;
+//         this.idxSizeBytes =      idxSizeBytes;
+//     }
+// }
 
 let m_aabbPositionsOffset = 0;
 
 // * obj * raw file
 // * entity * instance of entity class
-export function createMesh(obj, device) {
-    const object = obj.result.models[0];
+export function createMesh(models, device) {
+
+    console.log(models)
+    const model = models[0];
+    const vertices = model.vertices;
     let vertexData = [];
+    const indices = model.indices;
+    let indexData = [];
 
     let debugVertexData = [];
     let normalLength = 2.0;
@@ -193,60 +199,90 @@ export function createMesh(obj, device) {
     let aabbMin = glMatrix.vec3.create();
     let aabbMax = glMatrix.vec3.create();
 
-    const primitiveOffset = vertexData.length;
+    const primitiveOffset = model.vertices.length;
     const primitiveData = [];
 
-    let faces = object.faces;
-    let faceCount = faces.length;
+    // let faces = model.faces;
+    // let faceCount = faces.length;
     let vertexCount = 0;
-    for (let face of faces) {
-        for (let vertex of face.vertices) {
 
-            const pos = object.vertices[vertex.vertexIndex - 1];
-            const uv = object.textureCoords[vertex.textureCoordsIndex - 1];
-            const normal = object.vertexNormals[vertex.vertexNormalIndex - 1];
+    for (let i=0; i<model.positions.length; i+=3) {
+        const posX = model.positions[i];
+        const posY = model.positions[i+1];
+        const posZ = model.positions[i+2];
 
-            // | AABB
-            aabbMin[0] = Math.min(pos.x, aabbMin[0]);
-            aabbMin[1] = Math.min(pos.y, aabbMin[1]);
-            aabbMin[2] = Math.min(pos.z, aabbMin[2]);
+        const normalX = model.normals[i];
+        const normalY = model.normals[i+1];
+        const normalZ = model.normals[i+2];
 
-            aabbMax[0] = Math.max(pos.x, aabbMax[0]);
-            aabbMax[1] = Math.max(pos.y, aabbMax[1]);
-            aabbMax[2] = Math.max(pos.z, aabbMax[2]);
+        aabbMin[0] = Math.min(posX, aabbMin[0]);
+        aabbMin[1] = Math.min(posY, aabbMin[1]);
+        aabbMin[2] = Math.min(posZ, aabbMin[2]);
 
-            vertexData.push(
-                pos.x,
-                pos.y,
-                pos.z,
-                uv.u,
-                uv.v,
-                normal.x,
-                normal.y,
-                normal.z
-            );
+        aabbMax[0] = Math.max(posX, aabbMax[0]);
+        aabbMax[1] = Math.max(posY, aabbMax[1]);
+        aabbMax[2] = Math.max(posZ, aabbMax[2]);
 
-            debugVertexData.push(
-                pos.x,
-                pos.y,
-                pos.z,
-                (pos.x + normal.x) * normalLength,
-                (pos.y + normal.y) * normalLength,
-                (pos.z + normal.z) * normalLength
-            );
+        debugVertexData.push(
+            posX,
+            posY,
+            posZ,
+            (posX + normalX) * normalLength,
+            (posY + normalY) * normalLength,
+            (posZ + normalZ) * normalLength
+        );
 
-            vertexCount++;
-
-        }
+        vertexCount++;
     }
 
-    vertexData = new Float32Array(vertexData);
+    // for (let face of faces) {
+    //     for (let vertex of face.vertices) {
+
+    //         const pos = model.vertices[vertex.vertexIndex - 1];
+    //         const uv = model.textureCoords[vertex.textureCoordsIndex - 1];
+    //         const normal = model.vertexNormals[vertex.vertexNormalIndex - 1];
+
+    //         // | AABB
+    //         aabbMin[0] = Math.min(pos.x, aabbMin[0]);
+    //         aabbMin[1] = Math.min(pos.y, aabbMin[1]);
+    //         aabbMin[2] = Math.min(pos.z, aabbMin[2]);
+
+    //         aabbMax[0] = Math.max(pos.x, aabbMax[0]);
+    //         aabbMax[1] = Math.max(pos.y, aabbMax[1]);
+    //         aabbMax[2] = Math.max(pos.z, aabbMax[2]);
+
+    //         vertexData.push(
+    //             pos.x,
+    //             pos.y,
+    //             pos.z,
+    //             uv.u,
+    //             uv.v,
+    //             normal.x,
+    //             normal.y,
+    //             normal.z
+    //         );
+
+    //         debugVertexData.push(
+    //             pos.x,
+    //             pos.y,
+    //             pos.z,
+    //             (pos.x + normal.x) * normalLength,
+    //             (pos.y + normal.y) * normalLength,
+    //             (pos.z + normal.z) * normalLength
+    //         );
+
+    //         vertexCount++;
+
+    //     }
+    // }
+
+    vertexData = new Float32Array(vertices);
     const vertexBuffer = createGPUBuffer(device, vertexData, vertexData.byteLength, GPUBufferUsage.VERTEX);
     const debugVertexCount = (debugVertexData.length / 3); // normal start, normal end
     debugVertexData = new Float32Array(debugVertexData);
     const debugVertexBuffer = createGPUBuffer(device, debugVertexData, debugVertexData.byteLength, GPUBufferUsage.VERTEX);
 
-    let indices = [];
+    // let indices = [];
     let normals = Array(vertexCount * 3).fill(0);
     let xOffset;
     let yOffset;
@@ -258,72 +294,71 @@ export function createMesh(obj, device) {
     let minZ;
     let maxZ;
 
-    for (let f of faces) {
-        let points = [];
-        let facet_indices = [];
-        for (let v of f.vertices) {
-            const index = v.vertexIndex - 1;
-            indices.push(index);
+    // for (let f of faces) {
+    //     let points = [];
+    //     let facet_indices = [];
+    //     for (let v of f.vertices) {
+    //         const index = v.vertexIndex - 1;
+    //         indices.push(index);
 
-            xOffset = vertexData[index * 3];
-            yOffset = vertexData[index * 3 + 1];
-            zOffset = vertexData[index * 3 + 2];
+    //         xOffset = vertexData[index * 3];
+    //         yOffset = vertexData[index * 3 + 1];
+    //         zOffset = vertexData[index * 3 + 2];
 
-            const vertex = glMatrix.vec3.fromValues(
-                xOffset,
-                yOffset,
-                zOffset
-            );
+    //         const vertex = glMatrix.vec3.fromValues(
+    //             xOffset,
+    //             yOffset,
+    //             zOffset
+    //         );
 
-            minX = Math.min(xOffset, minX);
-            maxX = Math.max(xOffset, maxX);
+    //         minX = Math.min(xOffset, minX);
+    //         maxX = Math.max(xOffset, maxX);
 
-            minY = Math.min(yOffset, minY);
-            maxY = Math.max(yOffset, maxY);
+    //         minY = Math.min(yOffset, minY);
+    //         maxY = Math.max(yOffset, maxY);
 
-            minZ = Math.min(zOffset, minZ);
-            maxZ = Math.max(zOffset, maxZ);
+    //         minZ = Math.min(zOffset, minZ);
+    //         maxZ = Math.max(zOffset, maxZ);
 
-            points.push(vertex);
-            facet_indices.push(index);
-        }
+    //         points.push(vertex);
+    //         facet_indices.push(index);
+    //     }
 
-        const v1 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[1], points[0]);
-        const v2 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[2], points[0]);
-        const cross = glMatrix.vec3.cross(glMatrix.vec3.create(), v1, v2);
-        const normal = glMatrix.vec3.normalize(glMatrix.vec3.create(), cross);
+    //     const v1 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[1], points[0]);
+    //     const v2 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[2], points[0]);
+    //     const cross = glMatrix.vec3.cross(glMatrix.vec3.create(), v1, v2);
+    //     const normal = glMatrix.vec3.normalize(glMatrix.vec3.create(), cross);
 
-        for (let i of facet_indices) {
-            normals[i * 3] += normal[0];
-            normals[i * 3 + 1] += normal[1];
-            normals[i * 3 + 2] += normal[2];
+    //     for (let i of facet_indices) {
+    //         normals[i * 3] += normal[0];
+    //         normals[i * 3 + 1] += normal[1];
+    //         normals[i * 3 + 2] += normal[2];
             
-        }
-    }
+    //     }
+    // }
 
-    indices = new Uint16Array(indices);
-    const indexBufferSize = indices.length;
+    indexData = new Uint16Array(indices);
+    const indexBufferSize = indexData.length;
 
-    const indexBuffer = createGPUBuffer(device, indices, indices.byteLength, GPUBufferUsage.INDEX);
+    const indexBuffer = createGPUBuffer(device, indexData, indexData.byteLength, GPUBufferUsage.INDEX);
 
-        for (let f of object.faces) {
-        let points = [];
-        let facet_indices = [];
-        for (let v of f.vertices) {
-            const index = v.vertexIndex - 1;
+    //     for (let f of model.faces) {
+    //     let points = [];
+    //     let facet_indices = [];
+    //     for (let v of f.vertices) {
+    //         const index = v.vertexIndex - 1;
 
-            const vertex = glMatrix.vec3.fromValues(vertexData);
-        }
-    }
+    //         const vertex = glMatrix.vec3.fromValues(vertexData);
+    //     }
+    // }
 
     const primitiveSize = vertexData.length;
     const primitiveObject = new Primitive(primitiveOffset, primitiveSize);
     primitiveData.push(primitiveObject);
 
-    const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indices, indexBuffer, indexBufferSize, 
+    const mesh = new Mesh(vertexCount, vertexData, vertexBuffer, indexData, indexBuffer, indexBufferSize, 
         aabbMin, aabbMax, primitiveData, debugVertexBuffer, debugVertexCount, null, null
     );
-
 
     return mesh;
 }

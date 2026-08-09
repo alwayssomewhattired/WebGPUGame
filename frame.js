@@ -1,13 +1,13 @@
 
 
 import * as glMatrix from 'gl-matrix'
-import { getDevice } from "./webgpu.js";
-import { getMegaMatrixUBO, getViewMatrixUBO } from './uniform.js';
-import { updatePosition, updateViewTransform } from './camera.js';
+import { getDevice } from "./Renderer/webgpu.js";
+import { getMegaMatrixUBO, getViewMatrixUBO } from './Renderer/uniform.js';
+import { updatePosition, updateViewTransform } from './SceneLogic/camera.js';
 import { keyboardInput } from "./keyboardListeners.js";
-import { render } from './renderer.js';
-import { getViewMatrix } from './matrix.js';
-import { getAlignedSize } from './buffer.js';
+import { render } from './Renderer/renderer.js';
+import { getViewMatrix } from './SceneLogic/matrix.js';
+import { getAlignedSize } from './Renderer/buffer.js';
 import { updateMeter } from '../ZachAudio/GainMeter.js';
 
 
