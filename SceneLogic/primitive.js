@@ -1,7 +1,7 @@
 
 export class Primitive {
     constructor(vertexOffsetBytes, vertexSizeBytes, vertexOffset, idxOffset, idxSize, idxOffsetBytes, idxSizeBytes,
-        vertexStrideBytes, idxType, vertexSize, vertexCount, materialIdx
+        vertexStrideBytes, vertexSize, vertexCount, materialIdx, idxTypeSizeBytes, idxType
     ) {
         this.globalMaterialIdx = materialIdx;
 
@@ -15,6 +15,8 @@ export class Primitive {
 
         this.idxOffset =    idxOffset;
         this.idxSize =      idxSize;
+
+        this.idxTypeSizeBytes = idxTypeSizeBytes;
         this.idxType = idxType;
 
         this.idxOffsetBytes =    idxOffsetBytes;

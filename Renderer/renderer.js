@@ -4,7 +4,7 @@ import { getAABBPipeline } from "../pipelines/AABBPipeline.js";
 import { getUniformBindGroup, getAxisArrowsUniformBindGroup, getAABBUniformBindGroup, getRayUniformBindGroup, getMegaMatrixUBO, getRotationArcUniformBindGroup, getGlobalUniformBindGroup, getRayUniformBindGroupLayout, getColorUniformBindGroup } from "../Renderer/uniform.js";
 import { getDepthAttachment } from "./depth_stencil.js";
 import { getDevice } from "./webgpu.js";
-import { getAlignedSize, getAxisArrowsVerticesGPUBuffer, getRotationArcHeadVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, getSphereVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
+import { getAlignedSize, getAxisArrowsVerticesGPUBuffer, getGPUIndexBuffer, getGPUVertexBuffer, getRotationArcHeadVerticesGPUBuffer, getRotationArcVerticesGPUBuffer, getSphereVerticesGPUBuffer, updateDynamicGPUBuffer } from "./buffer.js";
 import { getGlobalRotationArcHeadVerticesCount, getGlobalRotationArcVerticesCount, gizmoPositionsCPUBuffer } from "../SceneLogic/transformGizmo.js";
 import { getAABBGizmoPositionsGPUBuffer } from "../SceneLogic/aabb.js";
 import { getRayVerticesBuffer } from "../SceneLogic/ray.js";
@@ -14,6 +14,8 @@ import { getTriangleListPipeline } from "../pipelines/triangleListPipeline.js";
 import { getSphereRawVertexCount } from "../SceneLogic/light.js";
 import { getDepthLineListPipeline } from "../pipelines/depthLineListPipeline.js";
 import { getScene } from "../SceneLogic/scene.js";
+import { getVertexBuffer } from "../SceneLogic/Buffers/vertexBuffer.js";
+import { getFuckyouIndexBuffer, getIndexBuffer } from "../SceneLogic/Buffers/indexBuffer.js";
 
 
 export function render() {
@@ -62,25 +64,58 @@ export function render() {
     let textureOffset = 0;
     
     passEncoder.setPipeline(pipeline);
+    const vDataBuffer = getGPUVertexBuffer();
+    const indexBuffer = getGPUIndexBuffer();
+    passEncoder.setVertexBuffer(0, vDataBuffer);
+    passEncoder.setIndexBuffer(indexBuffer, 'uint32');
+
     for (const entity of scene) {
         const entityMatricesCount = entity.modelMatrixLength;
         
         for (const mesh of entity.meshes) {
-            const indexBuffer = mesh.vIndicesBuffer;
             
             if (entity.fileExt === 'glb') {
-                const vDataBuffer = mesh.vDataBuffer;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 for (const primitive of mesh.primitives) {
                     passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, alignedSize * primitive.globalMaterialIdx]);
-                    passEncoder.setVertexBuffer(0, vDataBuffer, primitive.vertexOffsetBytes, primitive.vertexSizeBytes);
-                    if (primitive.idxType === 'Uint32Array') {
-                        passEncoder.setIndexBuffer(indexBuffer, 'uint32', primitive.idxOffsetBytes, primitive.idxSizeBytes);
-                    }
-                    else if (primitive.idxType === 'Uint16Array') {
-                        passEncoder.setIndexBuffer(indexBuffer, 'uint16', primitive.idxOffsetBytes, primitive.idxSizeBytes);
-                    }
-                    passEncoder.drawIndexed(primitive.idxSize, 1, 0, primitive.vertexOffset);
+                    passEncoder.drawIndexed(primitive.idxSize, 1, primitive.idxOffset);
                 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             } else {
                 for (const primitive of mesh.primitives) {
                 passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, alignedSize * entity.globalTextureOffset]);

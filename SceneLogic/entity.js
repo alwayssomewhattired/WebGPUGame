@@ -2,12 +2,13 @@
 import * as glMatrix from 'gl-matrix'
 
 import { getAlignedSize } from '../Renderer/buffer.js';
-import { getMegaMatrixCPUBufferLength, getViewMatrix } from './matrix.js';
+import { getMegaMatrixCPUBufferLength, getViewMatrix, updateMatrix } from './matrix.js';
 import { updateMatrix as matrix_updateMatrix, createAndStoreMatrix, getMatrix } from './matrix.js';
 import { getMegaMatrixUBO } from '../Renderer/uniform.js';
+import { getEntity } from './scene.js';
 
 export class Entity {
-    constructor(meshes, color, id, modelMatrixIdx, materials, idx, fileExt, perEntityGlobalVertexBuffer,
+    constructor(meshes, color, id, modelMatrixIdx, materials, idx, fileExt,
         json, binBuffer, textureIdx, name
     ) {
 
@@ -22,7 +23,7 @@ export class Entity {
         this.binBuffer = binBuffer
 
         this.meshes = meshes;
-        this.perEntityGlobalVertexBuffer = perEntityGlobalVertexBuffer;
+        // this.perEntityGlobalVertexBuffer = perEntityGlobalVertexBuffer;
 
         this.materials = materials; // -currently only support for obj while null for glb
 
@@ -44,13 +45,7 @@ export class Entity {
 
 
 export function getEntityModelMatricesCount() {
-    return getScene()[0].modelMatrixLength;
-}
-
-
-export function getEntity(objectName) {
-    const index = sceneNameToIndexMap.get(objectName);
-    return scene[index];
+    return 8;
 }
 
 export function updateEntity(objectName, translation, rotation, scale) {
@@ -72,20 +67,20 @@ export function updateEntities() {
     let rotation = null;
     let scale = null;
 
-    translation = glMatrix.vec3.fromValues(0, 0, 0);
-    scale = glMatrix.vec3.fromValues(0.1, 0.1, 0.1);
-    rotation = glMatrix.vec3.fromValues(0, 0, 0);
-    updateEntity('rat', translation, rotation, scale);
+    // translation = glMatrix.vec3.fromValues(0, 0, 0);
+    // scale = glMatrix.vec3.fromValues(0.1, 0.1, 0.1);
+    // rotation = glMatrix.vec3.fromValues(0, 0, 0);
+    // updateEntity('psx-rat', translation, rotation, scale);
 
-    translation = glMatrix.vec3.fromValues(-2, 2, 5);
-    scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
-    rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
-    updateEntity('stop-sign', translation, rotation, scale);
+    // translation = glMatrix.vec3.fromValues(-2, 2, 5);
+    // scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
+    // rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
+    // updateEntity('stop-sign-psx', translation, rotation, scale);
 
-    translation = glMatrix.vec3.fromValues(-15, 0, -25);
-    scale = glMatrix.vec3.fromValues(5.0, 5.0, 5.0);
-    rotation = glMatrix.vec3.fromValues(4.75, 0.0, 0);
-    updateEntity('jap-warehouse', translation, rotation, scale);
+    // translation = glMatrix.vec3.fromValues(-15, 0, -25);
+    // scale = glMatrix.vec3.fromValues(5.0, 5.0, 5.0);
+    // rotation = glMatrix.vec3.fromValues(4.75, 0.0, 0);
+    // updateEntity('psx_japanese_warehouse', translation, rotation, scale);
     
     // translation = glMatrix.vec3.fromValues(2, 2, 5);
     // scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
@@ -95,6 +90,6 @@ export function updateEntities() {
     translation = glMatrix.vec3.fromValues(8, 0, -10);
     scale = glMatrix.vec3.fromValues(5.0, 5.0, 5.0);
     rotation = glMatrix.vec3.fromValues(0, 0, 0);
-    updateEntity('pyramid-head', translation, rotation, scale);
+    updateEntity('pyramid_head', translation, rotation, scale);
 
 }

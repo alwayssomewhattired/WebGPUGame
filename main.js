@@ -13,7 +13,7 @@ import { initMouse } from './SceneLogic/camera.js';
 import { initTransformGizmo } from './SceneLogic/transformGizmo.js';
 import { initMegaMatrixCPUBuffer, updateMatrix } from './SceneLogic/matrix.js';
 import { initArcPipeline } from './pipelines/arcPipeline.js';
-import { getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, initSphereVerticesGPUBuffer } from './Renderer/buffer.js';
+import { createGPUDebugVertexBuffer, createGPUIndexBuffer, createGPUVertexBuffer, getAlignedSize, initRotationArcHeadVerticesGPUBuffer, initRotationArcVerticesGPUBuffer, initSphereVerticesGPUBuffer } from './Renderer/buffer.js';
 import { initTriangleListPipeline } from './pipelines/triangleListPipeline.js';
 import { initDepthLineListPipeline } from './pipelines/depthLineListPipeline.js';
 import { initPointLights } from './SceneLogic/light.js';
@@ -41,6 +41,10 @@ export async function main() {
         await createEntity(arrayBuffer, path);
         }
     }
+    createGPUVertexBuffer();
+    createGPUIndexBuffer();
+    createGPUDebugVertexBuffer();
+
     const scene = getScene();
     createMegaMatrixUBO(scene);
     createEntitySceneLogic();

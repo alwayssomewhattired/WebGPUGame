@@ -9,22 +9,27 @@ import { getMegaMatrixCPUBufferLength, updateMatrix } from '../SceneLogic/matrix
 import { createGPUBuffer } from '../Renderer/buffer.js';
 import { globalTextureOffset, globalTextureOffsetIncrement, parseTexturesFromGLB, textureCount, globalTextureCountIncrement } from './texture.js';
 import { fanTriangulation } from '../Tools/tools.js';
+import { Model } from '../SceneLogic/model.js';
+import { addToScene, getScene } from '../SceneLogic/scene.js';
+import { getVertexBufferLength, updateVertexBuffer } from '../SceneLogic/Buffers/vertexBuffer.js';
+import { getIndexBufferLength, updateIndexBuffer } from '../SceneLogic/Buffers/indexBuffer.js';
+import { updateDebugVertexBuffer } from '../SceneLogic/Buffers/debugVertexBuffer.js';
 
 export const filePaths = [
-    ZACH_GAME_PATH + '/models/psx-rat/source/rat.obj',
-    ZACH_GAME_PATH + '/models/stop-sign-psx/source/stop-sign.obj',
+    // ZACH_GAME_PATH + '/models/psx-rat/source/rat.obj',
+    // ZACH_GAME_PATH + '/models/stop-sign-psx/source/stop-sign.obj',
     // | sadly no pizzeria yet :(
     // | I think file exported wrong
     // | Need to check in blender first
-    ZACH_GAME_PATH + '/models/psx_japanese_warehouse.glb',
+    // ZACH_GAME_PATH + '/models/psx_japanese_warehouse.glb',
     // ZACH_GAME_PATH + '/models/pizzeria.glb'
     ZACH_GAME_PATH + '/models/pyramid_head.glb'
 ];
 
 export const sceneNameToIndexMap = new Map([
-    ["rat", 0],
-    ['stop-sign', 1],
-    ['jap-warehouse', 2],
+    // ["rat", 0],
+    // ['stop-sign', 1],
+    // ['jap-warehouse', 2],
     // ['pizzeria', 3]
     ['pyramid-head', 3]
 ]);
@@ -48,9 +53,11 @@ export async function createEntity(arrayBuffer, path) {
         binBuffer = glbReturn.binBuffer;
         globalTextureCountIncrement(json.textures.length);
     } else {
-
         const models = await parseOBJ(path);
-        meshes = [createMesh(models, device)];
+        meshes = [];
+        for (const model of models) {
+            meshes.push(createMesh(model, device));
+        }
         // const objBody = await arrayBuffer.text();
         // const obj = await (async () => {
         //     return new Promise((resolve, reject) => {
@@ -78,26 +85,27 @@ export async function createEntity(arrayBuffer, path) {
         const translation = glMatrix.vec3.create();
         const color = glMatrix.vec3.create();
 
-        const perEntityGlobalVertexData = [];
-        for (const mesh of meshes) {
-            mesh.idx = m_meshIdx;
-            m_meshIdx++;
-            for (const e of mesh.vData) {
-                perEntityGlobalVertexData.push(e);
-            }
-        }
+        // const perEntityGlobalVertexData = [];
+        // for (const mesh of meshes) {
+        //     mesh.idx = m_meshIdx;
+        //     m_meshIdx++;
+        //     for (const e of mesh.vData) {
+        //         perEntityGlobalVertexData.push(e);
+        //     }
+        // }
 
-        const perEntityGlobalVertexTypedArray = new Float32Array(perEntityGlobalVertexData);
+        // const perEntityGlobalVertexTypedArray = new Float32Array(perEntityGlobalVertexData);
 
-        const perEntityGlobalVertexBuffer = createGPUBuffer(getDevice(), perEntityGlobalVertexTypedArray, 
-            perEntityGlobalVertexTypedArray.byteLength, GPUBufferUsage.VERTEX);
+        // const perEntityGlobalVertexBuffer = createGPUBuffer(getDevice(), perEntityGlobalVertexTypedArray, 
+        //     perEntityGlobalVertexTypedArray.byteLength, GPUBufferUsage.VERTEX);
 
         const modelMatrixIdx = getMegaMatrixCPUBufferLength();
 
-        const name = path.split('/')[3];
+
+        const name = path.slice(0, -4).split('/')[3];
 
         const entity = new Entity(meshes, color, path, modelMatrixIdx, materials, m_entityIdx, extension, 
-            perEntityGlobalVertexBuffer, json, binBuffer, globalTextureOffset, name
+            json, binBuffer, globalTextureOffset, name
         );
         if (json) {    
             globalTextureOffsetIncrement(json.images.length);
@@ -106,10 +114,12 @@ export async function createEntity(arrayBuffer, path) {
         }
 
         m_entityIdx++;
-        scene.push(entity);
+        addToScene(entity);
 
 }
 
+const vertexMap = new Map();
+// return an array of models
 async function parseOBJ(path) {
     const text = await (await fetch(path)).text();
     const lines = text.split(/\r?\n/);
@@ -121,20 +131,38 @@ async function parseOBJ(path) {
     let meshPositions = [];
     let meshTexcoords = [];
     let meshNormals = [];
+    
+    const models = [];
+    const modelPositions = [];
+    const modelTexcoords = [];
+    const modelNormals = [];
+    const modelVertices = [];
+    const modelIndices = [];
+
+    let modelName = null;
+    let mtlName = null;
+    let materialName = null;
+
+    const primitives = [];
+    const primitivePositions = [];
+    const primitiveTexcoords = [];
+    const primitiveNormals = [];
+    const primitiveVertices = [];
+    const primitiveIndices = [];
+
 
     const entityVertices = [];
-    let modelVertices = [];
-    let modelName = null;
-    const indices = [];
-
-    const vertexMap = new Map();
-
-    const models = [];
 
     for (const line of lines) {
         const parts = line.trim().split(/\s+/);
 
         switch (parts[0]) {
+
+            case "mtllib":
+                mtlName = parts[1];
+
+            case "usemtl": 
+                materialName = parts[1];
 
             case "o": 
                 if (modelVertices.length > 0) {
@@ -271,11 +299,14 @@ async function parseOBJ(path) {
                     }
 
                 }
-                indices.push(vertexMap.get(face));
+                modelIndices.push(vertexMap.get(face));
             }
         }
     }
 
+    for (const model of models) {
+        models.push(new Model(modelPositions, modelTexcoords, modelNormals, modelIndices, modelVertices, modelName));
+    }
     models.push({
         positions: modelPositions,
         texcoords: modelTexcoords,
@@ -332,9 +363,15 @@ function parseMTL(mtlText, path) {
 }
 
 
+let m_indexOffset = 0;
+let m_debugVertexCount = 0;
 
 export async function parseGLB(arrayBuffer) {
+    const globalVerticesOffset = getVertexBufferLength();
+    let globalIndicesOffset = getIndexBufferLength();
     const view = new DataView(arrayBuffer);
+    const aabbMin = [];
+    const aabbMax = [];
 
     const magic = String.fromCharCode(
         view.getUint8(0),
@@ -377,12 +414,19 @@ export async function parseGLB(arrayBuffer) {
         offset += chunkLength;
     }
     
+    let normalLength = 2.0;
     const meshes = [];
-
+    
     const textureCount = json.images.length;
     
+    // so even though we iterate through meshes, only the first one is drawn.
+    // something is very wrong with our indexing.
+    // I think we are re-reading the same data
     for (const mesh of json.meshes) {
+        let meshVerticesLength = 0;
+        let meshIndexLength = 0;
         const primitives =  [];
+        const primitivesGlobalIndices = [];
 
         for (let i = 0; i < mesh.primitives.length; i++) {
 
@@ -393,6 +437,21 @@ export async function parseGLB(arrayBuffer) {
                 indices: null,
                 materialIdx: null,
                 indicesCount: null
+            };
+
+            const primitiveIndicesStruct = {
+                positions: [],
+                texCoords: [],
+                normals: [],
+                indices: [],
+                indicesCount: null,
+                materialIdx: null,
+                indexTypeSizeBytes: null,
+                idxType: null,
+                debugVertices: [],
+                verticesSize: 0,
+                vertexOffset: 0,
+                indexOffset: 0
             };
 
             const primitive = mesh.primitives[i];
@@ -409,6 +468,9 @@ export async function parseGLB(arrayBuffer) {
 
             let verticesCount = null;
 
+            primitiveIndicesStruct.vertexOffset = getVertexBufferLength();
+            if (primitiveIndicesStruct.vertexOffset < 0) primitiveIndicesStruct.vertexOffset = 0;
+
             // | Positions
             accessorIndex = primitive.attributes.POSITION;
             accessor = json.accessors[accessorIndex];
@@ -417,6 +479,8 @@ export async function parseGLB(arrayBuffer) {
             vertexElements = getVertexElementsFromGLB(accessor.type);
             verticesCount = vertexElements * accessor.count;
             primitiveStruct.positions = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            primitiveIndicesStruct.verticesSize += primitiveStruct.positions.length;
+            meshVerticesLength += primitiveStruct.positions.length;
 
             // | UV's
             accessorIndex = primitive.attributes.TEXCOORD_0;
@@ -426,6 +490,8 @@ export async function parseGLB(arrayBuffer) {
             vertexElements = getVertexElementsFromGLB(accessor.type);
             verticesCount = vertexElements * accessor.count;
             primitiveStruct.texCoords = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            primitiveIndicesStruct.verticesSize += primitiveStruct.texCoords.length;
+            meshVerticesLength += primitiveStruct.texCoords.length;
 
             // | Normals
             accessorIndex = primitive.attributes.NORMAL;
@@ -435,6 +501,37 @@ export async function parseGLB(arrayBuffer) {
             vertexElements = getVertexElementsFromGLB(accessor.type);
             verticesCount = vertexElements * accessor.count;
             primitiveStruct.normals = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            primitiveIndicesStruct.verticesSize += primitiveStruct.normals.length;
+            meshVerticesLength += primitiveStruct.normals.length;
+
+
+            const vertexIterationSize = Math.max(
+                primitiveStruct.positions.length,
+                primitiveStruct.texCoords.length,
+                primitiveStruct.normals.length
+            );
+            
+            // ** here we interleave our vertex buffer
+
+            let vertexUVSize = 0;
+            for (let i=0; i<vertexIterationSize; i+=3) {
+
+                for (let j=i; j<i+3; j++) {
+                    primitiveIndicesStruct.positions.push(updateVertexBuffer(primitiveStruct.positions[j]));
+                }
+
+                for (let j = vertexUVSize; j < vertexUVSize+2; j++) {
+                    primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveStruct.texCoords[vertexUVSize]));
+                }
+
+                vertexUVSize+=2;
+
+                for (let j=i; j<i+3; j++) {
+                    primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveStruct.normals[j]));
+                }
+            }
+
+
 
             // | Indices
             accessorIndex = primitive.indices;
@@ -443,18 +540,41 @@ export async function parseGLB(arrayBuffer) {
             finalByteOffset = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
             vertexElements = getVertexElementsFromGLB(accessor.type);
             verticesCount = accessor.count;
-            primitiveStruct.indicesCount = accessor.count;
-
+            meshIndexLength += accessor.count;
+            
             primitiveStruct.indices = getTypedArrayFromGLB(accessor.componentType, binBuffer, finalByteOffset, verticesCount);
+            primitiveIndicesStruct.indicesCount = primitiveStruct.indices.length;
 
-            primitiveStruct.materialIdx = primitive.material;
+            const idxType = primitive.indices.constructor.name;
 
+            primitiveIndicesStruct.indexTypeSizeBytes = 4;
+
+            primitiveIndicesStruct.idxType = idxType;
+            
+            for (const e of primitiveStruct.indices) {
+                const index = e + (globalIndicesOffset);
+                primitiveIndicesStruct.indices.push(updateIndexBuffer(index));
+            }
+
+            primitiveIndicesStruct.materialIdx = primitive.material;
+            debugVertexParse(primitiveStruct, primitiveIndicesStruct, aabbMin, aabbMax, normalLength);
+
+            primitiveIndicesStruct.indexOffset = m_indexOffset;
             primitives.push(primitiveStruct);
-        }
+            primitivesGlobalIndices.push(primitiveIndicesStruct);
+            
+            globalIndicesOffset += meshVerticesLength;
 
-        meshes.push(createGLBMesh(primitives, getDevice()));
+            m_indexOffset += primitiveStruct.indices.length;
+
+            
+        }
+        
+        meshes.push(createGLBMesh(primitives, getDevice(), primitivesGlobalIndices, meshVerticesLength, meshIndexLength, 
+        aabbMin, aabbMax, m_debugVertexCount));
 
     }
+
 
     return {
         meshes: meshes,
@@ -462,6 +582,36 @@ export async function parseGLB(arrayBuffer) {
         binBuffer: binBuffer,
         textureCount: textureCount
     };
+}
+
+
+export function debugVertexParse(primitiveStruct, primitiveIndicesStruct, aabbMin, aabbMax, normalLength) {
+    // | debug stuff
+    const vertexIterationLength = Math.max(primitiveStruct.positions.length,
+                                            primitiveStruct.texCoords.length, 
+                                            primitiveStruct.normals.length
+    );
+    const vertexIterationStride = 3; 
+    for (let i = 0; i < vertexIterationLength; i += vertexIterationStride) {
+        let aabbIdx = 0;
+        // | Positions
+        for (let j = i; j < (i+3); j++) {
+            const pos = primitiveStruct.positions[j]
+            // | AABB
+            aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
+            aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
+            aabbIdx++;
+
+            primitiveIndicesStruct.debugVertices = updateDebugVertexBuffer(primitiveStruct.positions[j]);
+            m_debugVertexCount++;
+        }
+
+        // | Normals
+        for (let j = i; j < (i+3); j++) {
+            primitiveIndicesStruct.debugVertices = updateDebugVertexBuffer((primitiveStruct.positions[j] + primitiveStruct.normals[j]) * normalLength);
+            m_debugVertexCount++;
+        }
+    }      
 }
 
 function getVertexElementsFromGLB(type) {

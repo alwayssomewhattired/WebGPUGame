@@ -8,16 +8,11 @@ import { Entity, getEntityModelMatricesCount } from '../SceneLogic/entity.js';
 import { getMatrix } from '../SceneLogic/matrix.js';
 import { createRotationArcHeadVertices, createRotationArcVertices } from '../SceneLogic/transformGizmo.js';
 import { generateUVSphere } from '../SceneLogic/light.js';
+import { getVertexBuffer } from '../SceneLogic/Buffers/vertexBuffer.js';
+import { getFuckyouIndexBuffer, getIndexBuffer } from '../SceneLogic/Buffers/indexBuffer.js';
+import { getDebugVertexBuffer } from '../SceneLogic/Buffers/debugVertexBuffer.js';
 
-let m_axisArrowsBuffer = null;
-let m_rotationArcVerticesBuffer = null;
-let m_rotationArcHeadVerticesBuffer = null;
-let m_sphereVerticesBuffer = null;
 
-const m_aabbColor = new Float32Array([1.0, 1.0, 0.0]);
-const m_rayColor = new Float32Array([ 0.0, 1.0, 1.0]);
-let m_aabbPositionBuffer = null;
-let m_aabbVerticesLength = null;
 
 export function createGPUBuffer(device, CPUBuffer, bufferBytes, usage) {
     const bufferDesc = {
@@ -50,6 +45,111 @@ export function createGPUBuffer(device, CPUBuffer, bufferBytes, usage) {
     return gpuBuffer;
 
 }
+
+export function updateDynamicGPUBuffer(mesh, buffer) {
+    // if (mesh.isDirty) {
+
+        const modelMatrix = getMatrix(mesh.modelMatrixIdx)
+        const aabbModelMatrix = getMatrix(mesh.aabbModelIdx);
+        const axisArrowsModelMatrix = getMatrix(mesh.axisArrowsModelIdx);
+        const axisArrowsAABBModelMatrix = getMatrix(mesh.axisArrowsAABBModelIdx);
+        const rotationArcModelMatrix = getMatrix(mesh.rotationArcModelIdx);
+        const rotationArcHeadModelMatrix = getMatrix(mesh.rotationArcHeadModelIdx);
+        const modelViewMatrix = getMatrix(mesh.modelViewIdx);
+        const normalMatrix = getMatrix(mesh.normalMatrixIdx);
+        
+        const alignedSizeBase = getAlignedSize(64);
+        // console.log(mesh.idx)
+        let offset = alignedSizeBase * ((mesh.idx * getEntityModelMatricesCount()) + (mesh.idx || 1));
+        
+        getDevice().queue.writeBuffer(buffer, offset, modelMatrix);
+        offset += alignedSizeBase;
+        getDevice().queue.writeBuffer(buffer, offset, aabbModelMatrix);
+        offset += alignedSizeBase;
+        getDevice().queue.writeBuffer(buffer, offset, axisArrowsModelMatrix);
+        offset += alignedSizeBase;
+        getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix);
+        offset += alignedSizeBase;
+        getDevice().queue.writeBuffer(buffer, offset, rotationArcModelMatrix);
+        offset += alignedSizeBase;
+        getDevice().queue.writeBuffer(buffer, offset, rotationArcHeadModelMatrix);
+        offset += alignedSizeBase;
+        getDevice().queue.writeBuffer(buffer, offset, modelViewMatrix);
+        offset += alignedSizeBase;
+        getDevice().queue.writeBuffer(buffer, offset, normalMatrix);
+        mesh.isDirty = false;
+
+}
+
+export function getAlignedSize(objectUniformSize) {
+    const alignment = getDevice().limits.minUniformBufferOffsetAlignment;
+    return Math.ceil(objectUniformSize / alignment) * alignment;
+}
+
+
+
+
+////////////////////////////
+
+
+
+let gpuVertexBuffer = null;
+
+export function createGPUVertexBuffer() {
+    const vertexBuffer = getVertexBuffer();
+    console.log(vertexBuffer);
+    gpuVertexBuffer = createGPUBuffer(getDevice(), vertexBuffer, vertexBuffer.byteLength, GPUBufferUsage.VERTEX);
+}
+
+export function getGPUVertexBuffer() {
+    return gpuVertexBuffer;
+}
+
+let gpuIndexBuffer = null;
+
+export function createGPUIndexBuffer() {
+    // const indexBuffer = getIndexBuffer();
+    const indexBuffer = getIndexBuffer();
+    console.log(indexBuffer);
+    // gpuIndexBuffer = createGPUBuffer(getDevice(), indexBuffer, indexBuffer.byteLength, GPUBufferUsage.INDEX);
+    gpuIndexBuffer = createGPUBuffer(getDevice(), indexBuffer, indexBuffer.byteLength, GPUBufferUsage.INDEX);
+
+}
+
+export function getGPUIndexBuffer() {
+    return gpuIndexBuffer;
+}
+
+
+let gpuDebugVertexBuffer = null;
+
+export function createGPUDebugVertexBuffer() {
+    const debugVertexBuffer = getDebugVertexBuffer();
+    gpuDebugVertexBuffer = createGPUBuffer(getDevice(), debugVertexBuffer, debugVertexBuffer.byteLength, GPUBufferUsage.VERTEX);
+}
+
+export function getGPUDebugVertexBuffer() {
+    return gpuDebugVertexBuffer;
+}
+
+
+
+
+//////////////
+
+
+
+let m_axisArrowsBuffer = null;
+let m_rotationArcVerticesBuffer = null;
+let m_rotationArcHeadVerticesBuffer = null;
+let m_sphereVerticesBuffer = null;
+
+const m_aabbColor = new Float32Array([1.0, 1.0, 0.0]);
+const m_rayColor = new Float32Array([ 0.0, 1.0, 1.0]);
+let m_aabbPositionBuffer = null;
+let m_aabbVerticesLength = null;
+
+
 
 // arrow pointing to +X
 export function getAxisArrowsVerticesGPUBuffer() {
@@ -130,44 +230,4 @@ export function getAABBPositionGPUBuffer(positions) {
 export function getAABBVerticesLength() {
     if (!m_aabbVerticesLength) getAABBGizmoPositionGPUBuffer();
     return m_aabbVerticesLength;
-}
-
-export function updateDynamicGPUBuffer(mesh, buffer) {
-    // if (mesh.isDirty) {
-
-        const modelMatrix = getMatrix(mesh.modelMatrixIdx)
-        const aabbModelMatrix = getMatrix(mesh.aabbModelIdx);
-        const axisArrowsModelMatrix = getMatrix(mesh.axisArrowsModelIdx);
-        const axisArrowsAABBModelMatrix = getMatrix(mesh.axisArrowsAABBModelIdx);
-        const rotationArcModelMatrix = getMatrix(mesh.rotationArcModelIdx);
-        const rotationArcHeadModelMatrix = getMatrix(mesh.rotationArcHeadModelIdx);
-        const modelViewMatrix = getMatrix(mesh.modelViewIdx);
-        const normalMatrix = getMatrix(mesh.normalMatrixIdx);
-        
-        const alignedSizeBase = getAlignedSize(64);
-        // console.log(mesh.idx)
-        let offset = alignedSizeBase * ((mesh.idx * getEntityModelMatricesCount()) + (mesh.idx || 1));
-        
-        getDevice().queue.writeBuffer(buffer, offset, modelMatrix);
-        offset += alignedSizeBase;
-        getDevice().queue.writeBuffer(buffer, offset, aabbModelMatrix);
-        offset += alignedSizeBase;
-        getDevice().queue.writeBuffer(buffer, offset, axisArrowsModelMatrix);
-        offset += alignedSizeBase;
-        getDevice().queue.writeBuffer(buffer, offset, axisArrowsAABBModelMatrix);
-        offset += alignedSizeBase;
-        getDevice().queue.writeBuffer(buffer, offset, rotationArcModelMatrix);
-        offset += alignedSizeBase;
-        getDevice().queue.writeBuffer(buffer, offset, rotationArcHeadModelMatrix);
-        offset += alignedSizeBase;
-        getDevice().queue.writeBuffer(buffer, offset, modelViewMatrix);
-        offset += alignedSizeBase;
-        getDevice().queue.writeBuffer(buffer, offset, normalMatrix);
-        mesh.isDirty = false;
-
-}
-
-export function getAlignedSize(objectUniformSize) {
-    const alignment = getDevice().limits.minUniformBufferOffsetAlignment;
-    return Math.ceil(objectUniformSize / alignment) * alignment;
 }

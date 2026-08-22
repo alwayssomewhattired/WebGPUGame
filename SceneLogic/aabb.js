@@ -5,6 +5,8 @@ import { getDevice } from "../Renderer/webgpu.js";
 import { createGPUBuffer } from "../Renderer/buffer.js";
 import { gizmoPositionsCPUBuffer } from "./transformGizmo.js";
 
+// aabb is per entity
+
 let m_aabbGizmoPositionsGPUBuffer = null;
 
 export function getAABBGizmoPositionsGPUBuffer() {
