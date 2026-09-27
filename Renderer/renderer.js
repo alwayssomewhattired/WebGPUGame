@@ -76,45 +76,10 @@ export function render() {
             
             if (entity.fileExt === 'glb') {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
                 for (const primitive of mesh.primitives) {
                     passEncoder.setBindGroup(1, uniformBindGroup, [offset, offset, alignedSize * primitive.globalMaterialIdx]);
                     passEncoder.drawIndexed(primitive.idxSize, 1, primitive.idxOffset);
                 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
             } else {
                 for (const primitive of mesh.primitives) {
@@ -125,8 +90,17 @@ export function render() {
                 passEncoder.draw(mesh.vCount, 1);
                 }
             }
+
+
+
+
+            // DISABLED FOR NOW
+            // WE HAVE MODELMATRICES IN WRONG PLACES
+            // DOES NOT SUPPORT GLOBAL BUFFERS YET
+            // ... at least that's what I think.
+            // debug later i guess
             // - we add 1 because we have a default model matrix
-            offset += alignedSize * (entityMatricesCount + 1);
+            // offset += alignedSize * (entityMatricesCount + 1);
             
         }
         

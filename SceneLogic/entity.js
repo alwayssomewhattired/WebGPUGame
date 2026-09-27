@@ -67,10 +67,10 @@ export function updateEntities() {
     let rotation = null;
     let scale = null;
 
-    // translation = glMatrix.vec3.fromValues(0, 0, 0);
-    // scale = glMatrix.vec3.fromValues(0.1, 0.1, 0.1);
-    // rotation = glMatrix.vec3.fromValues(0, 0, 0);
-    // updateEntity('psx-rat', translation, rotation, scale);
+    translation = glMatrix.vec3.fromValues(0, 0, 0);
+    scale = glMatrix.vec3.fromValues(0.1, 0.1, 0.1);
+    rotation = glMatrix.vec3.fromValues(0, 0, 0);
+    updateEntity('psx-rat', translation, rotation, scale);
 
     // translation = glMatrix.vec3.fromValues(-2, 2, 5);
     // scale = glMatrix.vec3.fromValues(0.01, 0.01, 0.01);
@@ -87,9 +87,9 @@ export function updateEntities() {
     // rotation = glMatrix.vec3.fromValues(0, 4.5, 0);
     // updateEntity('pizzeria', translation, rotation, scale);
 
-    translation = glMatrix.vec3.fromValues(8, 0, -10);
-    scale = glMatrix.vec3.fromValues(5.0, 5.0, 5.0);
-    rotation = glMatrix.vec3.fromValues(0, 0, 0);
-    updateEntity('pyramid_head', translation, rotation, scale);
+    // translation = glMatrix.vec3.fromValues(8, 0, -10);
+    // scale = glMatrix.vec3.fromValues(5.0, 5.0, 5.0);
+    // rotation = glMatrix.vec3.fromValues(0, 0, 0);
+    // updateEntity('pyramid_head', translation, rotation, scale);
 
 }

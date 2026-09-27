@@ -10,7 +10,7 @@ import { getMatrix, getViewMatrix, getProjectionMatrix } from '../SceneLogic/mat
 import { getCameraPosition } from '../SceneLogic/camera.js';
 import { directionLightBuffer, pointLightsData, createDirectionLightBuffer, pointLightBuffer, createPointLightBuffer, createDebugLightBuffer, debugLightBuffer } from '../SceneLogic/light.js';
 import { toggleDirectionLight } from '../keyboardListeners.js';
-import { parseTexturesFromOBJ, sampler, textureCount } from '../Asset_Manager/texture.js';
+import { sampler, textureCount } from '../Asset_Manager/texture.js';
 import {textureCount as ext_textureCount } from '../Asset_Manager/texture.js'
 
 let m_rayModelMatrixUBO = null;
@@ -75,6 +75,7 @@ export function createMegaMatrixUBO(scene) {
 
     let meshCount = 0;
     for (const entity of scene) {
+        console.log(entity)
         meshCount += entity.meshes.length;
     }
 

@@ -20,6 +20,37 @@ export function getIndexBuffer() {
     return indexBuffer;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const fuckyouIndexBuffer = [];
 
 export function getFuckyouIndexBuffer() {
