@@ -1,11 +1,13 @@
 import { updateVertexBuffer } from "../SceneLogic/Buffers/vertexBuffer.js";
 import { createMesh } from "../SceneLogic/mesh.js";
 import { Primitive } from "../SceneLogic/primitive.js";
-
-
+import { getDevice } from "../Renderer/webgpu.js";
+import { debugVertexParse } from "./fileParser.js";
 
 
 const m_vertexMap = new Map();
+let m_debugVertexCount = 0;
+
 // return an array of models
 export async function parseOBJ(path) {
     const text = await (await fetch(path)).text();
@@ -14,10 +16,15 @@ export async function parseOBJ(path) {
     // replace all this shit with only primitive stuff. 
     // upload to global buffers and just keep indices
 
+    const globalizedPrimitiveIndicesAOS = [];
+
     const entityPositions = [];
     const entityTexcoords = [];
     const entityNormals = [];
     
+    const aabbMin = Array(3).fill(null);
+    const aabbMax = Array(3).fill(null);
+
     const meshes = [];
     const meshesAOS = [];
     const meshPositions = [];
@@ -32,8 +39,6 @@ export async function parseOBJ(path) {
     let materialName = null;
     let meshName = null;
 
-
-    const primitives = [];
     let primitivePositions = [];
     let primitiveTexcoords = [];
     let primitiveNormals = [];
@@ -79,14 +84,14 @@ export async function parseOBJ(path) {
                 const materialPath = modifiedPath + '/' + mtlName;
                 const mtlResponse = await fetch(materialPath);
                 const mtlText     = await mtlResponse.text();
-                console.log(mtlResponse)
                 entityMaterials.push(parseMTL(mtlText, materialPath));
+                break;
 
             // new primitive
             case "usemtl": 
                 materialName = parts[1];
                 
-                primitives.push(primitiveIndicesStruct);
+                globalizedPrimitiveIndicesAOS.push(primitiveIndicesStruct);
                 meshPrimitives.push(primitiveIndicesStruct);
 
                 primitiveIndicesStruct = {
@@ -109,11 +114,12 @@ export async function parseOBJ(path) {
                 primitiveTexcoords = []
                 primitiveNormals = [];
                 primitiveVertices = [];
+                break;
 
                 // const materialPath = path + materialName;
                 // console.log(materialPath);
 
-
+            // "o" | start of new object
             case "o": 
                 if (meshVertices.length > 0) {
                     meshesAOS.push({
@@ -139,13 +145,38 @@ export async function parseOBJ(path) {
 
                 }
                 meshName = parts[1];
+                break;
+
+            // "g" | start of new group
+            case "g":
+                console.log("its a g thang")
+                if (meshVertices.length > 0) {
+                    meshesAOS.push({
+                        meshPositions,
+                        meshTexcoords,
+                        meshNormals,
+                        meshVertices,
+                        meshName,
+                        meshPrimitives
+                    });
+                    meshPositions = [];
+                    meshTexcoords = [];
+                    meshNormals = [];
+                    meshVertices = [];
+                    meshName = null;
+                    meshPrimitives = [];
+
+
+                    primitivePositions = [];
+                    primitiveTexcoords = [];
+                    primitiveNormals = [];
+                    primitiveVertices = [];
+
+                }
+                meshName = parts[1];
+                break;
 
             case "v":
-                // entityPositions.push(
-                //     parseFloat(parts[1]),
-                //     parseFloat(parts[2]),
-                //     parseFloat(parts[3])
-                // );
                 meshPositions.push(
                     parseFloat(parts[1]),
                     parseFloat(parts[2]),
@@ -159,10 +190,6 @@ export async function parseOBJ(path) {
                 break;
 
             case "vt": 
-                // entityTexcoords.push(
-                //     parseFloat(parts[1]),
-                //     parseFloat(parts[2])
-                // );
                 meshTexcoords.push(
                     parseFloat(parts[1]),
                     parseFloat(parts[2])
@@ -174,11 +201,6 @@ export async function parseOBJ(path) {
                 break;
 
             case "vn":
-                // entityNormals.push(
-                //     parseFloat(parts[1]),
-                //     parseFloat(parts[2]),
-                //     parseFloat(parts[3])
-                // );
                 meshNormals.push(
                     parseFloat(parts[1]),
                     parseFloat(parts[2]),
@@ -192,143 +214,29 @@ export async function parseOBJ(path) {
                 break;
 
             case "f":
-                // const primitiveStruct = {
-                //     positions: null,
-                //     texCoords: null,
-                //     normals: null,
-                //     indices: null,
-                //     materialIdx: null,
-                //     indicesCount: null
-                // };
-            
-                // const primitiveIndicesStruct = {
-                //     positions: [],
-                //     texCoords: [],
-                //     normals: [],
-                //     indices: [],
-                //     indicesCount: null,
-                //     materialIdx: null,
-                //     indexTypeSizeBytes: null,
-                //     idxType: null,
-                //     debugVertices: [],
-                //     verticesSize: 0,
-                //     vertexOffset: 0,
-                //     indexOffset: 0
-                // };
-                
-                let positionIndex = null;
-                let texcoordsIndex = null;
-                let normalIndex = null;
-                for (let i=1; i<parts.length; i++) {
-                    const face = parts[i];
-                    if (!m_vertexMap.has(face)) {
-                        const faceIndices = face.split("/");
-                        if (faceIndices.length > 3) {
-                            const verts = fanTriangulation(faceIndices);
-                            for (let i=0; i<verts.length; i+=3) {
-                                positionIndex = verts[i];
-                                texcoordsIndex = verts[i+1];
-                                normalIndex = verts[i+2];
+                parseOBJFace(parts, meshVertices, meshPositions, meshNormals, meshTexcoords, primitiveIndicesStruct,
+                    primitivePositions, primitiveTexcoords, primitiveNormals, meshIndices, aabbMin, aabbMax
+                );
 
-                                // entityVertices.push(
-                                //     positions[positionIndex * 3],
-                                //     positions[positionIndex * 3 + 1],
-                                //     positions[positionIndex * 3 + 2],
-
-                                //     texcoords[texcoordsIndex * 3],
-                                //     texcoords[texcoordsIndex * 3 + 1],
-
-                                //     normals[normalIndex * 3],
-                                //     normals[normalIndex * 3 + 1],
-                                //     normals[normalIndex * 3 + 2]
-                                // );
-                                meshVertices.push(
-                                    meshPositions[positionIndex * 3],
-                                    meshPositions[positionIndex * 3 + 1],
-                                    meshPositions[positionIndex * 3 + 2],
-
-                                    meshTexcoords[texcoordsIndex * 3],
-                                    meshTexcoords[texcoordsIndex * 3 + 1],
-
-                                    meshNormals[normalIndex * 3],
-                                    meshNormals[normalIndex * 3 + 1],
-                                    meshNormals[normalIndex * 3 + 2]
-                                );
-                                    
-                                primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3]));
-                                primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3 + 1]));
-                                primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3 + 2]));
-
-                                primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveTexcoords[texcoordsIndex * 3]));
-                                primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveTexcoords[texcoordsIndex * 3 + 1]));
-
-                                primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3]));
-                                primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 1]));
-                                primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 2]));
-
-                                const faceString =        positionIndex + "/"
-                                                        + texcoordsIndex + "/" 
-                                                        + normalIndex 
-                                m_vertexMap.set(faceString, m_vertexMap.size);
-
-                            }
-                        } else {
-                            const [p, t, n] = face.split("/").map(Number);
-                            positionIndex = p - 1;
-                            texcoordsIndex = t - 1;
-                            normalIndex = n - 1;
-
-                            // entityVertices.push(
-                            //     positions[positionIndex * 3],
-                            //     positions[positionIndex * 3 + 1],
-                            //     positions[positionIndex * 3 + 2],
-                        
-                            //     texcoords[texcoordsIndex * 3],
-                            //     texcoords[texcoordsIndex * 3 + 1],
-                        
-                            //     normals[normalIndex * 3],
-                            //     normals[normalIndex * 3 + 1],
-                            //     normals[normalIndex * 3 + 2]
-                            // );
-                            meshVertices.push(
-                                meshPositions[positionIndex * 3],
-                                meshPositions[positionIndex * 3 + 1],
-                                meshPositions[positionIndex * 3 + 2],
-
-                                meshTexcoords[texcoordsIndex * 3],
-                                meshTexcoords[texcoordsIndex * 3 + 1],
-
-                                meshNormals[normalIndex * 3],
-                                meshNormals[normalIndex * 3 + 1],
-                                meshNormals[normalIndex * 3 + 2]
-                            );
-
-                            primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3]));
-                            primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3 + 1]));
-                            primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3 + 2]));
-
-                            primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveTexcoords[texcoordsIndex * 3]));
-                            primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveTexcoords[texcoordsIndex * 3 + 1]));
-
-                            primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3]));
-                            primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 1]));
-                            primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 2]));
-                        
-                            m_vertexMap.set(face, m_vertexMap.size);
-                        }
-
-                    }
-                    const index = m_vertexMap.get(face);
-                    meshIndices.push(index);
-                    primitiveIndicesStruct.indices.push(index);
-                }
+                break;
 
             }
         }
 
+        // | this catches the last object
+    meshesAOS.push({
+        meshPositions,
+        meshTexcoords,
+        meshNormals,
+        meshVertices,
+        meshName,
+        meshPrimitives
+    });
+
     for (const mesh of meshesAOS) {
         const meshVertexFloatsLength = 0;
-        meshes.push(createMesh(null, getDevice(), primitives, meshVertexFloatsLength));
+        meshes.push(createMesh(null, getDevice(), globalizedPrimitiveIndicesAOS, meshVertexFloatsLength, 
+        meshIndices.length, aabbMin, aabbMax, m_debugVertexCount, "name is broken fix it fuck you"));
     }
 
     // models.push({
@@ -338,11 +246,93 @@ export async function parseOBJ(path) {
     //     vertices: modelVertices,
     //     modelName: modelName
     // });
+
+    console.log(meshVertices);
+    console.log(meshesAOS)
+    console.log(meshes);
     const returnObject = {
         meshes: meshes,
         materials: entityMaterials
     }
     return returnObject;
+}
+
+function parseOBJFace(fileParts, meshVertices, meshPositions, meshNormals, meshTexcoords, primitiveIndicesStruct,
+    primitivePositions, primitiveTexcoords, primitiveNormals, meshIndices, aabbMin, aabbMax
+) {
+    let positionIndex = null;
+    let texcoordsIndex = null;
+    let normalIndex = null;
+    for (let i=1; i<fileParts.length; i++) {
+        const face = fileParts[i];
+        if (!m_vertexMap.has(face)) {
+            const faceIndices = face.split("/");
+            if (faceIndices.length > 3) {
+                const verts = fanTriangulation(faceIndices);
+                for (let i=0; i<verts.length; i+=3) {
+                    positionIndex = verts[i];
+                    texcoordsIndex = verts[i+1];
+                    normalIndex = verts[i+2];   
+                    meshVertices.push(
+                        meshPositions[positionIndex * 3],
+                        meshPositions[positionIndex * 3 + 1],
+                        meshPositions[positionIndex * 3 + 2],   
+                        meshTexcoords[texcoordsIndex * 3],
+                        meshTexcoords[texcoordsIndex * 3 + 1],  
+                        meshNormals[normalIndex * 3],
+                        meshNormals[normalIndex * 3 + 1],
+                        meshNormals[normalIndex * 3 + 2]
+                    );
+
+                    primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3]));
+                    primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3 + 1]));
+                    primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3 + 2]));   
+                    primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveTexcoords[texcoordsIndex * 3]));
+                    primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveTexcoords[texcoordsIndex * 3 + 1]));  
+                    primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3]));
+                    primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 1]));
+                    primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 2])); 
+                    const faceString =        positionIndex + "/"
+                                            + texcoordsIndex + "/" 
+                                            + normalIndex 
+                    m_vertexMap.set(faceString, m_vertexMap.size);  
+                }
+            } else {
+                const [p, t, n] = face.split("/").map(Number);
+                positionIndex = p - 1;
+                texcoordsIndex = t - 1;
+                normalIndex = n - 1;    
+
+                meshVertices.push(
+                    meshPositions[positionIndex * 3],
+                    meshPositions[positionIndex * 3 + 1],
+                    meshPositions[positionIndex * 3 + 2],   
+                    meshTexcoords[texcoordsIndex * 3],
+                    meshTexcoords[texcoordsIndex * 3 + 1],  
+                    meshNormals[normalIndex * 3],
+                    meshNormals[normalIndex * 3 + 1],
+                    meshNormals[normalIndex * 3 + 2]
+                );  
+                primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3]));
+                primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3 + 1]));
+                primitiveIndicesStruct.positions.push(updateVertexBuffer(primitivePositions[positionIndex * 3 + 2]));   
+                primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveTexcoords[texcoordsIndex * 3]));
+                primitiveIndicesStruct.texCoords.push(updateVertexBuffer(primitiveTexcoords[texcoordsIndex * 3 + 1]));  
+                primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3]));
+                primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 1]));
+                primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 2]));
+            
+                m_vertexMap.set(face, m_vertexMap.size);
+            }   
+        }
+        const index = m_vertexMap.get(face);
+        meshIndices.push(index);
+        primitiveIndicesStruct.indices.push(index);
+
+        debugVertexParse(null, primitiveIndicesStruct, aabbMin, aabbMax, 2.0, primitivePositions, primitiveTexcoords,
+            primitiveNormals
+        )
+    }
 }
 
 

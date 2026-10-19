@@ -38,7 +38,7 @@ export const sceneNameToIndexMap = new Map([
 let m_entityIdx = 0;
 let m_meshIdx = 0;
 export async function createEntity(arrayBuffer, path) {
-    let entityMeshes = null;
+    let entityMeshes = [];
     let json = null;
     let binBuffer = null;
     let materials = null;
@@ -58,7 +58,10 @@ export async function createEntity(arrayBuffer, path) {
         const meshes = models.meshes;
         materials = models.materials;
         for (const mesh of meshes) {
-            entityMeshes.push(createMesh(mesh, device));
+            console.log(mesh)
+            entityMeshes.push(mesh);
+            // entityMeshes.push(createMesh(mesh, device));
+
         }
         // const objBody = await arrayBuffer.text();
         // const obj = await (async () => {
@@ -434,7 +437,7 @@ export async function parseGLB(arrayBuffer) {
         }
         
         meshes.push(createMesh(primitives, getDevice(), primitivesGlobalIndices, meshVertexFloatsLength, meshIndexLength, 
-        aabbMin, aabbMax, m_debugVertexCount, aabbMin, aabbMax, normalLength));
+        aabbMin, aabbMax, m_debugVertexCount, "name is broken fix it fuck you"));
 
     }
 
@@ -593,33 +596,46 @@ function extractPrimitiveFromMeshGlB(glbMesh, meshVertexFloatsLength,
 
 
 
-export function debugVertexParse(primitiveStruct, primitiveIndicesStruct, aabbMin, aabbMax, normalLength) {
+export function debugVertexParse(primitiveStruct, primitiveIndicesStruct, aabbMin, aabbMax, normalLength=2.0,
+    primitivePositions, primitiveTexCoords, primitiveNormals
+) {
+
+    let positions = null;
+    let texCoords = null;
+    let normals = null;
+
+
+    if (primitiveStruct != null) {
+        positions = primitiveStruct.positions;
+        texCoords = primitiveStruct.texCoords;
+        normals = primitiveStruct.normals;
+    } else {
+        positions = primitivePositions;
+        texCoords = primitiveTexCoords;
+        normals = primitiveNormals;
+    }
+
     // | debug stuff
-    const vertexIterationLength = Math.max(primitiveStruct.positions.length,
-                                            primitiveStruct.texCoords.length, 
-                                            primitiveStruct.normals.length
-    );
+    const vertexIterationLength = Math.max(positions.length, texCoords.length, normals.length);
     const vertexIterationStride = 3; 
     for (let i = 0; i < vertexIterationLength; i += vertexIterationStride) {
         let aabbIdx = 0;
         // | Positions
         for (let j = i; j < (i+3); j++) {
-            const pos = primitiveStruct.positions[j]
+            const pos = positions[j]
             // | AABB
             aabbMin[aabbIdx] = Math.min(pos, aabbMin[aabbIdx]);
             aabbMax[aabbIdx] = Math.max(pos, aabbMax[aabbIdx]);
             aabbIdx++;
-
-            primitiveIndicesStruct.debugVertices = updateDebugVertexBuffer(primitiveStruct.positions[j]);
+            primitiveIndicesStruct.debugVertices = updateDebugVertexBuffer(positions[j]);
             m_debugVertexCount++;
         }
-
         // | Normals
         for (let j = i; j < (i+3); j++) {
-            primitiveIndicesStruct.debugVertices = updateDebugVertexBuffer((primitiveStruct.positions[j] + primitiveStruct.normals[j]) * normalLength);
+            primitiveIndicesStruct.debugVertices = updateDebugVertexBuffer((positions[j] + normals[j]) * normalLength);
             m_debugVertexCount++;
         }
-    }      
+    }
 }
 
 function getVertexElementsFromGLB(type) {
