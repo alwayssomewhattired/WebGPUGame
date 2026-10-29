@@ -17,22 +17,22 @@ import { updateDebugVertexBuffer } from '../SceneLogic/Buffers/debugVertexBuffer
 import { parseOBJ } from './objFileParser.js';
 
 export const filePaths = [
-    ZACH_GAME_PATH + '/models/psx-rat/source/rat.obj',
+    // ZACH_GAME_PATH + '/models/psx-rat/source/rat.obj',
     // ZACH_GAME_PATH + '/models/stop-sign-psx/source/stop-sign.obj',
     // | sadly no pizzeria yet :(
     // | I think file exported wrong
     // | Need to check in blender first
-    // ZACH_GAME_PATH + '/models/psx_japanese_warehouse.glb',
+    ZACH_GAME_PATH + '/models/psx_japanese_warehouse.glb',
     // ZACH_GAME_PATH + '/models/pizzeria.glb'
-    // ZACH_GAME_PATH + '/models/pyramid_head.glb'
+    ZACH_GAME_PATH + '/models/pyramid_head.glb'
 ];
 
 export const sceneNameToIndexMap = new Map([
-    ["rat", 0],
+    // ["rat", 0],
     // ['stop-sign', 1],
-    // ['jap-warehouse', 2],
+    ['jap-warehouse', 2],
     // ['pizzeria', 3]
-    // ['pyramid-head', 3]
+    ['pyramid-head', 3]
 ]);
 
 let m_entityIdx = 0;
@@ -43,25 +43,27 @@ export async function createEntity(arrayBuffer, path) {
     let binBuffer = null;
     let materials = null;
     const device = getDevice();
+    let meshes = null;
 
     let result = null;
     let mtlBody = null;
     const extension = path.split('.').pop();
     if (extension === "glb") {
-        const glbReturn = await parseGLB(arrayBuffer); 
+        const glbReturn = await parseGLB(arrayBuffer);
+        console.log(glbReturn.meshes);
         meshes = glbReturn.meshes;
+        for (const mesh of meshes) entityMeshes.push(mesh);
         json = glbReturn.json;
         binBuffer = glbReturn.binBuffer;
         globalTextureCountIncrement(json.textures.length);
     } else {
         const models = await parseOBJ(path);
-        const meshes = models.meshes;
+        meshes = models.meshes;
         materials = models.materials;
         for (const mesh of meshes) {
             console.log(mesh)
             entityMeshes.push(mesh);
             // entityMeshes.push(createMesh(mesh, device));
-
         }
         // const objBody = await arrayBuffer.text();
         // const obj = await (async () => {

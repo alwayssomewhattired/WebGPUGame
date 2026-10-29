@@ -91,6 +91,8 @@ export async function parseOBJ(path) {
             case "usemtl": 
                 materialName = parts[1];
                 
+                if (!primitiveIndicesStruct.indices.length) break;
+
                 globalizedPrimitiveIndicesAOS.push(primitiveIndicesStruct);
                 meshPrimitives.push(primitiveIndicesStruct);
 
@@ -149,7 +151,6 @@ export async function parseOBJ(path) {
 
             // "g" | start of new group
             case "g":
-                console.log("its a g thang")
                 if (meshVertices.length > 0) {
                     meshesAOS.push({
                         meshPositions,
@@ -217,13 +218,16 @@ export async function parseOBJ(path) {
                 parseOBJFace(parts, meshVertices, meshPositions, meshNormals, meshTexcoords, primitiveIndicesStruct,
                     primitivePositions, primitiveTexcoords, primitiveNormals, meshIndices, aabbMin, aabbMax
                 );
-
                 break;
 
             }
         }
 
         // | this catches the last object
+        
+    globalizedPrimitiveIndicesAOS.push(primitiveIndicesStruct);
+    meshPrimitives.push(primitiveIndicesStruct);
+
     meshesAOS.push({
         meshPositions,
         meshTexcoords,
@@ -235,6 +239,7 @@ export async function parseOBJ(path) {
 
     for (const mesh of meshesAOS) {
         const meshVertexFloatsLength = 0;
+        console.log(globalizedPrimitiveIndicesAOS)
         meshes.push(createMesh(null, getDevice(), globalizedPrimitiveIndicesAOS, meshVertexFloatsLength, 
         meshIndices.length, aabbMin, aabbMax, m_debugVertexCount, "name is broken fix it fuck you"));
     }
@@ -292,6 +297,7 @@ function parseOBJFace(fileParts, meshVertices, meshPositions, meshNormals, meshT
                     primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3]));
                     primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 1]));
                     primitiveIndicesStruct.normals.push(updateVertexBuffer(primitiveNormals[normalIndex * 3 + 2])); 
+
                     const faceString =        positionIndex + "/"
                                             + texcoordsIndex + "/" 
                                             + normalIndex 
